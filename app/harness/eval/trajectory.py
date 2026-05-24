@@ -26,7 +26,7 @@ def extract_tool_names(obj: object) -> set[str]:
     found: set[str] = set()
     if isinstance(obj, dict):
         for key, value in obj.items():
-            if key == "tool_name" and isinstance(value, str):
+            if key in ("tool_name", "tool_called") and isinstance(value, str):
                 found.add(value)
             else:
                 found.update(extract_tool_names(value))

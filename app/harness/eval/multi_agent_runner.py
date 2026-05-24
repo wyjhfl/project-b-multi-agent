@@ -17,6 +17,7 @@ class MultiAgentEvalCase(BaseModel):
     expected_executed_mode: str | None = None
     expected_success: bool = True
     category: str = ""
+    subcategory: str | None = None
     trajectory_expectation: TrajectoryExpectation | None = None
 
 

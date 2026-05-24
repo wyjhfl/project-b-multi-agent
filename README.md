@@ -2,7 +2,11 @@
 
 > **Harness Runtime** + **LangGraph Agent Kernel** + **MCP Tool Gateway** — 生产级运营 Agent 工程化框架
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-370+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v1.1-green)]()
+> **⚠️ 边界说明（请务必阅读）**
+>
+> 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；真实 MCP stdio、真实 LLM-as-Judge、完整 LangGraph checkpoint / interrupt、前端审批 UI 仍在 Roadmap。
+
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-432+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v1.1.1-green)]()
 
 ---
 
@@ -382,7 +386,7 @@ curl -X POST http://localhost:8000/reflection/check \
 python -m pytest -q
 ```
 
-共 **370 个测试**，覆盖全部模块：
+共 **432+ 个测试**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -416,7 +420,8 @@ python -m pytest -q
 | **v0.4** | HITL Approval + Security Gate + Audit | ApprovalStore / ApprovalResumeService（幂等）/ PromptInjectionGuard / OperationWhitelist / AuditRecorder + SQLiteAuditStore |
 | **v0.5** | Runtime Hardening + BadCase Eval + Memory/Skills/Reflection + Persistence + Cost Dashboard | RuntimeMetricsRecorder + SQLiteMetricsStore / 30+ BadCase + FakeJudge / ShortTermMemory + SkillRegistry + SelfCheckEngine / Cost Dashboard API / Runtime Snapshot |
 | **v1.0** | 当前发布，完整工程化框架 | 全部能力稳定交付，370 个测试，生产级工程化框架 |
-| **v1.1** | Credibility & Eval Hardening | 表述对齐（确定性多角色编排 / LangGraph 边界声明）/ TrajectoryEvaluator / Multi-Agent eval 扩展到 24 case / 最小 LangGraph StateGraph 骨架 / eval_report_v1.md |
+| **v1.1** | Credibility & Eval Hardening | 表述对齐（确定性多角色编排 / LangGraph 边界声明）/ TrajectoryEvaluator / Multi-Agent eval 扩展 / 最小 LangGraph StateGraph 骨架 / eval_report_v1.md |
+| **v1.1.1** | Documentation & Eval Precision Cleanup | README/docs 口径统一 / expected_tools 补强 / HITL/Security eval semantic split / RiskIntentGuard / interview_guide / 432+ tests |
 
 ---
 
@@ -534,7 +539,7 @@ project-b-multi-agent/
 │   ├── init_demo_db.py             #   初始化 demo 数据库
 │   ├── start_dev.py                #   开发启动脚本
 │   └── check_health.py             #   健康检查
-├── tests/                          # 测试（370 个）
+├── tests/                          # 测试（432+ 个）
 ├── .github/workflows/ci.yml        # CI 配置
 ├── Dockerfile                      # Docker 镜像
 ├── docker-compose.yml              # Docker Compose
@@ -554,7 +559,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 370 个测试，覆盖全部模块 |
+| **测试** | pytest + httpx | 432+ 个测试，覆盖全部模块 |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---

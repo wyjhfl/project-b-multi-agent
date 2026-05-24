@@ -144,6 +144,85 @@ class TestTrajectoryEvaluator:
         assert result.passed is False
         assert any("critical: 缺少事件" in i for i in result.issues)
 
+    def test_multitool_tool_calls_in_trace(self):
+        events = _make_events(
+            ["multi_agent_started", "coordinator_decided", "executor_completed", "reviewer_completed"],
+            [
+                {},
+                {"selected_mode": "multitool"},
+                {
+                    "success": True,
+                    "executed_mode": "multitool",
+                    "tool_calls": [
+                        {"step_id": "step_rule", "tool_name": "rule_lookup", "success": True},
+                        {"step_id": "step_rate", "tool_name": "get_refund_rate", "success": True},
+                    ],
+                },
+                {"approved": True},
+            ],
+        )
+        exp = TrajectoryExpectation(
+            expected_mode="multitool",
+            expected_tools=["rule_lookup", "get_refund_rate"],
+            expected_events=["multi_agent_started", "executor_completed"],
+            approval_required=False,
+            max_steps=10,
+        )
+        result = self.evaluator.evaluate(events, exp)
+        assert result.passed is True
+        assert "rule_lookup" in result.matched_tools
+        assert "get_refund_rate" in result.matched_tools
+
+    def test_keyword_tool_called_in_trace(self):
+        events = _make_events(
+            ["multi_agent_started", "coordinator_decided", "executor_completed", "reviewer_completed"],
+            [
+                {},
+                {"selected_mode": "keyword"},
+                {"success": True, "executed_mode": "keyword", "tool_called": "date_lookup"},
+                {"approved": True},
+            ],
+        )
+        exp = TrajectoryExpectation(
+            expected_mode="keyword",
+            expected_tools=["date_lookup"],
+            expected_events=["multi_agent_started", "executor_completed"],
+            approval_required=False,
+            max_steps=10,
+        )
+        result = self.evaluator.evaluate(events, exp)
+        assert result.passed is True
+        assert "date_lookup" in result.matched_tools
+
+    def test_gmv_mom_tool_calls_in_trace(self):
+        events = _make_events(
+            ["multi_agent_started", "coordinator_decided", "executor_completed", "reviewer_completed"],
+            [
+                {},
+                {"selected_mode": "multitool"},
+                {
+                    "success": True,
+                    "executed_mode": "multitool",
+                    "tool_calls": [
+                        {"step_id": "step_date", "tool_name": "date_lookup", "success": True},
+                        {"step_id": "step_gmv", "tool_name": "get_today_gmv", "success": True},
+                        {"step_id": "step_calc", "tool_name": "calculator", "success": True},
+                    ],
+                },
+                {"approved": True},
+            ],
+        )
+        exp = TrajectoryExpectation(
+            expected_mode="multitool",
+            expected_tools=["date_lookup", "get_today_gmv", "calculator"],
+            expected_events=["multi_agent_started", "executor_completed"],
+            approval_required=False,
+            max_steps=12,
+        )
+        result = self.evaluator.evaluate(events, exp)
+        assert result.passed is True
+        assert len(result.matched_tools) == 3
+
 
 class TestExtractToolNames:
 
@@ -180,3 +259,33 @@ class TestExtractToolNames:
         }
         result = extract_tool_names(data)
         assert result == {"top_level", "nested_1", "nested_2"}
+
+    def test_multitool_tool_calls_with_step_id(self):
+        data = {
+            "tool_calls": [
+                {"step_id": "step_1", "tool_name": "rule_lookup", "success": True},
+                {"step_id": "step_2", "tool_name": "get_refund_rate", "success": True},
+            ]
+        }
+        result = extract_tool_names(data)
+        assert "rule_lookup" in result
+        assert "get_refund_rate" in result
+
+    def test_tool_called_string(self):
+        data = {"tool_called": "date_lookup", "success": True}
+        result = extract_tool_names(data)
+        assert "date_lookup" in result
+
+    def test_trace_detail_with_tool_called_and_tool_calls(self):
+        data = {
+            "success": True,
+            "executed_mode": "multitool",
+            "tool_called": "rule_lookup",
+            "tool_calls": [
+                {"step_id": "step_1", "tool_name": "rule_lookup"},
+                {"step_id": "step_2", "tool_name": "get_refund_rate"},
+            ],
+        }
+        result = extract_tool_names(data)
+        assert "rule_lookup" in result
+        assert "get_refund_rate" in result
