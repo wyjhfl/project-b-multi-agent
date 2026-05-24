@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pytest
+import asyncio
 
 from app.agent.graph.kernel import AgentKernel
 from app.harness.context.assembler import ContextAssembler
@@ -56,11 +56,14 @@ class TestLangGraphKernelV11:
         summary = kernel.get_graph_summary()
         assert summary["implemented"] is False
 
-    @pytest.mark.asyncio
-    async def test_keyword_api_unchanged(self):
+    def test_keyword_api_unchanged(self):
         from app.models.schemas import TaskRun
         kernel = _make_kernel()
         kernel.build_graph()
         task = TaskRun(task_id="test_v11_keyword", query="今天GMV多少")
-        result = await kernel.run(task)
+        loop = asyncio.new_event_loop()
+        try:
+            result = loop.run_until_complete(kernel.run(task))
+        finally:
+            loop.close()
         assert result.status in ("completed", "failed")
