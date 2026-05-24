@@ -2,7 +2,7 @@
 
 > **Harness Runtime** + **LangGraph Agent Kernel** + **MCP Tool Gateway** — 生产级运营 Agent 工程化框架
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-370-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v1.0-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-370+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v1.1-green)]()
 
 ---
 
@@ -32,6 +32,14 @@
 | **工具网关层** | MCP Tool Gateway | 统一管理本地工具与 MCP 远程工具的注册、发现、调用 |
 
 核心理念：**Harness-native** — 所有 Agent 行为（规划、执行、校验、审批、审计）均通过 Harness Runtime 的五层管线驱动，而非裸调用 LLM。
+
+> **⚠️ 边界说明**
+>
+> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。真实 MCP stdio、真实 LLM-as-Judge、前端审批 UI、完全自治的 LLM 多 Agent 规划属于后续扩展。
+>
+> - Multi-Agent 当前是**确定性多角色编排 / deterministic multi-role orchestration**（Coordinator / Analyst / Executor / Reviewer 规则驱动边界划分），后续可替换为 LLM Planner。
+> - LangGraph 当前 v1.0 以 Harness Runtime 可测试顺序流为主，v1.1 引入最小 LangGraph StateGraph，用于 keyword 主链路验证；完整 checkpoint / interrupt 仍在 Roadmap。
+> - 本项目不是生产环境即插即用系统，不可直接用于生产部署。
 
 ---
 
@@ -130,9 +138,9 @@ Harness Runtime 是整个系统的执行骨架，所有 Agent 行为均通过五
 - **`depends_on` 校验**：每个步骤执行前检查依赖步骤是否已完成，缺失时返回 `missing_depends_on`
 - **`retry_policy`**：`ToolSpec.retry_policy` 支持 `{"max_retries": 2}`，失败时同步重试，记录 `retry_count`
 
-### 5. Multi-Agent Orchestration
+### 5. Multi-Agent Orchestration（确定性多角色编排）
 
-四角色规则型编排，实现查询路由 → 计划分析 → 工具执行 → 结果校验的完整决策链：
+四角色确定性编排（deterministic multi-role orchestration），实现查询路由 → 计划分析 → 工具执行 → 结果校验的完整决策链。当前角色边界划分由规则驱动，后续可替换为 LLM Planner：
 
 | 角色 | 职责 | 输入 | 输出 |
 |------|------|------|------|
@@ -408,6 +416,7 @@ python -m pytest -q
 | **v0.4** | HITL Approval + Security Gate + Audit | ApprovalStore / ApprovalResumeService（幂等）/ PromptInjectionGuard / OperationWhitelist / AuditRecorder + SQLiteAuditStore |
 | **v0.5** | Runtime Hardening + BadCase Eval + Memory/Skills/Reflection + Persistence + Cost Dashboard | RuntimeMetricsRecorder + SQLiteMetricsStore / 30+ BadCase + FakeJudge / ShortTermMemory + SkillRegistry + SelfCheckEngine / Cost Dashboard API / Runtime Snapshot |
 | **v1.0** | 当前发布，完整工程化框架 | 全部能力稳定交付，370 个测试，生产级工程化框架 |
+| **v1.1** | Credibility & Eval Hardening | 表述对齐（确定性多角色编排 / LangGraph 边界声明）/ TrajectoryEvaluator / Multi-Agent eval 扩展到 24 case / 最小 LangGraph StateGraph 骨架 / eval_report_v1.md |
 
 ---
 
@@ -555,10 +564,11 @@ project-b-multi-agent/
 | 方向 | 说明 |
 |------|------|
 | **真实 MCP stdio** | StdioMCPClient 接入真实 MCP Server stdio 协议，替代 FakeMCPClient |
+| **Real LangGraph checkpoint / interrupt** | 完整 LangGraph checkpoint 持久化与 interrupt/resume 机制，替代当前顺序流 |
 | **真实 LLM provider eval** | LiteLLMProvider 接入真实 LLM API，运行完整 NL2SQL / Multi-Agent eval |
 | **前端审批 UI** | 基于 Approval UI API 构建审批交互界面，实现 HITL 完整闭环 |
 | **LLM-as-Judge 实接** | LLMJudgeProvider 接入真实 LLM，替代 FakeJudge 规则打分 |
-| **LLM 自主多 Agent** | 从 rule-based orchestration 升级为 LLM 自主决策的多 Agent 协作 |
+| **LLM 自主多 Agent 规划** | 从确定性多角色编排升级为 LLM 自主决策的多 Agent 协作 |
 | **长期记忆 / 向量库** | 从 ShortTermMemory 升级为持久化 + 向量检索的长期记忆 |
 | **持久化 Skill Learning** | 从规则型 SkillRegistry 升级为可学习、可持久化的技能系统 |
 | **Cost Dashboard 前端** | 基于成本 API 构建可视化看板 |

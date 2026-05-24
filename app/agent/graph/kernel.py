@@ -73,7 +73,80 @@ class AgentKernel:
         self._self_check_engine = engine
 
     def build_graph(self) -> None:
-        pass
+        try:
+            from langgraph.graph import END, START, StateGraph
+
+            def _assemble_context(state: dict) -> dict:
+                state["stage"] = "context_assembled"
+                return state
+
+            def _plan(state: dict) -> dict:
+                state["stage"] = "plan_created"
+                return state
+
+            def _execute(state: dict) -> dict:
+                state["stage"] = "executed"
+                return state
+
+            def _verify(state: dict) -> dict:
+                state["stage"] = "verified"
+                return state
+
+            def _respond(state: dict) -> dict:
+                state["stage"] = "responded"
+                return state
+
+            graph = StateGraph(dict)
+            graph.add_node("assemble_context", _assemble_context)
+            graph.add_node("plan", _plan)
+            graph.add_node("execute", _execute)
+            graph.add_node("verify", _verify)
+            graph.add_node("respond", _respond)
+
+            graph.add_edge(START, "assemble_context")
+            graph.add_edge("assemble_context", "plan")
+            graph.add_edge("plan", "execute")
+            graph.add_edge("execute", "verify")
+            graph.add_edge("verify", "respond")
+            graph.add_edge("respond", END)
+
+            self._graph = graph.compile()
+        except Exception as exc:
+            self._graph = None
+            self._graph_error = str(exc)
+
+    def get_graph_summary(self) -> dict:
+        if self._graph is None:
+            return {
+                "implemented": False,
+                "nodes": [],
+                "edges": [],
+                "error": getattr(self, "_graph_error", "build_graph() not called"),
+            }
+        try:
+            g = self._graph.get_graph()
+            nodes = [n for n in g.nodes if n not in ("__start__", "__end__")]
+            edges = []
+            for edge in g.edges:
+                src = edge[0] if len(edge) > 0 else ""
+                tgt = edge[1] if len(edge) > 1 else ""
+                if src == "__start__":
+                    src = "START"
+                if tgt == "__end__":
+                    tgt = "END"
+                edges.append(f"{src} → {tgt}")
+            return {
+                "implemented": True,
+                "nodes": nodes,
+                "edges": edges,
+            }
+        except Exception as exc:
+            return {
+                "implemented": True,
+                "nodes": list(self.GRAPH_NODES),
+                "edges": [],
+                "error": str(exc),
+            }
 
     async def run(self, task: TaskRun, session_id: str | None = None) -> TaskRun:
         task.status = TaskStatus.running

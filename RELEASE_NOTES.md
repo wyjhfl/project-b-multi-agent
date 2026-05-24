@@ -8,6 +8,8 @@
 
 > ⚠️ **注意**：本项目是 production-grade engineering prototype，展示了生产级 Agent 工程化框架的设计与实现。真实 MCP stdio / 真实 LLM provider / 前端审批 UI 等尚未接入，不可直接用于生产环境。
 
+> **边界说明**：本项目重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。真实 MCP stdio、真实 LLM-as-Judge、前端审批 UI、完全自治的 LLM 多 Agent 规划属于后续扩展。Multi-Agent 当前是确定性多角色编排（deterministic multi-role orchestration），不是完全自治多 Agent。LangGraph 当前以 Harness Runtime 可测试顺序流为主，完整 checkpoint / interrupt 仍在 Roadmap。
+
 ### 核心能力摘要
 
 | 能力 | 说明 |
@@ -16,7 +18,7 @@
 | **NL2SQL Eval Harness** | Schema 提取 → 剪枝 → 生成 → SQLGuard → 执行 → 格式化 → ChartSpec |
 | **MCP Tool Gateway** | 统一 local + MCP 工具注册/调用，FakeMCPClient + StdioMCPClient |
 | **MultiTool Pipeline** | 规则型多工具串联，$var 变量解析，depends_on，retry_policy |
-| **Multi-Agent Orchestration** | Coordinator / Analyst / Executor / Reviewer 四角色编排 |
+| **Multi-Agent Orchestration** | 确定性多角色编排（Coordinator / Analyst / Executor / Reviewer），规则驱动边界划分 |
 | **HITL Approval Runtime** | high risk → approval → approve/reject → resume/cancel，幂等 |
 | **Security Gate** | PromptInjectionGuard 三级检测 + OperationWhitelist + PolicyEngine |
 | **Audit / Trace / Metrics** | append-only AuditRecorder + TraceRecorder + RuntimeMetricsRecorder + SQLiteMetricsStore |
@@ -60,10 +62,11 @@ docker compose up --build
 | 方向 | 说明 |
 |------|------|
 | 真实 MCP stdio | StdioMCPClient 接入真实 MCP Server stdio 协议 |
+| Real LangGraph checkpoint / interrupt | 完整 checkpoint 持久化与 interrupt/resume 机制 |
 | 真实 LLM provider eval | LiteLLMProvider 接入真实 LLM API |
 | 前端审批 UI | 基于 Approval UI API 构建审批交互界面 |
 | LLM-as-Judge 实接 | LLMJudgeProvider 接入真实 LLM |
-| LLM 自主多 Agent | 从 rule-based 升级为 LLM 自主决策 |
+| LLM 自主多 Agent 规划 | 从确定性多角色编排升级为 LLM 自主决策 |
 | 长期记忆 / 向量库 | 从 ShortTermMemory 升级为持久化 + 向量检索 |
 | 持久化 Skill Learning | 从规则型 SkillRegistry 升级为可学习技能系统 |
 | Cost Dashboard 前端 | 基于成本 API 构建可视化看板 |

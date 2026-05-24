@@ -342,7 +342,7 @@ def reset_runtime_for_test() -> None:
 
 app = FastAPI(
     title="Project B: Harness-native 运营中台 Agent",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 from app.api.tasks import router as tasks_router

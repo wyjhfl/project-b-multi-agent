@@ -14,16 +14,20 @@ class MultiAgentEvalResponse(BaseModel):
     accuracy: float
     failures: list[dict] = Field(default_factory=list)
     mode_confusion_count: int = 0
+    trajectory_passed: int = 0
+    trajectory_failed: int = 0
+    trajectory_accuracy: float = 0.0
 
 
 @router.post("/multi-agent", response_model=MultiAgentEvalResponse)
 async def run_multi_agent_eval():
-    from app.main import get_multi_agent_orchestrator
+    from app.main import get_multi_agent_orchestrator, get_trace_recorder
 
     orchestrator = get_multi_agent_orchestrator()
+    trace_recorder = get_trace_recorder()
 
     from app.harness.eval.multi_agent_runner import MultiAgentEvalRunner
-    runner = MultiAgentEvalRunner(orchestrator)
+    runner = MultiAgentEvalRunner(orchestrator, trace_recorder=trace_recorder)
     result: MultiAgentEvalResult = runner.run()
 
     return MultiAgentEvalResponse(
@@ -32,4 +36,7 @@ async def run_multi_agent_eval():
         accuracy=result.accuracy,
         failures=[f.model_dump() for f in result.failures],
         mode_confusion_count=result.mode_confusion_count,
+        trajectory_passed=result.stats.trajectory_passed,
+        trajectory_failed=result.stats.trajectory_failed,
+        trajectory_accuracy=result.stats.trajectory_accuracy,
     )

@@ -247,7 +247,7 @@ def test_multi_agent_eval_runner():
     )
     orchestrator = MultiAgentOrchestrator(executor, trace_recorder=recorder)
 
-    runner = MultiAgentEvalRunner(orchestrator)
+    runner = MultiAgentEvalRunner(orchestrator, trace_recorder=recorder)
     result = runner.run()
     assert result.total >= 6
     assert result.passed >= 4

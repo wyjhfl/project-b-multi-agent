@@ -136,7 +136,7 @@ def test_multi_agent_eval_12_cases_accuracy():
     )
     orchestrator = MultiAgentOrchestrator(executor, trace_recorder=recorder)
 
-    runner = MultiAgentEvalRunner(orchestrator)
+    runner = MultiAgentEvalRunner(orchestrator, trace_recorder=recorder)
     result = runner.run()
     assert result.total >= 12
     assert result.accuracy >= 0.75
@@ -157,7 +157,7 @@ def test_eval_failures_contain_trace_task_id():
     )
     orchestrator = MultiAgentOrchestrator(executor, trace_recorder=recorder)
 
-    runner = MultiAgentEvalRunner(orchestrator)
+    runner = MultiAgentEvalRunner(orchestrator, trace_recorder=recorder)
     result = runner.run()
     for f in result.failures:
         assert f.trace_task_id is not None
