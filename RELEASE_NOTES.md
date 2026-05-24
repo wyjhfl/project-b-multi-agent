@@ -6,6 +6,8 @@
 
 核心理念：**Harness-native** — 所有 Agent 行为（规划、执行、校验、审批、审计）均通过 Harness Runtime 的五层管线驱动，而非裸调用 LLM。
 
+> ⚠️ **注意**：本项目是 production-grade engineering prototype，展示了生产级 Agent 工程化框架的设计与实现。真实 MCP stdio / 真实 LLM provider / 前端审批 UI 等尚未接入，不可直接用于生产环境。
+
 ### 核心能力摘要
 
 | 能力 | 说明 |
