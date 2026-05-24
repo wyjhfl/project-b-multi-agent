@@ -1,0 +1,74 @@
+[
+  {
+    "case_id": "ma_gmv",
+    "query": "今天GMV多少",
+    "expected_executed_mode": "nl2sql",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_new_users",
+    "query": "本月新增用户多少",
+    "expected_executed_mode": "nl2sql",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_order_count",
+    "query": "今天订单量多少",
+    "expected_executed_mode": "nl2sql",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_top_products",
+    "query": "Top商品有哪些",
+    "expected_executed_mode": "nl2sql",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_refund_rate",
+    "query": "退款率是多少",
+    "expected_executed_mode": "nl2sql",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_date_lookup",
+    "query": "今天几号",
+    "expected_executed_mode": "keyword",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_refund_rule",
+    "query": "退款规则是什么",
+    "expected_executed_mode": "multitool",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_promotion_rule",
+    "query": "促销规则",
+    "expected_executed_mode": "multitool",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_gmv_mom",
+    "query": "GMV环比增长多少",
+    "expected_executed_mode": "multitool",
+    "expected_success": true
+  },
+  {
+    "case_id": "ma_unknown",
+    "query": "今天天气怎么样",
+    "expected_executed_mode": null,
+    "expected_success": false
+  },
+  {
+    "case_id": "ma_vague",
+    "query": "帮我看看运营情况",
+    "expected_executed_mode": null,
+    "expected_success": false
+  },
+  {
+    "case_id": "ma_mixed",
+    "query": "退款规则和退款率",
+    "expected_executed_mode": "multitool",
+    "expected_success": true
+  }
+]

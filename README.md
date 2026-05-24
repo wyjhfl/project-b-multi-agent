@@ -1,0 +1,565 @@
+# Project B: Harness-native 运营中台 Agent
+
+> **Harness Runtime** + **LangGraph Agent Kernel** + **MCP Tool Gateway** — 生产级运营 Agent 工程化框架
+
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-370-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v1.0-green)]()
+
+---
+
+## 目录
+
+- [项目定位](#项目定位)
+- [架构总览](#架构总览)
+- [核心能力](#核心能力)
+- [快速启动](#快速启动)
+- [核心 API 示例](#核心-api-示例)
+- [测试](#测试)
+- [版本路线](#版本路线)
+- [项目结构](#项目结构)
+- [技术栈](#技术栈)
+- [后续 Roadmap](#后续-roadmap)
+
+---
+
+## 项目定位
+
+**Harness-native 运营中台 Agent** 是一个以 **Harness Runtime** 为核心执行框架的生产级 AI Agent 工程化系统。通过三层架构实现从自然语言查询到安全执行的全链路闭环：
+
+| 层 | 组件 | 职责 |
+|----|------|------|
+| **执行框架层** | Harness Runtime | 上下文组装、策略引擎、Hook 管线、追踪记录、审计日志 |
+| **Agent 内核层** | LangGraph Agent Kernel | 有向图编排：START → assemble_context → plan → execute → verify → respond → END |
+| **工具网关层** | MCP Tool Gateway | 统一管理本地工具与 MCP 远程工具的注册、发现、调用 |
+
+核心理念：**Harness-native** — 所有 Agent 行为（规划、执行、校验、审批、审计）均通过 Harness Runtime 的五层管线驱动，而非裸调用 LLM。
+
+---
+
+## 架构总览
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        FastAPI API Layer                            │
+│  /tasks  /nl2sql  /tools  /approvals  /audit  /metrics  /eval ... │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────────────┐
+│                    LangGraph Agent Kernel                           │
+│  START → assemble_context → plan → execute → verify → respond → END│
+│                                                                     │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
+│  │Coordinator│ │ Analyst  │ │ Executor │ │ Reviewer │              │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘              │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────────────┐
+│                      Harness Runtime (五层)                         │
+│  ContextAssembler → ToolGateway → HookPipeline → PolicyEngine →    │
+│  TraceRecorder                                                      │
+│                                                                     │
+│  ┌───────────────┐ ┌──────────────┐ ┌────────────────────┐         │
+│  │Security Gate  │ │HITL Approval │ │Audit / Metrics     │         │
+│  │InjectionGuard │ │ApprovalStore │ │AuditRecorder       │         │
+│  │OperationWhite │ │ResumeService │ │RuntimeMetrics      │         │
+│  │PolicyEngine   │ │Idempotent    │ │SQLiteMetricsStore  │         │
+│  └───────────────┘ └──────────────┘ └────────────────────┘         │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────────────┐
+│                     MCP Tool Gateway                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
+│  │ Local Tools  │  │FakeMCPClient │  │StdioMCPClient│             │
+│  │ ops_query ×5 │  │date_lookup   │  │  (占位)      │             │
+│  │              │  │calculator    │  │              │             │
+│  │              │  │rule_lookup   │  │              │             │
+│  └──────────────┘  └──────────────┘  └──────────────┘             │
+└─────────────────────────────────────────────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────────────┐
+│                      SQLite Storage Layer                           │
+│  ops_demo.sqlite │ runtime.sqlite │ runtime_metrics.sqlite          │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 核心能力
+
+### 1. Harness Runtime 五层管线
+
+Harness Runtime 是整个系统的执行骨架，所有 Agent 行为均通过五层管线驱动：
+
+| 层 | 组件 | 职责 |
+|----|------|------|
+| 1 | **ContextAssembler** | 组装 AgentContext：注入可用工具列表、策略配置、追踪上下文、用户信息 |
+| 2 | **ToolGateway** | 统一工具注册/发现/调用，支持 local callable 与 MCP Client 双通道 |
+| 3 | **HookPipeline** | 可插拔 Hook 管线：pre_execute / post_execute / on_error 三阶段，异常可观测 |
+| 4 | **PolicyEngine** | 风险分级策略引擎：low 放行、medium 放行、high 触发审批流程 |
+| 5 | **TraceRecorder** | 执行链路追踪：每步事件记录，支持 timeline 回放与事件查询 |
+
+### 2. NL2SQL Eval Harness
+
+从自然语言到安全 SQL 执行的完整评测管线，覆盖 schema 提取、剪枝、生成、守卫、执行、格式化、图表规划全链路：
+
+| 组件 | 职责 |
+|------|------|
+| **SchemaMetadataExtractor** | 从 SQLite 自动提取表结构、字段类型、主键、示例值、行数统计 |
+| **SchemaPruner** | 基于关键词规则的 schema 剪枝，缩小 LLM 生成时的 schema 上下文 |
+| **SQLGuard** | SQL 安全守卫：只允许 SELECT / readonly CTE，拦截 DDL/DML/多语句/注释注入，自动追加 LIMIT |
+| **MockNL2SQLGenerator** | 规则型 SQL 生成器，零依赖，无需 API Key 即可运行 |
+| **LLMNL2SQLGenerator** | LLM 驱动的 SQL 生成器，支持 FakeLLMProvider / LiteLLMProvider，支持 fallback_to_mock |
+| **SQLiteReadOnlyExecutor** | 只读 SQL 执行器：先过 SQLGuard，再执行 guard 后 SQL，最多 100 行，记录 latency_ms |
+| **SQLResultFormatter** | 结果格式化：单行单指标 → 简短摘要，多行 → 行数说明，失败 → 原因说明 |
+| **ChartPlanner** | 图表规格生成：metric / line / bar / table 四种类型，输出 JSON 规格，不依赖前端库 |
+
+### 3. MCP Tool Gateway
+
+统一管理本地工具与 MCP 远程工具的注册、发现、调用，实现工具层的抽象与可扩展：
+
+- **统一注册**：`ToolSpec.source` 区分 `local` / `mcp`，调用方无需关心工具来源
+- **FakeMCPClient**：内置 3 个 MCP 工具（date_lookup / calculator / rule_lookup），零外部依赖
+- **StdioMCPClient**：真实 MCP stdio 协议占位，通过 `MCP_MODE=real` 环境变量切换
+- **PolicyEngine 集成**：工具调用前自动过策略检查，high risk 触发审批
+
+### 4. MultiTool Pipeline
+
+规则型多工具串联编排，支持跨工具变量传递、依赖校验、重试策略：
+
+- **规则型规划**：基于关键词匹配 intent，映射到预定义的多步骤工具链（GMV 环比 / 退款规则 / 促销规则）
+- **`$var` 变量解析**：`$current_gmv.result.gmv` 引用前置步骤输出，支持嵌套 dict/list 路径解析
+- **`depends_on` 校验**：每个步骤执行前检查依赖步骤是否已完成，缺失时返回 `missing_depends_on`
+- **`retry_policy`**：`ToolSpec.retry_policy` 支持 `{"max_retries": 2}`，失败时同步重试，记录 `retry_count`
+
+### 5. Multi-Agent Orchestration
+
+四角色规则型编排，实现查询路由 → 计划分析 → 工具执行 → 结果校验的完整决策链：
+
+| 角色 | 职责 | 输入 | 输出 |
+|------|------|------|------|
+| **Coordinator** | 路由决策：选择 nl2sql / multitool / keyword / auto | query | selected_mode |
+| **Analyst** | 计划解释：分析是否需要 schema / 多工具 | query + coordinator decision | plan_summary |
+| **Executor** | 复用工具链执行 | selected_mode + query | execution_result |
+| **Reviewer** | 结果校验 + fallback 建议 | execution_result | approved / suggested_fallback_mode |
+
+执行链路：`Coordinator → Analyst → Executor → Reviewer`，Reviewer 不通过时一次 fallback，不无限循环。每个角色输出进入 `decisions` 列表，形成完整决策链。
+
+### 6. HITL Approval Runtime
+
+高风险操作的人工审批运行时，实现从拦截到审批到恢复执行的安全闭环：
+
+- **high risk → approval**：PolicyEngine 判定 high risk 时，任务进入 `waiting_approval`，生成 ApprovalRequest
+- **approve → resume**：审批通过后恢复执行（keyword / multitool），跳过 PolicyEngine（审批已通过）
+- **reject → cancel**：审批拒绝后任务状态更新为 `cancelled`
+- **幂等保证**：`approval_consumed` 语义，被审批 step 执行成功后原 approval 标记已消费，不重复调用工具
+- **完整 MultiTool resume**：审批通过后不仅执行被拦截 step，还继续执行后续 steps，后续 high risk 创建新审批
+
+### 7. Security Gate
+
+三层安全防线，覆盖提示注入、操作白名单、策略引擎：
+
+| 层 | 组件 | 职责 |
+|----|------|------|
+| 1 | **PromptInjectionGuard** | 规则型三级检测：high → block（bypass approval / DROP TABLE）、medium → block（reveal prompt / ignore instructions）、low → warn（模糊注入） |
+| 2 | **OperationWhitelist** | 操作白名单：keyword 允许 read 工具、nl2sql 只允许 SELECT、multitool 只允许注册工具、resume payload 完整性校验 |
+| 3 | **PolicyEngine** | 风险分级 + 审批触发：whitelist 通过 → risk 分级 → high risk 进入审批流程 |
+
+检测覆盖：query 注入、工具参数注入、approval reason 注入、resume payload 篡改。
+
+### 8. Audit / Trace / Metrics
+
+全链路可观测体系，覆盖执行追踪、合规审计、运行时指标三大维度：
+
+- **AuditRecorder**：append-only 合规审计日志，不可变、不可删除，写入 SQLiteAuditStore，覆盖安全事件 + 审批决策
+- **TraceRecorder**：任务级执行链路追踪，细粒度（每步工具调用），支持 timeline 回放与事件查询
+- **RuntimeMetricsRecorder**：运行时指标采集（任务数 / 工具调用数 / token 用量 / 成本 / 延迟），内存 + SQLite 双写
+- **SQLiteMetricsStore**：三张 append-only 表（task_metrics / tool_metrics / token_usage），支持时间范围查询与汇总
+
+### 9. BadCase Eval / Judge Skeleton
+
+30+ BadCase 回归评测集 + LLM-as-Judge 评测骨架：
+
+- **30+ BadCase**：覆盖 6 个 suite（security × 8 / nl2sql × 6 / multitool × 5 / approval × 5 / multi_agent × 4 / runtime × 2）
+- **6 suite 分层**：security（注入绕过）、nl2sql（unmatched / dangerous SQL）、multitool（unknown tool / high risk）、approval（pending resume / payload tampered）、multi_agent（unknown / vague / mixed）、runtime（空状态）
+- **FakeJudge**：规则型打分（expected==actual → 1.0，blocked-like → 0.8，mismatch → 0.0）
+- **LLMJudgeProvider 占位**：不调用真实 LLM，返回 unavailable 提示，为后续 LLM-as-Judge 实接预留接口
+
+### 10. Short Memory / Skills / Reflection
+
+轻量认知增强层，提供短期记忆、技能注册、自检反思：
+
+- **ShortTermMemory**：内存实现，`session_id` 共享，同一 session 下多次任务共享上下文，支持 add_message / get_messages / summarize / clear
+- **SkillRegistry**：4 个内置 Skill（ops_metrics / product_analysis / policy_lookup / nl2sql_analysis），规则型 trigger 匹配
+- **SelfCheckEngine**：8 项规则型自检（result_success / approval_consistency / injection_consistency / tool_call_consistency / nl2sql_consistency / audit_consistency / empty_result / waiting_approval），自检不改变 task.status
+
+---
+
+## 快速启动
+
+### 本地启动
+
+```bash
+# 1. 安装依赖（含 dev）
+pip install -e ".[dev]"
+
+# 2. 初始化 demo 数据库（5 张运营表 + 模拟数据）
+python scripts/init_demo_db.py
+
+# 3. 启动服务
+uvicorn app.main:app --reload
+```
+
+服务启动后访问 `http://localhost:8000/health` 验证。
+
+### Docker 启动
+
+```bash
+docker compose up --build
+```
+
+### 健康检查
+
+```bash
+python scripts/check_health.py
+```
+
+检查端点：`/health` / `/tools` / `/eval/summary` / `/observability/tasks/summary`
+
+---
+
+## 核心 API 示例
+
+### 任务创建（五种 mode）
+
+```bash
+# keyword 模式（默认，关键词路由 → ToolGateway）
+curl -X POST http://localhost:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"query": "今天GMV多少"}'
+
+# nl2sql 模式（NL2SQL Pipeline）
+curl -X POST http://localhost:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"query": "今天GMV多少", "mode": "nl2sql"}'
+
+# multitool 模式（多工具串联）
+curl -X POST http://localhost:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"query": "GMV环比增长多少", "mode": "multitool"}'
+
+# multi_agent 模式（四角色编排）
+curl -X POST http://localhost:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"query": "退款规则是什么", "mode": "multi_agent"}'
+
+# auto 模式（自动 fallback: NL2SQL → multitool → keyword）
+curl -X POST http://localhost:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"query": "促销规则", "mode": "auto"}'
+```
+
+### NL2SQL 预览与执行
+
+```bash
+# 预览 SQL（只生成 + SQLGuard 校验，不执行）
+curl -X POST http://localhost:8000/nl2sql/preview \
+  -H "Content-Type: application/json" \
+  -d '{"query": "今天GMV多少"}'
+
+# 预览 SQL（LLM 生成器 + fake provider）
+curl -X POST http://localhost:8000/nl2sql/preview \
+  -H "Content-Type: application/json" \
+  -d '{"query": "今天GMV多少", "generator": "llm", "provider": "fake"}'
+
+# 执行 NL2SQL（生成 + 校验 + 安全执行 + 格式化 + 图表规格）
+curl -X POST http://localhost:8000/nl2sql/execute \
+  -H "Content-Type: application/json" \
+  -d '{"query": "今天GMV多少"}'
+```
+
+### 工具管理
+
+```bash
+# 列出所有工具（local + mcp）
+curl http://localhost:8000/tools
+
+# 调用 MCP 工具
+curl -X POST http://localhost:8000/tools/date_lookup/call \
+  -H "Content-Type: application/json" \
+  -d '{"arguments": {}}'
+
+# 调用计算器
+curl -X POST http://localhost:8000/tools/calculator/call \
+  -H "Content-Type: application/json" \
+  -d '{"arguments": {"operation": "add", "a": 1, "b": 2}}'
+```
+
+### 审批管理
+
+```bash
+# 审批通过（默认自动恢复执行）
+curl -X POST http://localhost:8000/approvals/{approval_id}/approve \
+  -H "Content-Type: application/json" \
+  -d '{"decided_by": "admin", "reason": "允许执行"}'
+
+# 审批拒绝（自动取消任务）
+curl -X POST http://localhost:8000/approvals/{approval_id}/reject \
+  -H "Content-Type: application/json" \
+  -d '{"decided_by": "admin", "reason": "风险过高"}'
+```
+
+### 审计查询
+
+```bash
+# 查询审计事件（支持 event_type / task_id / outcome / severity 过滤）
+curl http://localhost:8000/audit/events?event_type=prompt_injection_blocked
+
+# 查询某任务的审计事件
+curl http://localhost:8000/audit/events?task_id=task_xxx
+```
+
+### 运行时指标
+
+```bash
+# 内存指标汇总
+curl http://localhost:8000/metrics/runtime
+
+# 成本汇总（token 用量 + 成本 + by_mode + by_day）
+curl http://localhost:8000/metrics/cost/summary
+
+# 工具调用汇总（调用数 / 失败数 / 重试数 / 平均延迟 / by_tool）
+curl http://localhost:8000/metrics/tools/summary
+
+# 任务汇总（任务数 / 成功数 / 失败数 / 审批数 / 平均延迟 / by_mode）
+curl http://localhost:8000/metrics/tasks/summary
+```
+
+### 运行时快照
+
+```bash
+# 运行时全量快照（版本 + metrics + cost + task + tool + audit + memory + skills）
+curl http://localhost:8000/runtime/snapshot
+```
+
+### BadCase 评测
+
+```bash
+# 运行 BadCase 评测（支持 use_judge / limit / suite 参数）
+curl -X POST http://localhost:8000/eval/bad-cases/run \
+  -H "Content-Type: application/json" \
+  -d '{"use_judge": true, "suite": "security"}'
+```
+
+### 记忆 / 技能 / 自检
+
+```bash
+# 查看短期记忆
+curl http://localhost:8000/memory/{session_id}
+
+# 匹配技能
+curl -X POST http://localhost:8000/skills/match \
+  -H "Content-Type: application/json" \
+  -d '{"query": "今天GMV多少"}'
+
+# 执行 Reflection 自检
+curl -X POST http://localhost:8000/reflection/check \
+  -H "Content-Type: application/json" \
+  -d '{"task_id": "task_xxx", "result": {...}}'
+```
+
+---
+
+## 测试
+
+```bash
+python -m pytest -q
+```
+
+共 **370 个测试**，覆盖全部模块：
+
+| 测试文件 | 覆盖范围 |
+|---------|---------|
+| test_project_bootstrap | 项目引导与基础结构 |
+| test_nl2sql_v02 | NL2SQL 全链路（schema / pruner / guard / generator / executor / formatter） |
+| test_mcp_gateway_v03 | MCP Tool Gateway（注册 / 发现 / 调用 / fake + stdio） |
+| test_multitool_v03 | MultiTool Pipeline（变量解析 / depends_on / retry / policy） |
+| test_multi_agent_v03 | Multi-Agent 编排（四角色 / fallback / eval） |
+| test_v03_closure_mcp_docker | MCP + Docker 收口测试 |
+| test_v036_persistence_eval | 持久化 + Eval 收口 |
+| test_hitl_v04 | HITL 审批基础流程 |
+| test_approval_resume_v042 | 审批恢复执行 |
+| test_v043_full_resume | 完整 MultiTool Resume |
+| test_security_v04 | 安全防线（注入 / 白名单 / 策略） |
+| test_audit_v045 | 审计日志 |
+| test_runtime_v05 | Runtime 加固 |
+| test_runtime_hardening_v055 | Runtime 指标语义清理 |
+| test_runtime_persistence_v05 | Metrics 持久化 |
+| test_badcase_eval_v05 | BadCase 评测 |
+| test_runtime_memory_skills_reflection_v05 | 记忆 / 技能 / 自检 |
+
+---
+
+## 版本路线
+
+| 版本 | 里程碑 | 核心交付 |
+|------|--------|---------|
+| **v0.1** | Harness Runtime + KeywordPlanner | Harness 五层管线 + AgentKernel 主链路 + KeywordPlanner + SQLite demo + 5 个本地工具 |
+| **v0.2** | NL2SQL Eval Harness + LLM Provider | SchemaMetadataExtractor / SchemaPruner / SQLGuard / MockNL2SQLGenerator / LLMNL2SQLGenerator / SQLiteReadOnlyExecutor / SQLResultFormatter / ChartPlanner + 可插拔 LLM Provider |
+| **v0.3** | MCP Tool Gateway + MultiTool + MultiAgent | FakeMCPClient + StdioMCPClient / MultiToolPipeline（$var / depends_on / retry）/ MultiAgentOrchestrator（四角色）/ Task Persistence + Docker |
+| **v0.4** | HITL Approval + Security Gate + Audit | ApprovalStore / ApprovalResumeService（幂等）/ PromptInjectionGuard / OperationWhitelist / AuditRecorder + SQLiteAuditStore |
+| **v0.5** | Runtime Hardening + BadCase Eval + Memory/Skills/Reflection + Persistence + Cost Dashboard | RuntimeMetricsRecorder + SQLiteMetricsStore / 30+ BadCase + FakeJudge / ShortTermMemory + SkillRegistry + SelfCheckEngine / Cost Dashboard API / Runtime Snapshot |
+| **v1.0** | 当前发布，完整工程化框架 | 全部能力稳定交付，370 个测试，生产级工程化框架 |
+
+---
+
+## 项目结构
+
+```
+project-b-multi-agent/
+├── app/
+│   ├── api/                        # API 路由层
+│   │   ├── tasks.py                #   任务创建（keyword/nl2sql/multitool/multi_agent/auto）
+│   │   ├── nl2sql.py               #   NL2SQL 预览与执行
+│   │   ├── tools.py                #   工具列表与调用
+│   │   ├── approvals.py            #   审批管理
+│   │   ├── approval_ui.py          #   审批 UI API
+│   │   ├── audit.py                #   审计查询
+│   │   ├── metrics.py              #   运行时指标
+│   │   ├── bad_cases.py            #   BadCase 评测
+│   │   ├── eval_summary.py         #   评测汇总
+│   │   ├── multi_agent_eval.py     #   Multi-Agent 评测
+│   │   ├── observability.py        #   可观测性 API
+│   │   ├── memory_api.py           #   短期记忆 API
+│   │   ├── skills_api.py           #   技能匹配 API
+│   │   ├── reflection_api.py       #   自检 API
+│   │   └── runtime_snapshot.py     #   运行时快照
+│   ├── agent/                      # Agent 内核层
+│   │   ├── graph/                  #   LangGraph 有向图
+│   │   │   └── kernel.py           #     AgentKernel（主链路编排）
+│   │   ├── nodes/                  #   图节点
+│   │   │   ├── planner.py          #     KeywordPlanner
+│   │   │   └── multitool_planner.py#     MultiToolPlanner
+│   │   ├── nl2sql/                 #   NL2SQL 模块
+│   │   │   ├── metadata.py         #     SchemaMetadataExtractor
+│   │   │   ├── pruner.py           #     SchemaPruner
+│   │   │   ├── sql_guard.py        #     SQLGuard
+│   │   │   ├── generator.py        #     MockNL2SQLGenerator
+│   │   │   ├── llm_generator.py    #     LLMNL2SQLGenerator
+│   │   │   ├── provider.py         #     LLMProvider / FakeLLMProvider / LiteLLMProvider
+│   │   │   ├── executor.py         #     SQLiteReadOnlyExecutor
+│   │   │   └── formatter.py        #     SQLResultFormatter
+│   │   ├── multi_agent/            #   Multi-Agent 编排
+│   │   │   ├── coordinator.py      #     CoordinatorAgent
+│   │   │   ├── analyst.py          #     AnalystAgent
+│   │   │   ├── executor.py         #     ExecutorAgent
+│   │   │   ├── reviewer.py         #     ReviewerAgent
+│   │   │   ├── orchestrator.py     #     MultiAgentOrchestrator
+│   │   │   └── types.py            #     Multi-Agent 数据类型
+│   │   ├── roles/                  #   Agent 角色
+│   │   └── skills/                 #   Agent 技能
+│   ├── harness/                    # Harness Runtime 层
+│   │   ├── context/                #   上下文组装
+│   │   │   └── assembler.py        #     ContextAssembler
+│   │   ├── gateway/                #   工具网关
+│   │   │   └── tool_gateway.py     #     ToolGateway
+│   │   ├── hooks/                  #   Hook 管线
+│   │   │   └── pipeline.py         #     HookPipeline
+│   │   ├── policy/                 #   策略引擎
+│   │   │   ├── engine.py           #     PolicyEngine
+│   │   │   └── operation_whitelist.py #  OperationWhitelist
+│   │   ├── security/               #   安全防线
+│   │   │   └── injection_guard.py  #     PromptInjectionGuard
+│   │   ├── trace/                  #   追踪记录
+│   │   │   └── recorder.py         #     TraceRecorder
+│   │   ├── audit/                  #   审计日志
+│   │   │   └── recorder.py         #     AuditRecorder
+│   │   ├── metrics/                #   运行时指标
+│   │   │   ├── runtime_metrics.py  #     RuntimeMetricsRecorder
+│   │   │   └── metrics_store.py    #     SQLiteMetricsStore
+│   │   ├── eval/                   #   评测模块
+│   │   │   ├── cases.py            #     NL2SQL 评测用例
+│   │   │   ├── nl2sql_runner.py    #     NL2SQL EvalRunner
+│   │   │   ├── multi_agent_runner.py #   Multi-Agent EvalRunner
+│   │   │   ├── bad_cases.py        #     BadCase 数据模型
+│   │   │   ├── bad_case_runner.py  #     BadCaseRunner
+│   │   │   └── judge.py            #     FakeJudge / LLMJudgeProvider
+│   │   ├── memory/                 #   短期记忆
+│   │   │   └── short_term.py       #     ShortTermMemory
+│   │   ├── skills/                 #   技能注册
+│   │   │   └── registry.py         #     SkillRegistry
+│   │   └── reflection/             #   自检反思
+│   │       └── self_check.py       #     SelfCheckEngine
+│   ├── tools/                      # 工具层
+│   │   ├── local/                  #   本地工具
+│   │   │   └── ops_query.py        #     5 个运营查询工具
+│   │   └── mcp/                    #   MCP 工具
+│   │       ├── client.py           #     FakeMCPClient
+│   │       └── stdio_client.py     #     StdioMCPClient
+│   ├── models/                     # 数据模型
+│   │   └── schemas.py              #   Pydantic v2 模型
+│   ├── services/                   # 业务服务
+│   │   ├── nl2sql_pipeline.py      #   NL2SQL Pipeline
+│   │   ├── multitool_pipeline.py   #   MultiTool Pipeline
+│   │   └── approval_resume.py      #   Approval Resume Service
+│   ├── storage/                    # 持久化存储
+│   │   ├── task_store.py           #   SQLiteTaskStore
+│   │   ├── approval_store.py       #   SQLiteApprovalStore
+│   │   └── audit_store.py          #   SQLiteAuditStore
+│   ├── visualization/              # 可视化
+│   │   └── chart_planner.py        #   ChartPlanner
+│   ├── prompts/                    # Prompt 模板
+│   │   └── nl2sql_prompt.md        #   NL2SQL Prompt
+│   ├── core/                       # 核心配置
+│   │   └── config.py               #   Settings
+│   └── main.py                     # FastAPI 应用入口
+├── data/
+│   ├── db/                         # SQLite 数据库
+│   │   ├── ops_demo.sqlite         #   运营 demo 数据
+│   │   ├── runtime.sqlite          #   运行时数据
+│   │   └── runtime_metrics.sqlite  #   指标数据
+│   └── evaluation/                 # 评测数据
+│       ├── nl2sql_cases.json       #   NL2SQL 评测用例
+│       ├── multi_agent_cases.json  #   Multi-Agent 评测用例
+│       └── bad_cases.json          #   BadCase 回归集
+├── docs/                           # 文档
+├── scripts/                        # 脚本
+│   ├── init_demo_db.py             #   初始化 demo 数据库
+│   ├── start_dev.py                #   开发启动脚本
+│   └── check_health.py             #   健康检查
+├── tests/                          # 测试（370 个）
+├── .github/workflows/ci.yml        # CI 配置
+├── Dockerfile                      # Docker 镜像
+├── docker-compose.yml              # Docker Compose
+├── pyproject.toml                  # 项目配置
+└── .env.example                    # 环境变量示例
+```
+
+---
+
+## 技术栈
+
+| 类别 | 技术 | 说明 |
+|------|------|------|
+| **Web 框架** | FastAPI | 异步 API，自动 OpenAPI 文档 |
+| **数据校验** | Pydantic v2 | 类型安全的数据模型与校验 |
+| **存储** | SQLite | 轻量级本地存储（运营数据 + 运行时 + 指标 + 审批 + 审计） |
+| **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
+| **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
+| **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
+| **测试** | pytest + httpx | 370 个测试，覆盖全部模块 |
+| **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
+
+---
+
+## 后续 Roadmap
+
+| 方向 | 说明 |
+|------|------|
+| **真实 MCP stdio** | StdioMCPClient 接入真实 MCP Server stdio 协议，替代 FakeMCPClient |
+| **真实 LLM provider eval** | LiteLLMProvider 接入真实 LLM API，运行完整 NL2SQL / Multi-Agent eval |
+| **前端审批 UI** | 基于 Approval UI API 构建审批交互界面，实现 HITL 完整闭环 |
+| **LLM-as-Judge 实接** | LLMJudgeProvider 接入真实 LLM，替代 FakeJudge 规则打分 |
+| **LLM 自主多 Agent** | 从 rule-based orchestration 升级为 LLM 自主决策的多 Agent 协作 |
+| **长期记忆 / 向量库** | 从 ShortTermMemory 升级为持久化 + 向量检索的长期记忆 |
+| **持久化 Skill Learning** | 从规则型 SkillRegistry 升级为可学习、可持久化的技能系统 |
+| **Cost Dashboard 前端** | 基于成本 API 构建可视化看板 |
+| **50+ BadCase** | 扩展回归集到 50+ case，覆盖更多边界场景 |

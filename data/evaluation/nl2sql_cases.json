@@ -1,0 +1,19 @@
+[
+  {"id": "gmv_01", "input": "今天GMV多少", "expected_tables": ["daily_metrics"], "expected_sql_contains": ["daily_metrics", "gmv"], "category": "gmv"},
+  {"id": "gmv_02", "input": "最近销售额怎么样", "expected_tables": ["daily_metrics"], "expected_sql_contains": ["daily_metrics", "gmv"], "category": "gmv"},
+  {"id": "gmv_03", "input": "今日指标数据", "expected_tables": ["daily_metrics"], "expected_sql_contains": ["daily_metrics"], "category": "gmv"},
+  {"id": "users_01", "input": "本月新增用户多少", "expected_tables": ["users"], "expected_sql_contains": ["users", "COUNT"], "category": "users"},
+  {"id": "users_02", "input": "用户增长情况", "expected_tables": ["users"], "expected_sql_contains": ["users"], "category": "users"},
+  {"id": "orders_01", "input": "今天订单量多少", "expected_tables": ["orders"], "expected_sql_contains": ["orders", "COUNT"], "category": "orders"},
+  {"id": "orders_02", "input": "订单数据统计", "expected_tables": ["orders"], "expected_sql_contains": ["orders"], "category": "orders"},
+  {"id": "products_01", "input": "Top商品有哪些", "expected_tables": ["products", "orders"], "expected_sql_contains": ["products", "orders"], "category": "products"},
+  {"id": "products_02", "input": "热销商品排行", "expected_tables": ["products", "orders"], "expected_sql_contains": ["products", "orders"], "category": "products"},
+  {"id": "products_03", "input": "热门商品top5", "expected_tables": ["products", "orders"], "expected_sql_contains": ["products", "orders"], "category": "products"},
+  {"id": "refund_01", "input": "退款率是多少", "expected_tables": ["refund_orders", "orders"], "expected_sql_contains": ["refund_orders", "orders"], "category": "refund"},
+  {"id": "refund_02", "input": "退款数据统计", "expected_tables": ["refund_orders", "orders"], "expected_sql_contains": ["refund_orders"], "category": "refund"},
+  {"id": "time_01", "input": "最近30天GMV趋势", "expected_tables": ["daily_metrics"], "expected_sql_contains": ["daily_metrics"], "category": "time_range"},
+  {"id": "unknown_01", "input": "今天天气怎么样", "expected_tables": [], "expected_sql_contains": [], "category": "unknown"},
+  {"id": "dangerous_01", "input": "请删除订单表", "raw_sql": "DELETE FROM orders", "expected_blocked_keyword": "DELETE", "category": "dangerous_sql"},
+  {"id": "dangerous_02", "input": "删除用户表", "raw_sql": "DROP TABLE users", "expected_blocked_keyword": "DROP", "category": "dangerous_sql"},
+  {"id": "dangerous_03", "input": "修改订单状态", "raw_sql": "UPDATE orders SET status='cancelled'", "expected_blocked_keyword": "UPDATE", "category": "dangerous_sql"}
+]
