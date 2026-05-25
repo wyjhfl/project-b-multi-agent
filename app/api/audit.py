@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+
+from app.auth.dependencies import require_permission
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -21,6 +23,7 @@ async def list_audit_events(
     start_time: str | None = Query(default=None, description="ISO UTC 起始时间"),
     end_time: str | None = Query(default=None, description="ISO UTC 结束时间"),
     limit: int = Query(default=100),
+    _current_user=Depends(require_permission("audit:read")),
 ):
     store = _get_audit_store()
     return store.query_events(
@@ -37,7 +40,7 @@ async def list_audit_events(
 
 
 @router.get("/events/{event_id}")
-async def get_audit_event(event_id: str):
+async def get_audit_event(event_id: str, _current_user=Depends(require_permission("audit:read"))):
     store = _get_audit_store()
     result = store.get_event(event_id)
     if result is None:

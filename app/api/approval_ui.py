@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.auth.dependencies import require_permission
 from app.harness.security.injection_guard import PromptInjectionGuard
 
 router = APIRouter(prefix="/approvals", tags=["approvals-ui"])
@@ -89,7 +90,7 @@ def _do_resume(approval_id: str) -> dict | None:
 
 
 @router.get("/summary")
-async def get_approvals_summary():
+async def get_approvals_summary(_current_user=Depends(require_permission("approvals:read"))):
     store = _get_approval_store()
     all_approvals = store.list_approvals(limit=100)
 
@@ -128,7 +129,7 @@ async def get_approvals_summary():
 
 
 @router.get("/{approval_id}/context")
-async def get_approval_context(approval_id: str):
+async def get_approval_context(approval_id: str, _current_user=Depends(require_permission("approvals:read"))):
     store = _get_approval_store()
     approval = store.get_approval(approval_id)
     if approval is None:
@@ -176,7 +177,7 @@ async def get_approval_context(approval_id: str):
 
 
 @router.post("/{approval_id}/resume")
-async def manual_resume_approval(approval_id: str):
+async def manual_resume_approval(approval_id: str, _current_user=Depends(require_permission("approvals:decide"))):
     approval = _get_approval_store().get_approval(approval_id)
     if approval is None:
         return {"error": f"审批请求 '{approval_id}' 不存在"}

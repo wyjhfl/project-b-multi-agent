@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；真实 MCP stdio、真实 LLM-as-Judge、完整 LangGraph checkpoint / interrupt、前端审批 UI 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-432+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v1.1.1-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-513+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.0.1-green)]()
 
 ---
 
@@ -90,6 +90,19 @@
 ┌──────────────────────────────▼──────────────────────────────────────┐
 │                      SQLite Storage Layer                           │
 │  ops_demo.sqlite │ runtime.sqlite │ runtime_metrics.sqlite          │
+└─────────────────────────────────────────────────────────────────────┘
+                               │
+┌─────────────────────────────────────────────────────────────────────┐
+│                   Auth / Cache / Storage Abstraction                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐     │
+│  │ JWT Auth     │  │ RBAC         │  │ Store Factory        │     │
+│  │ /auth/login  │  │ admin/operator│  │ sqlite / postgres    │     │
+│  │ /auth/me     │  │ viewer/auditor│  │ InMemoryUserStore    │     │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘     │
+│  ┌──────────────┐  ┌──────────────┐                               │
+│  │ Redis Cache  │  │ PostgreSQL   │                               │
+│  │ NoopRedis    │  │ Alembic      │                               │
+│  └──────────────┘  └──────────────┘                               │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -202,6 +215,32 @@ Harness Runtime 是整个系统的执行骨架，所有 Agent 行为均通过五
 - **ShortTermMemory**：内存实现，`session_id` 共享，同一 session 下多次任务共享上下文，支持 add_message / get_messages / summarize / clear
 - **SkillRegistry**：4 个内置 Skill（ops_metrics / product_analysis / policy_lookup / nl2sql_analysis），规则型 trigger 匹配
 - **SelfCheckEngine**：8 项规则型自检（result_success / approval_consistency / injection_consistency / tool_call_consistency / nl2sql_consistency / audit_consistency / empty_result / waiting_approval），自检不改变 task.status
+
+### 11. Auth / JWT / RBAC
+
+企业级认证与授权层，默认 auth_enabled=false / rbac_enabled=false 保持兼容；v2.0.1 已把 require_permission 接入关键 API：
+
+- **JWT 认证**：PyJWT 实现，POST /auth/login 获取 access_token，GET /auth/me 验证身份
+- **密码安全**：bcrypt 哈希，hash_password() / verify_password()
+- **RBAC 角色体系**：4 个角色（admin / operator / viewer / auditor），ROLE_HIERARCHY 继承，ENDPOINT_PERMISSIONS 细粒度控制
+- **关键 API 保护**：/tasks 创建与读取、/approvals 读取/决策/resume、/audit/events、/tools/{tool_name}/call、/metrics/* 已接入 RBAC 依赖；/health 和 /auth/* 不加权限。
+- **auth_enabled=false 兼容**：默认返回 DevUser(username="system", roles=["admin"])，旧 API 不需要 token
+- **rbac_enabled=false 兼容**：认证打开但 RBAC 关闭时只校验 token，不做角色权限拦截。
+- **InMemoryUserStore**：本地可测试用户存储，seed_default_admin_if_empty 通过 DEV_ADMIN_PASSWORD 环境变量设置默认密码
+
+> **注意**：auth_enabled=false 是兼容默认值，不影响现有 API 和测试。企业试点时设置 AUTH_ENABLED=true 启用认证。
+
+### 12. PostgreSQL / Redis / Store Abstraction
+
+企业级存储与缓存层，默认 storage_backend=sqlite / redis_enabled=false 保持兼容：
+
+- **Store Factory**：根据 storage_backend 配置返回 SQLite 或 PostgreSQL store 实现；v2.0.1 已接入 app.main 主链路 getter
+- **PostgreSQL Store**：PostgresTaskStore / PostgresApprovalStore / PostgresAuditStore / PostgresMetricsStore，与 SQLite store 返回结构一致
+- **Alembic 迁移**：7 张表（users / task_runs / approval_requests / audit_events / runtime_task_metrics / runtime_tool_metrics / runtime_token_usage）
+- **Redis Cache**：NoopRedisClient（redis_enabled=false 时不连接），get_redis_client() / check_redis_health()
+- **Docker Compose**：PostgreSQL 16-alpine + Redis 7-alpine + App 三容器编排；容器启动通过 scripts/start_app.py 先初始化 demo DB，PostgreSQL 模式下执行 alembic upgrade head，再启动 uvicorn
+
+> **注意**：默认 storage_backend=sqlite，不要求 PostgreSQL/Redis 可用。企业试点时设置 STORAGE_BACKEND=postgres 且 DATABASE_URL 非空启用 PostgreSQL；REDIS_ENABLED=true 启用 Redis。
 
 ---
 
@@ -378,6 +417,21 @@ curl -X POST http://localhost:8000/reflection/check \
   -d '{"task_id": "task_xxx", "result": {...}}'
 ```
 
+### 认证与授权
+
+```bash
+# 登录获取 token（auth_enabled=true 时）
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+
+# 查看当前用户信息
+curl http://localhost:8000/auth/me \
+  -H "Authorization: Bearer <token>"
+```
+
+> **注意**：auth_enabled=false（默认）时，旧 API 不需要 token 仍可访问。
+
 ---
 
 ## 测试
@@ -386,7 +440,7 @@ curl -X POST http://localhost:8000/reflection/check \
 python -m pytest -q
 ```
 
-共 **432+ 个测试**，覆盖全部模块：
+共 **513+ 个测试**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -407,6 +461,10 @@ python -m pytest -q
 | test_runtime_persistence_v05 | Metrics 持久化 |
 | test_badcase_eval_v05 | BadCase 评测 |
 | test_runtime_memory_skills_reflection_v05 | 记忆 / 技能 / 自检 |
+| test_config_v20 | v2.0 配置与依赖基座 |
+| test_auth_v20 | Auth / JWT / Password / UserStore |
+| test_rbac_v20 | RBAC 角色权限 / API 保护开关 |
+| test_storage_v20 | PostgreSQL Store / Alembic / Factory / Docker Compose |
 
 ---
 
@@ -422,6 +480,7 @@ python -m pytest -q
 | **v1.0** | 当前发布，完整工程化框架 | 全部能力稳定交付，370 个测试，生产级工程化框架 |
 | **v1.1** | Credibility & Eval Hardening | 表述对齐（确定性多角色编排 / LangGraph 边界声明）/ TrajectoryEvaluator / Multi-Agent eval 扩展 / 最小 LangGraph StateGraph 骨架 / eval_report_v1.md |
 | **v1.1.1** | Documentation & Eval Precision Cleanup | README/docs 口径统一 / expected_tools 补强 / HITL/Security eval semantic split / RiskIntentGuard / interview_guide / 432+ tests |
+| **v2.0.1** | Phase 1 Foundation + Integration Cleanup | SQLAlchemy + Alembic + psycopg / Redis + NoopRedisClient / JWT Auth + bcrypt / RBAC 接入关键 API / Store Factory 接入 app.main / Docker startup migration / Dockerfile Alembic 修复 / tools:read / 513+ tests |
 
 ---
 
@@ -446,6 +505,13 @@ project-b-multi-agent/
 │   │   ├── skills_api.py           #   技能匹配 API
 │   │   ├── reflection_api.py       #   自检 API
 │   │   └── runtime_snapshot.py     #   运行时快照
+│   ├── auth/                        # 认证与授权
+│   │   ├── models.py                #   UserRole / User / TokenPayload
+│   │   ├── password.py              #   bcrypt 哈希与验证
+│   │   ├── jwt.py                   #   JWT 创建与解码
+│   │   └── dependencies.py          #   RBAC 依赖（get_current_user / require_roles）
+│   ├── cache/                       # 缓存层
+│   │   └── redis_client.py          #   Redis 客户端 / NoopRedisClient
 │   ├── agent/                      # Agent 内核层
 │   │   ├── graph/                  #   LangGraph 有向图
 │   │   │   └── kernel.py           #     AgentKernel（主链路编排）
@@ -517,7 +583,17 @@ project-b-multi-agent/
 │   ├── storage/                    # 持久化存储
 │   │   ├── task_store.py           #   SQLiteTaskStore
 │   │   ├── approval_store.py       #   SQLiteApprovalStore
-│   │   └── audit_store.py          #   SQLiteAuditStore
+│   │   ├── audit_store.py          #   SQLiteAuditStore
+│   │   ├── database.py              #   SQLAlchemy engine / session factory
+│   │   ├── user_store.py            #   InMemoryUserStore
+│   │   ├── base.py                  #   Store Protocol 定义
+│   │   ├── models.py                #   SQLAlchemy ORM models
+│   │   ├── factory.py               #   Store Factory
+│   │   └── postgres/                #   PostgreSQL Store 实现
+│   │       ├── task_store.py        #     PostgresTaskStore
+│   │       ├── approval_store.py    #     PostgresApprovalStore
+│   │       ├── audit_store.py       #     PostgresAuditStore
+│   │       └── metrics_store.py     #     PostgresMetricsStore
 │   ├── visualization/              # 可视化
 │   │   └── chart_planner.py        #   ChartPlanner
 │   ├── prompts/                    # Prompt 模板
@@ -525,6 +601,12 @@ project-b-multi-agent/
 │   ├── core/                       # 核心配置
 │   │   └── config.py               #   Settings
 │   └── main.py                     # FastAPI 应用入口
+├── alembic.ini                      # Alembic 配置
+├── alembic/                         # Alembic 迁移
+│   ├── env.py                       #   Alembic env
+│   ├── script.py.mako               #   迁移模板
+│   └── versions/                    #   迁移版本
+│       └── 001_initial.py           #     初始迁移（7 张表）
 ├── data/
 │   ├── db/                         # SQLite 数据库
 │   │   ├── ops_demo.sqlite         #   运营 demo 数据
@@ -539,7 +621,7 @@ project-b-multi-agent/
 │   ├── init_demo_db.py             #   初始化 demo 数据库
 │   ├── start_dev.py                #   开发启动脚本
 │   └── check_health.py             #   健康检查
-├── tests/                          # 测试（432+ 个）
+├── tests/                          # 测试（513+ 个）
 ├── .github/workflows/ci.yml        # CI 配置
 ├── Dockerfile                      # Docker 镜像
 ├── docker-compose.yml              # Docker Compose
@@ -555,11 +637,15 @@ project-b-multi-agent/
 |------|------|------|
 | **Web 框架** | FastAPI | 异步 API，自动 OpenAPI 文档 |
 | **数据校验** | Pydantic v2 | 类型安全的数据模型与校验 |
-| **存储** | SQLite | 轻量级本地存储（运营数据 + 运行时 + 指标 + 审批 + 审计） |
+| **存储** | SQLite / PostgreSQL | 轻量级本地存储（默认）+ 企业级 PostgreSQL 存储（试点） |
+| **ORM / 迁移** | SQLAlchemy + Alembic | 数据库抽象 + 版本化迁移 |
+| **缓存** | Redis | 审批状态缓存 / session 存储（默认 NoopRedisClient） |
+| **认证** | PyJWT + bcrypt | JWT Bearer Token + bcrypt 密码哈希 |
+| **授权** | RBAC | 4 角色（admin / operator / viewer / auditor）+ 端点权限 |
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 432+ 个测试，覆盖全部模块 |
+| **测试** | pytest + httpx | 513+ 个测试，覆盖全部模块 |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---

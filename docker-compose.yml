@@ -1,4 +1,32 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: project_b
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: dev-only-password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d project_b"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   app:
     build: .
     ports:
@@ -8,9 +36,23 @@ services:
     environment:
       - MCP_MODE=fake
       - APP_ENV=development
+      - DATABASE_URL=postgresql+psycopg://agent:dev-only-password@postgres:5432/project_b
+      - REDIS_URL=redis://redis:6379/0
+      - STORAGE_BACKEND=postgres
+      - REDIS_ENABLED=true
+      - AUTH_ENABLED=false
+      - RBAC_ENABLED=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+
+volumes:
+  pgdata:

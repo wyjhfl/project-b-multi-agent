@@ -3,10 +3,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.agent.graph.kernel import AgentKernel
+from app.auth.dependencies import require_permission
 from app.harness.security.injection_guard import PromptInjectionGuard
 from app.models.schemas import TaskRun, TaskStatus
 
@@ -54,7 +55,7 @@ def _get_audit_recorder():
 
 
 @router.post("", response_model=CreateTaskResponse)
-async def create_task(req: CreateTaskRequest):
+async def create_task(req: CreateTaskRequest, _current_user=Depends(require_permission("tasks:create"))):
     finding = _injection_guard.check_text(req.query)
     if finding.action == "block":
         task_id = str(uuid.uuid4())
@@ -138,17 +139,17 @@ async def _list_tasks(limit: int = 20):
 
 
 @router.get("")
-async def get_tasks(limit: int = 20):
+async def get_tasks(limit: int = 20, _current_user=Depends(require_permission("tasks:read"))):
     return await _list_tasks(limit=limit)
 
 
 @router.get("/list")
-async def list_tasks_compat(limit: int = 20):
+async def list_tasks_compat(limit: int = 20, _current_user=Depends(require_permission("tasks:read"))):
     return await _list_tasks(limit=limit)
 
 
 @router.get("/{task_id}")
-async def get_task(task_id: str):
+async def get_task(task_id: str, _current_user=Depends(require_permission("tasks:read"))):
     try:
         store = _get_task_store()
         result = store.get_task(task_id)
@@ -160,7 +161,7 @@ async def get_task(task_id: str):
 
 
 @router.get("/{task_id}/trace")
-async def get_task_trace(task_id: str):
+async def get_task_trace(task_id: str, _current_user=Depends(require_permission("tasks:read"))):
     recorder = _get_trace_recorder()
     events = recorder.get_events(task_id=task_id)
     return {

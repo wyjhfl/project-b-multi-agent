@@ -20,6 +20,16 @@ class Settings(BaseSettings):
     mcp_server_args: str = ""
     mcp_server_timeout_seconds: float = 10.0
 
+    database_url: str = ""
+    redis_url: str = "redis://localhost:6379/0"
+    jwt_secret: str = "dev-only-change-me-please-32-bytes"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    auth_enabled: bool = False
+    rbac_enabled: bool = False
+    storage_backend: str = "sqlite"
+    redis_enabled: bool = False
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

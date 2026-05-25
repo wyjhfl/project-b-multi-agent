@@ -38,9 +38,42 @@
 - JWT 认证保护所有 API (/health 除外)
 - RBAC 角色权限正确: viewer 不能创建任务，operator 不能管理用户
 - Redis 缓存命中率和 rate limiting 正常工作
-- Docker Compose 一键启动，432+ 测试全部通过
+- Docker Compose 一键启动，513+ 测试全部通过
 
-### Phase 2: 真实 LangGraph checkpoint / interrupt / resume
+**Phase 1 Foundation 完成状态 (v2.0.1)**:
+
+| 任务 | 状态 | 说明 |
+|------|------|------|
+| PostgreSQL 迁移 | Foundation 完成 | PostgresTaskStore / PostgresApprovalStore / PostgresAuditStore / PostgresMetricsStore 已实现，Store Factory 根据 storage_backend 切换，默认 sqlite |
+| Redis 集成 | 基础完成 | NoopRedisClient + get_redis_client() + check_redis_health()，redis_enabled=false 时不连接 |
+| JWT 认证 | 完成 | PyJWT + bcrypt，POST /auth/login + GET /auth/me，auth_enabled=false 兼容 |
+| RBAC 授权 | 完成 | 4 角色 (admin / operator / viewer / auditor) + ROLE_HIERARCHY + ENDPOINT_PERMISSIONS + require_roles / require_permission，rbac_enabled=false 兼容 |
+| 环境配置 | 完成 | pydantic-settings 管理 9 个新配置项 |
+| Docker Compose | 完成 | PostgreSQL 16-alpine + Redis 7-alpine + App 三容器编排 |
+| Alembic 迁移 | 完成 | 7 张表初始迁移 (users / task_runs / approval_requests / audit_events / runtime_task_metrics / runtime_tool_metrics / runtime_token_usage) |
+
+**Phase 1.1 Integration Cleanup（v2.0.1 内部阶段）**:
+
+- Store Factory 已接入 `app.main` 主链路 getter；`reset_runtime_for_test()` 后会按当前配置重新创建 store。
+- RBAC 已接入关键 API：tasks、approvals、approval resume、audit events、tools call、metrics；`/health` 和 `/auth/*` 不加权限。
+- Docker app 启动改为 `scripts/start_app.py`：先运行 demo DB 初始化，PostgreSQL 模式下执行 `alembic upgrade head`，再启动 `uvicorn app.main:app`。
+- JWT 默认开发 secret 加长到 32+ 字符，仅用于本地开发，不引入真实 secret。
+- 默认兼容口径不变：`auth_enabled=false`、`rbac_enabled=false`、`storage_backend=sqlite`；PostgreSQL 通过 `STORAGE_BACKEND=postgres` + 非空 `DATABASE_URL` 启用。
+
+**Phase 1.1.1 Docker Startup & Release Polish（v2.0.1 内部阶段）**:
+
+- Dockerfile 已复制 `alembic.ini` 和 `alembic/`，保证容器内 startup migration 可找到迁移文件。
+- `GET /tools` 已接入 `tools:read`，viewer/auditor/operator/admin 均可读工具列表；工具调用仍需 `tools:call`。
+- 正式 release 版本号统一为 `v2.0.1`，测试口径统一为 `513+`。
+- 最近发布验证：`513 passed`、`docker compose config passed`、`docker compose build app passed`。
+
+**关键设计决策**:
+- auth_enabled=false / rbac_enabled=false / redis_enabled=false / storage_backend=sqlite 为默认值，保证旧 API 和既有测试不破
+- InMemoryUserStore 本地可测试，默认 admin 密码通过 DEV_ADMIN_PASSWORD 环境变量设置
+- PostgreSQL Store 实现最小 CRUD，与 SQLite store 返回结构一致；v2.0.1 后主链路通过 Store Factory 创建，默认仍走 SQLite，postgres 配置开启后走 PostgreSQL
+- passlib[bcrypt] 与新版 bcrypt 不兼容，已切换为直接使用 bcrypt 库
+
+### Phase 2: 真实 LangGraph checkpoint / interrupt / resume（尚未开始）
 
 **目标**: Agent 编排生产化
 
@@ -57,7 +90,7 @@
 - interrupt -> approve -> resume 链路完整
 - 并发 resume 不重复执行
 - checkpoint 清理不影响活跃任务
-- 432+ 测试全部通过
+- 513+ 测试全部通过
 
 ### Phase 3: 真实 MCP stdio client
 
@@ -76,7 +109,7 @@
 - MCP Server 崩溃后自动恢复
 - 工具调用超时有 fallback
 - FakeMCPClient 仍可用于开发和测试
-- 432+ 测试全部通过
+- 513+ 测试全部通过
 
 ### Phase 4: LiteLLM 真实 provider + guardrails
 
@@ -96,7 +129,7 @@
 - LLM-as-Judge 打分与 FakeJudge 结果偏差 < 20%
 - PII 检测和 SQL 注入二次校验正常工作
 - 成本超预算自动降级到 mock
-- 432+ 测试全部通过
+- 513+ 测试全部通过
 
 ### Phase 5: Next.js 运营台和审批台
 
@@ -136,7 +169,7 @@
 - CI 包含 lint / type check / security scan / integration test
 - /health 正确反映所有依赖状态
 - 备份恢复脚本可用
-- 432+ 测试全部通过
+- 513+ 测试全部通过
 
 ## 核心原则
 

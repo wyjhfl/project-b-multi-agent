@@ -11,7 +11,6 @@ from app.harness.context.assembler import ContextAssembler
 from app.harness.gateway.tool_gateway import ToolGateway
 from app.harness.hooks.pipeline import HookPipeline
 from app.harness.metrics.runtime_metrics import RuntimeMetricsRecorder
-from app.harness.metrics.metrics_store import SQLiteMetricsStore
 from app.harness.memory.short_term import ShortTermMemory
 from app.harness.reflection.self_check import SelfCheckEngine
 from app.harness.skills.registry import SkillRegistry
@@ -21,9 +20,7 @@ from app.harness.trace.recorder import TraceRecorder
 from app.models.schemas import RiskLevel, ToolSpec
 from app.services.multitool_pipeline import MultiToolPipeline
 from app.services.nl2sql_pipeline import NL2SQLPipeline
-from app.storage.approval_store import SQLiteApprovalStore
-from app.storage.audit_store import SQLiteAuditStore
-from app.storage.task_store import SQLiteTaskStore
+from app.storage import factory as store_factory
 from app.tools.local.ops_query import (
     get_month_new_users,
     get_order_count,
@@ -32,19 +29,20 @@ from app.tools.local.ops_query import (
     get_top_products,
 )
 from app.tools.mcp.client import FakeMCPClient
+from app.core.config import settings
 
 _kernel: AgentKernel | None = None
 _trace_recorder: TraceRecorder | None = None
 _planner: KeywordPlanner | None = None
 _gateway: ToolGateway | None = None
 _policy_engine: PolicyEngine | None = None
-_task_store: SQLiteTaskStore | None = None
+_task_store = None
 _orchestrator: MultiAgentOrchestrator | None = None
-_approval_store: SQLiteApprovalStore | None = None
-_audit_store: SQLiteAuditStore | None = None
+_approval_store = None
+_audit_store = None
 _audit_recorder: AuditRecorder | None = None
 _metrics_recorder: RuntimeMetricsRecorder | None = None
-_metrics_store: SQLiteMetricsStore | None = None
+_metrics_store = None
 _memory: ShortTermMemory | None = None
 _skill_registry: SkillRegistry | None = None
 
@@ -66,10 +64,10 @@ def _build_runtime() -> tuple[AgentKernel, TraceRecorder, KeywordPlanner, ToolGa
     engine = PolicyEngine(operation_whitelist=whitelist)
 
     if _approval_store is None:
-        _approval_store = SQLiteApprovalStore()
+        _approval_store = get_approval_store()
 
     if _audit_store is None:
-        _audit_store = SQLiteAuditStore()
+        _audit_store = get_audit_store()
     if _audit_recorder is None:
         _audit_recorder = AuditRecorder(_audit_store)
 
@@ -77,7 +75,7 @@ def _build_runtime() -> tuple[AgentKernel, TraceRecorder, KeywordPlanner, ToolGa
         _metrics_recorder = RuntimeMetricsRecorder()
 
     if _metrics_store is None:
-        _metrics_store = SQLiteMetricsStore()
+        _metrics_store = get_metrics_store()
 
     _metrics_recorder.set_metrics_store(_metrics_store)
 
@@ -264,24 +262,24 @@ def get_multi_agent_orchestrator() -> MultiAgentOrchestrator:
     return _orchestrator
 
 
-def get_task_store() -> SQLiteTaskStore:
+def get_task_store():
     global _task_store
     if _task_store is None:
-        _task_store = SQLiteTaskStore()
+        _task_store = store_factory.get_task_store()
     return _task_store
 
 
-def get_approval_store() -> SQLiteApprovalStore:
+def get_approval_store():
     global _approval_store
     if _approval_store is None:
-        _approval_store = SQLiteApprovalStore()
+        _approval_store = store_factory.get_approval_store()
     return _approval_store
 
 
-def get_audit_store() -> SQLiteAuditStore:
+def get_audit_store():
     global _audit_store
     if _audit_store is None:
-        _audit_store = SQLiteAuditStore()
+        _audit_store = store_factory.get_audit_store()
     return _audit_store
 
 
@@ -289,7 +287,7 @@ def get_audit_recorder() -> AuditRecorder:
     global _audit_recorder, _audit_store
     if _audit_recorder is None:
         if _audit_store is None:
-            _audit_store = SQLiteAuditStore()
+            _audit_store = get_audit_store()
         _audit_recorder = AuditRecorder(_audit_store)
     return _audit_recorder
 
@@ -301,10 +299,10 @@ def get_metrics_recorder() -> RuntimeMetricsRecorder:
     return _metrics_recorder
 
 
-def get_metrics_store() -> SQLiteMetricsStore:
+def get_metrics_store():
     global _metrics_store
     if _metrics_store is None:
-        _metrics_store = SQLiteMetricsStore()
+        _metrics_store = store_factory.get_metrics_store()
     return _metrics_store
 
 
@@ -338,11 +336,17 @@ def reset_runtime_for_test() -> None:
     _metrics_store = None
     _memory = None
     _skill_registry = None
+    try:
+        import app.storage.database as db_mod
+        db_mod._engine = None
+        db_mod._session_factory = None
+    except Exception:
+        pass
 
 
 app = FastAPI(
     title="Project B: Harness-native 运营中台 Agent",
-    version="1.1.1",
+    version="2.0.1",
 )
 
 from app.api.tasks import router as tasks_router
@@ -360,6 +364,7 @@ from app.api.memory_api import router as memory_router
 from app.api.skills_api import router as skills_router
 from app.api.reflection_api import router as reflection_router
 from app.api.runtime_snapshot import router as runtime_snapshot_router
+from app.api.auth import router as auth_router
 
 app.include_router(tasks_router)
 app.include_router(nl2sql_router)
@@ -376,8 +381,18 @@ app.include_router(memory_router)
 app.include_router(skills_router)
 app.include_router(reflection_router)
 app.include_router(runtime_snapshot_router)
+app.include_router(auth_router)
 
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "project-b-multi-agent"}
+    from app.cache.redis_client import check_redis_health
+    redis_status = check_redis_health()
+    return {
+        "status": "ok",
+        "service": "project-b-multi-agent",
+        "version": "2.0.1",
+        "storage_backend": settings.storage_backend,
+        "auth_enabled": settings.auth_enabled,
+        "redis": redis_status,
+    }

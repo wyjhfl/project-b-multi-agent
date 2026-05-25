@@ -4,9 +4,10 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from app.auth.dependencies import require_permission
 from app.harness.gateway.tool_gateway import ToolGateway
 from app.harness.policy.engine import PolicyEngine
 from app.models.schemas import RiskLevel, ToolCallRecord, ToolCallStatus, ToolSpec
@@ -49,7 +50,7 @@ def _get_policy_engine() -> PolicyEngine:
 
 
 @router.get("", response_model=list[ToolInfoResponse])
-async def list_tools():
+async def list_tools(_current_user=Depends(require_permission("tools:read"))):
     gateway = _get_gateway()
     tools = gateway.list_tools()
     return [
@@ -66,7 +67,7 @@ async def list_tools():
 
 
 @router.post("/{tool_name}/call", response_model=ToolCallResponse)
-async def call_tool(tool_name: str, req: ToolCallRequest):
+async def call_tool(tool_name: str, req: ToolCallRequest, _current_user=Depends(require_permission("tools:call"))):
     gateway = _get_gateway()
     policy_engine = _get_policy_engine()
 

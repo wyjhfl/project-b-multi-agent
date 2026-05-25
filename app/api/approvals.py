@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
+from app.auth.dependencies import require_permission
 from app.harness.security.injection_guard import PromptInjectionGuard
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -127,13 +128,14 @@ def _do_resume(approval_id: str) -> dict | None:
 async def list_approvals(
     status: str | None = Query(default=None),
     limit: int = Query(default=20),
+    _current_user=Depends(require_permission("approvals:read")),
 ):
     store = _get_approval_store()
     return store.list_approvals(status=status, limit=limit)
 
 
 @router.get("/{approval_id}")
-async def get_approval(approval_id: str):
+async def get_approval(approval_id: str, _current_user=Depends(require_permission("approvals:read"))):
     store = _get_approval_store()
     result = store.get_approval(approval_id)
     if result is None:
@@ -142,7 +144,7 @@ async def get_approval(approval_id: str):
 
 
 @router.post("/{approval_id}/approve")
-async def approve_approval(approval_id: str, req: DecideRequest = DecideRequest()):
+async def approve_approval(approval_id: str, req: DecideRequest = DecideRequest(), _current_user=Depends(require_permission("approvals:decide"))):
     store = _get_approval_store()
     previous = store.get_approval(approval_id)
     if previous is None:
@@ -236,7 +238,7 @@ async def approve_approval(approval_id: str, req: DecideRequest = DecideRequest(
 
 
 @router.post("/{approval_id}/reject")
-async def reject_approval(approval_id: str, req: DecideRequest = DecideRequest()):
+async def reject_approval(approval_id: str, req: DecideRequest = DecideRequest(), _current_user=Depends(require_permission("approvals:decide"))):
     store = _get_approval_store()
     previous = store.get_approval(approval_id)
     if previous is None:
