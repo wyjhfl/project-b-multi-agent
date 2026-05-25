@@ -54,10 +54,12 @@
 
 - 不要在默认测试与默认配置下依赖真实外部 MCP Server
 - 不要在默认测试中调用真实 LLM API
-- 不要做前端审批 UI
+- 不要在 v2.3 及以前宣称前端审批 UI 已完成
+- v2.4 起允许实现试点级运营台/审批台，但不要宣称已完成生产级交付
 - 不要重写 Harness Runtime
 - 不要把规则型 Multi-Agent 包装成自治多 Agent
 - 不要在默认配置下启用 auth_enabled / rbac_enabled / redis_enabled
 - 不要删除 SQLite demo 数据和 SQLite store 实现
 - 不要在 Phase 1 实现 LangGraph checkpoint / interrupt
-- 不要宣称完整 LangGraph native Command resume、真实 MCP、真实 LLM、前端审批 UI 已完成
+- 不要宣称完整 LangGraph native Command resume、真实 MCP、真实 LLM 已完成
+- 不要宣称生产级 SSO、多租户、复杂 BI、真实外部系统对接已完成

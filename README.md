@@ -39,7 +39,7 @@
 
 > **⚠️ 边界说明**
 >
-> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）和 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline）；真实外部 MCP Server 与真实 LLM 生产验收、前端审批 UI、完全自治的 LLM 多 Agent 规划属于后续扩展。
+> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）和 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline）；v2.4 已进入试点级运营台/审批台规划阶段，但前端尚未完成正式实现。真实外部 MCP Server 与真实 LLM 生产验收、完全自治的 LLM 多 Agent 规划仍属于后续扩展。
 >
 > - Multi-Agent 当前是**确定性多角色编排 / deterministic multi-role orchestration**（Coordinator / Analyst / Executor / Reviewer 规则驱动边界划分），后续可替换为 LLM Planner。
 > - LangGraph 当前 v1.0 以 Harness Runtime 可测试顺序流为主，v1.1 引入最小 LangGraph StateGraph，用于 keyword 主链路验证；Phase 2 已实现 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
@@ -660,7 +660,7 @@ project-b-multi-agent/
 | **真实外部 MCP Server 验收** | 当前 real MCP stdio 协议链路已完成（基于 fake fixture 验收）；真实外部 MCP Server 生产验收与更完整 sandbox 仍在后续阶段 |
 | **完整 LangGraph native checkpoint / Command resume** | 当前已有 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint、Command interrupt、Command resume 仍在 Roadmap |
 | **真实 LLM provider eval** | LiteLLMProvider 接入真实 LLM API，运行完整 NL2SQL / Multi-Agent eval |
-| **前端审批 UI** | 基于 Approval UI API 构建审批交互界面，实现 HITL 完整闭环 |
+| **试点级运营台/审批台前端** | v2.4 已进入规划与分阶段实施（v2.4.1 起步）；当前尚未完成正式前端交付 |
 | **LLM-as-Judge 生产验收** | LLMJudgeProvider 真实 provider 路径在真实环境完成稳定性与成本验收，并补齐评测治理策略 |
 | **LLM 自主多 Agent 规划** | 从确定性多角色编排升级为 LLM 自主决策的多 Agent 协作 |
 | **长期记忆 / 向量库** | 从 ShortTermMemory 升级为持久化 + 向量检索的长期记忆 |
