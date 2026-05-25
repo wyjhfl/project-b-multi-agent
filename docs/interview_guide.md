@@ -78,9 +78,9 @@ approval_consumed 语义：审批通过后执行被拦截的 step，执行成功
 ### 为什么说是 production-grade prototype，不是 production-ready system？
 
 - 真实 MCP stdio protocol path 已接入，但默认仍使用 FakeMCPClient（`MCP_MODE=fake`）
-- 真实 LLM-as-Judge 未接入（使用 FakeJudge）
+- LLMJudgeProvider 已支持可选真实 provider 路径，默认仍使用 FakeJudge/fake-offline；真实 LLM 生产验收仍需外部环境和密钥单独完成
 - LangGraph checkpoint / interrupt 未完整实现
-- 前端审批 UI 未实现
+- v2.4 起允许实现试点级运营台/审批台，但当前尚未完成正式前端交付
 - Multi-Agent 是规则驱动，非 LLM 自主决策
 - 但 Runtime 治理、工具控制、审计追踪、HITL、评测闭环的工程化设计是生产级的
 

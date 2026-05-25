@@ -6,6 +6,9 @@ import os
 import shlex
 import subprocess
 import threading
+import tomllib
+from importlib import metadata
+from pathlib import Path
 from queue import Empty, Queue
 from typing import Any, TextIO
 
@@ -15,6 +18,24 @@ from app.tools.mcp.client import MCPToolInfo
 logger = logging.getLogger(__name__)
 
 MCP_STDERR_MAX_CHARS = 4000
+
+
+def _resolve_client_version() -> str:
+    try:
+        for parent in Path(__file__).resolve().parents:
+            candidate = parent / "pyproject.toml"
+            if not candidate.exists():
+                continue
+            data = tomllib.loads(candidate.read_text(encoding="utf-8"))
+            version = data.get("project", {}).get("version")
+            if isinstance(version, str) and version.strip():
+                return version.strip()
+    except Exception:
+        pass
+    try:
+        return metadata.version("project-b-multi-agent")
+    except Exception:
+        return "2.3.0"
 
 
 class MCPConfigError(RuntimeError):
@@ -67,6 +88,7 @@ class StdioMCPClient:
         self._stderr_buffer = ""
         self._stderr_thread: threading.Thread | None = None
         self._stderr_stop_event = threading.Event()
+        self._client_version = _resolve_client_version()
 
     @staticmethod
     def _parse_csv(value: str) -> list[str]:
@@ -218,7 +240,7 @@ class StdioMCPClient:
         result = self._request(
             "initialize",
             {
-                "clientInfo": {"name": "project-b", "version": "2.2.0"},
+                "clientInfo": {"name": "project-b", "version": self._client_version},
                 "capabilities": {},
             },
         )

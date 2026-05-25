@@ -69,6 +69,13 @@ def _handle_request(mode: str, req: dict[str, Any]) -> bool:
         raise RuntimeError("server crashed")
 
     if method == "initialize":
+        if mode == "capture-init" and len(sys.argv) > 2:
+            output_file = sys.argv[2]
+            try:
+                with open(output_file, "w", encoding="utf-8") as f:
+                    json.dump(req.get("params", {}), f, ensure_ascii=False)
+            except Exception:
+                pass
         _write(
             {
                 "jsonrpc": "2.0",

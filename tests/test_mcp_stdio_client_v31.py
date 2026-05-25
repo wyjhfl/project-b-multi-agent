@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -314,4 +315,21 @@ def test_timeout_recovery_has_no_stale_process(tmp_path):
     after_recovery = client.get_health()
     assert after_recovery["process_alive"] is True
     assert after_recovery["pid"] == pid_after
+    client.close()
+
+
+def test_initialize_client_version_is_230(tmp_path):
+    capture_file = tmp_path / "init_params.json"
+    client = StdioMCPClient(
+        server_name="capture_init_version",
+        command=_python_command(),
+        args=f"\"{_server_script()}\" capture-init \"{capture_file}\"",
+        timeout_seconds=1.0,
+    )
+    tools = client.list_tools()
+    assert len(tools) >= 2
+    assert capture_file.exists()
+    payload = json.loads(capture_file.read_text(encoding="utf-8"))
+    assert payload["clientInfo"]["name"] == "project-b"
+    assert payload["clientInfo"]["version"] == "2.3.0"
     client.close()

@@ -28,4 +28,4 @@
 - 不保证抵御所有 LLM jailbreak（PromptInjectionGuard 是规则型防线）
 - 不接真实外部 MCP Server
 - 不做真实权限/登录体系
-- 不做前端审批 UI
+- v2.4 起允许实现试点级运营台/审批台，但不宣称生产级 SSO、多租户、复杂 BI、真实外部系统对接已完成
