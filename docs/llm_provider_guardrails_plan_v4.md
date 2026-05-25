@@ -95,9 +95,9 @@
 - 不绕过现有 PolicyEngine / SQLGuard / PromptInjectionGuard。
 - 默认 fake/offline 路径保持可跑，默认测试不调用真实 LLM。
 
-## 5. Phase 4.5 规划（未开始）
+## 5. Phase 4.5 规划（已完成最小闭环，后续继续优化）
 
-> 本阶段仅保留规划，不在本次改动中实现。
+> 本阶段最小闭环已实现（预算、缓存、降级、观测）；以下为后续可增强方向。
 
 - token/cost 预算控制（task/session/day）。
 - 超时、重试、降级统一策略。
