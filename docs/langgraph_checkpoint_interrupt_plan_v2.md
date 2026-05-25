@@ -550,26 +550,28 @@ Phase 2.1 创建迁移，但本规划阶段不创建迁移文件。
 - claim/consume 原子性不足导致重复执行。
 - API 响应新增字段影响过窄断言测试。
 
-### Phase 2.5：docs / metrics / release cleanup
+### Phase 2.5: docs / release cleanup + failure-path hardening
 
-修改/新增文件：
+Status: Phase 2.5 release cleanup is complete. Scope:
 
-- 更新 `README.md`、`AGENTS.md`、`docs/enterprise_pilot_plan_v2.md`。
-- 新增 release review 文档。
-- 增加 metrics 字段或事件：checkpoint_created、graph_interrupted、graph_resumed、graph_resume_duplicate、checkpoint_expired。
-- 补充 `RELEASE_NOTES.md`。
+- Updated `README.md`, `AGENTS.md`, and `docs/enterprise_pilot_plan_v2.md`.
+- Added `docs/release_review_v2.1_graph_runtime.md`.
+- Added graph resume failure-path tests: when the approved tool returns `success=false` or `gateway.call` raises, checkpoint is still consumed, task is marked failed, approval payload is marked resumed, and repeated resume does not call the tool again.
+- Current test count is `553+` / `553 passed`.
 
-验收标准：
+Acceptance:
 
-- 文档明确 Phase 2 已完成范围和非目标。
-- 全量 pytest 通过。
-- docker compose config 通过。
-- 如新增 migration，docker compose build / startup migration 验证通过。
+- Docs clearly state completed Phase 2.1-2.5 scope and non-goals.
+- Full pytest: `553 passed`.
+- `docker compose config` passed.
+- `docker compose build app` passed.
 
-风险：
+Boundary: this stage does not add metrics fields, does not add `RELEASE_NOTES.md`, and does not create a tag. Full LangGraph native `Command` resume, real MCP stdio, real LLM / LLM-as-Judge, and frontend approval UI remain unimplemented.
 
-- 文档宣称超过实际实现范围。
-- metrics 口径与旧 runtime metrics 混淆。
+Risks:
+
+- Docs may overstate the implemented graph runtime scope.
+- Metrics wording may be confused with legacy runtime metrics.
 
 ## 8. 风险与非目标
 

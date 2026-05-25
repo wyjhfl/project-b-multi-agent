@@ -73,6 +73,7 @@ class GraphResumeAdapter:
                 tool_name=tool_name,
                 record=record,
                 error=None,
+                error_type=None,
             )
         except Exception as exc:
             resume_result = self._build_result(
@@ -81,6 +82,7 @@ class GraphResumeAdapter:
                 tool_name=tool_name,
                 record=None,
                 error=str(exc),
+                error_type="tool_call_exception",
             )
 
         task_status = "completed" if resume_result.get("success") else "failed"
@@ -153,6 +155,7 @@ class GraphResumeAdapter:
         tool_name: str,
         record: Any | None,
         error: str | None,
+        error_type: str | None,
     ) -> dict[str, Any]:
         success = bool(record and record.success and not error)
         result = {
@@ -171,6 +174,7 @@ class GraphResumeAdapter:
         record_error = getattr(record, "error", None) if record is not None else None
         if error or record_error:
             result["error"] = error or record_error
+            result["error_type"] = error_type or "tool_call_failed"
         return result
 
     def _trace(self, event_type: str, task_id: str, **detail: Any) -> None:

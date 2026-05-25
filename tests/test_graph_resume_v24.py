@@ -12,7 +12,7 @@ from app.harness.hooks.pipeline import HookPipeline
 from app.harness.policy.engine import PolicyEngine
 from app.harness.trace.recorder import TraceRecorder
 from app.main import app, reset_runtime_for_test
-from app.models.schemas import RiskLevel, TaskRun, TaskStatus, ToolSpec
+from app.models.schemas import RiskLevel, TaskRun, TaskStatus, ToolCallRecord, ToolCallStatus, ToolSpec
 from app.services.approval_resume import ApprovalResumeService
 from app.storage.approval_store import SQLiteApprovalStore
 from app.storage.graph_checkpoint_store import SQLiteGraphCheckpointStore
@@ -259,3 +259,67 @@ def test_graph_approval_without_checkpoint_id_errors_clearly(tmp_path):
 
     assert result["resumed"] is False
     assert result["error_type"] == "missing_checkpoint_id"
+
+
+def test_graph_resume_failed_tool_record_consumes_checkpoint_idempotently(tmp_path, monkeypatch):
+    checkpoint_store, approval_store, task_store, gateway, approval_id, checkpoint_id, call_count = _create_graph_approval(tmp_path, monkeypatch)
+    approval_store.decide_approval(approval_id, approved=True, decided_by="admin", reason="允许")
+
+    def _failed_call(tool_name, arguments=None, task_id=""):
+        call_count["dangerous"] = call_count.get("dangerous", 0) + 1
+        return ToolCallRecord(
+            call_id="failed-call",
+            tool_name=tool_name,
+            arguments=arguments or {},
+            status=ToolCallStatus.failed,
+            success=False,
+            error="boom",
+        )
+
+    gateway.call = _failed_call
+    service = _build_service(checkpoint_store, approval_store, task_store, gateway)
+
+    result = service.resume(approval_id)
+    second = service.resume(approval_id)
+
+    assert result["success"] is False
+    assert result["resume_status"] == "failed"
+    assert result["error"] == "boom"
+    assert result["error_type"] == "tool_call_failed"
+    assert task_store.get_task("task-danger")["status"] == "failed"
+    checkpoint = checkpoint_store.get_checkpoint(checkpoint_id)
+    assert checkpoint["consumed"] is True
+    assert checkpoint["status"] == "resumed"
+    approval = approval_store.get_approval(approval_id)
+    assert approval["payload"]["resumed"] is True
+    assert approval["payload"]["approval_consumed"] is True
+    assert second["already_resumed"] is True
+    assert call_count["dangerous"] == 1
+
+
+def test_graph_resume_tool_exception_consumes_checkpoint_idempotently(tmp_path, monkeypatch):
+    checkpoint_store, approval_store, task_store, gateway, approval_id, checkpoint_id, call_count = _create_graph_approval(tmp_path, monkeypatch)
+    approval_store.decide_approval(approval_id, approved=True, decided_by="admin", reason="允许")
+
+    def _raising_call(tool_name, arguments=None, task_id=""):
+        call_count["dangerous"] = call_count.get("dangerous", 0) + 1
+        raise RuntimeError("boom")
+
+    gateway.call = _raising_call
+    service = _build_service(checkpoint_store, approval_store, task_store, gateway)
+
+    result = service.resume(approval_id)
+    second = service.resume(approval_id)
+
+    assert result["success"] is False
+    assert result["resume_status"] == "failed"
+    assert result["error"] == "boom"
+    assert result["error_type"] == "tool_call_exception"
+    assert task_store.get_task("task-danger")["status"] == "failed"
+    checkpoint = checkpoint_store.get_checkpoint(checkpoint_id)
+    assert checkpoint["consumed"] is True
+    assert checkpoint["status"] == "resumed"
+    approval = approval_store.get_approval(approval_id)
+    assert approval["payload"]["resumed"] is True
+    assert second["already_resumed"] is True
+    assert call_count["dangerous"] == 1

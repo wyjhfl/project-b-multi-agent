@@ -4,9 +4,9 @@
 
 > **⚠️ 边界说明（请务必阅读）**
 >
-> 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；真实 MCP stdio、真实 LLM-as-Judge、完整 LangGraph checkpoint / interrupt、前端审批 UI 仍在 Roadmap。
+> 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；真实 MCP stdio、真实 LLM-as-Judge、前端审批 UI 仍在 Roadmap。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-513+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.0.1-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-553+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.0.1-green)]()
 
 ---
 
@@ -42,7 +42,7 @@
 > 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。真实 MCP stdio、真实 LLM-as-Judge、前端审批 UI、完全自治的 LLM 多 Agent 规划属于后续扩展。
 >
 > - Multi-Agent 当前是**确定性多角色编排 / deterministic multi-role orchestration**（Coordinator / Analyst / Executor / Reviewer 规则驱动边界划分），后续可替换为 LLM Planner。
-> - LangGraph 当前 v1.0 以 Harness Runtime 可测试顺序流为主，v1.1 引入最小 LangGraph StateGraph，用于 keyword 主链路验证；完整 checkpoint / interrupt 仍在 Roadmap。
+> - LangGraph 当前 v1.0 以 Harness Runtime 可测试顺序流为主，v1.1 引入最小 LangGraph StateGraph，用于 keyword 主链路验证；Phase 2 已实现 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 > - 本项目不是生产环境即插即用系统，不可直接用于生产部署。
 
 ---
@@ -440,7 +440,7 @@ curl http://localhost:8000/auth/me \
 python -m pytest -q
 ```
 
-共 **513+ 个测试**，覆盖全部模块：
+共 **553+ 个测试**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -480,7 +480,8 @@ python -m pytest -q
 | **v1.0** | 当前发布，完整工程化框架 | 全部能力稳定交付，370 个测试，生产级工程化框架 |
 | **v1.1** | Credibility & Eval Hardening | 表述对齐（确定性多角色编排 / LangGraph 边界声明）/ TrajectoryEvaluator / Multi-Agent eval 扩展 / 最小 LangGraph StateGraph 骨架 / eval_report_v1.md |
 | **v1.1.1** | Documentation & Eval Precision Cleanup | README/docs 口径统一 / expected_tools 补强 / HITL/Security eval semantic split / RiskIntentGuard / interview_guide / 432+ tests |
-| **v2.0.1** | Phase 1 Foundation + Integration Cleanup | SQLAlchemy + Alembic + psycopg / Redis + NoopRedisClient / JWT Auth + bcrypt / RBAC 接入关键 API / Store Factory 接入 app.main / Docker startup migration / Dockerfile Alembic 修复 / tools:read / 513+ tests |
+| **v2.0.1** | Phase 1 Foundation + Integration Cleanup | SQLAlchemy + Alembic + psycopg / Redis + NoopRedisClient / JWT Auth + bcrypt / RBAC 接入关键 API / Store Factory 接入 app.main / Docker startup migration / Dockerfile Alembic 修复 / tools:read / 553+ tests |
+| **v2.0.1 + Phase 2** | Graph Runtime Adapter Cleanup | Phase 2.1 GraphCheckpointStore / Phase 2.2 GraphRuntimeAdapter feature flag / Phase 2.3 graph interrupt -> approval mapping / Phase 2.4 graph approval resume adapter / Phase 2.5 release cleanup；默认 graph_runtime_enabled=false，legacy 行为不变；553+ tests |
 
 ---
 
@@ -621,7 +622,7 @@ project-b-multi-agent/
 │   ├── init_demo_db.py             #   初始化 demo 数据库
 │   ├── start_dev.py                #   开发启动脚本
 │   └── check_health.py             #   健康检查
-├── tests/                          # 测试（513+ 个）
+├── tests/                          # 测试（553+ 个）
 ├── .github/workflows/ci.yml        # CI 配置
 ├── Dockerfile                      # Docker 镜像
 ├── docker-compose.yml              # Docker Compose
@@ -645,7 +646,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 513+ 个测试，覆盖全部模块 |
+| **测试** | pytest + httpx | 553+ 个测试，覆盖全部模块 |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -655,7 +656,7 @@ project-b-multi-agent/
 | 方向 | 说明 |
 |------|------|
 | **真实 MCP stdio** | StdioMCPClient 接入真实 MCP Server stdio 协议，替代 FakeMCPClient |
-| **Real LangGraph checkpoint / interrupt** | 完整 LangGraph checkpoint 持久化与 interrupt/resume 机制，替代当前顺序流 |
+| **完整 LangGraph native checkpoint / Command resume** | 当前已有 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint、Command interrupt、Command resume 仍在 Roadmap |
 | **真实 LLM provider eval** | LiteLLMProvider 接入真实 LLM API，运行完整 NL2SQL / Multi-Agent eval |
 | **前端审批 UI** | 基于 Approval UI API 构建审批交互界面，实现 HITL 完整闭环 |
 | **LLM-as-Judge 实接** | LLMJudgeProvider 接入真实 LLM，替代 FakeJudge 规则打分 |

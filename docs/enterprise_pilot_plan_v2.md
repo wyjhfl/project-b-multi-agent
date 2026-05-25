@@ -38,7 +38,7 @@
 - JWT 认证保护所有 API (/health 除外)
 - RBAC 角色权限正确: viewer 不能创建任务，operator 不能管理用户
 - Redis 缓存命中率和 rate limiting 正常工作
-- Docker Compose 一键启动，513+ 测试全部通过
+- Docker Compose 一键启动，553+ 测试全部通过
 
 **Phase 1 Foundation 完成状态 (v2.0.1)**:
 
@@ -64,8 +64,8 @@
 
 - Dockerfile 已复制 `alembic.ini` 和 `alembic/`，保证容器内 startup migration 可找到迁移文件。
 - `GET /tools` 已接入 `tools:read`，viewer/auditor/operator/admin 均可读工具列表；工具调用仍需 `tools:call`。
-- 正式 release 版本号统一为 `v2.0.1`，测试口径统一为 `513+`。
-- 最近发布验证：`513 passed`、`docker compose config passed`、`docker compose build app passed`。
+- 正式 release 版本号统一为 `v2.0.1`，测试口径统一为 `553+`。
+- 最近发布验证：`553 passed`、`docker compose config passed`、`docker compose build app passed`。
 
 **关键设计决策**:
 - auth_enabled=false / rbac_enabled=false / redis_enabled=false / storage_backend=sqlite 为默认值，保证旧 API 和既有测试不破
@@ -73,33 +73,34 @@
 - PostgreSQL Store 实现最小 CRUD，与 SQLite store 返回结构一致；v2.0.1 后主链路通过 Store Factory 创建，默认仍走 SQLite，postgres 配置开启后走 PostgreSQL
 - passlib[bcrypt] 与新版 bcrypt 不兼容，已切换为直接使用 bcrypt 库
 
-### Phase 2: LangGraph checkpoint / interrupt / resume adapter（进行中）
+### Phase 2: LangGraph checkpoint / interrupt / resume adapter (adapter minimal loop complete)
 
-当前进展：
+Current progress:
 
-- Phase 2.1 已完成 `GraphCheckpointStore` + `graph_run_states` schema + SQLite/PostgreSQL store。
-- Phase 2.2 已完成默认关闭的 `GraphRuntimeAdapter`；`graph_runtime_enabled=false` 时旧主链路不变。
-- Phase 2.3 已完成 high-risk graph interrupt -> approval 映射。
-- Phase 2.4 已完成 `graph_keyword` 单工具 approval resume：审批通过后通过 checkpoint 原子 claim、执行被批准工具、写回 task / approval payload / checkpoint，并验证重复 resume 不重复执行工具、runtime reset 后可恢复。
+- Phase 2.1 completed `GraphCheckpointStore` + `graph_run_states` schema + SQLite/PostgreSQL store.
+- Phase 2.2 completed default-off `GraphRuntimeAdapter`; when `graph_runtime_enabled=false`, the legacy main path is unchanged.
+- Phase 2.3 completed high-risk graph interrupt -> approval mapping.
+- Phase 2.4 completed `graph_keyword` single-tool approval resume: after approval, checkpoint is atomically claimed, the approved tool is executed, task / approval payload / checkpoint are updated, repeated resume does not duplicate tool execution, and runtime reset recovery is verified.
+- Phase 2.5 completed release cleanup + failure-path hardening: if the tool returns failure or raises, checkpoint is still consumed, task is marked failed, approval payload is marked resumed, repeated resume does not call the tool again, and test count is updated to `553+`.
 
-边界：当前 Phase 2.4 仍不是完整 LangGraph native `Command` resume；尚未接真实 MCP stdio、真实 LLM / LLM-as-Judge 或前端审批 UI。
+Boundary: current Phase 2 is a graph checkpoint / interrupt / resume adapter minimal loop, not full LangGraph native `Command` resume. Real MCP stdio, real LLM / LLM-as-Judge, and frontend approval UI are still not implemented.
 
-**目标**: Agent 编排生产化
+Goal: production-grade Agent orchestration.
 
-| 任务 | 说明 |
-|------|------|
-| LangGraph checkpoint | PostgreSQL 持久化 checkpoint，任务中断后可恢复 |
-| interrupt / resume | 高风险操作触发 interrupt -> 审批通过后 resume，替代当前 PolicyEngine 拦截 |
-| checkpoint 清理 | 过期 checkpoint 自动清理策略 |
-| 并发安全 | 同一任务同时只有一个 resume 执行 |
+| Task | Description |
+|------|-------------|
+| LangGraph checkpoint | Persist checkpoints for recovery after task interruption. |
+| interrupt / resume | Map high-risk operations to interrupt -> approval -> resume. |
+| checkpoint cleanup | Clean expired checkpoints safely. |
+| concurrency safety | Ensure only one resume executes for the same checkpoint. |
 
-**验收标准**:
+Acceptance:
 
-- 任务中断后重启服务可恢复执行
-- interrupt -> approve -> resume 链路完整
-- 并发 resume 不重复执行
-- checkpoint 清理不影响活跃任务
-- 513+ 测试全部通过
+- Task can recover after interruption and service restart.
+- interrupt -> approve -> resume chain is complete for the adapter scope.
+- Concurrent or repeated resume does not duplicate execution.
+- Checkpoint cleanup does not affect active tasks.
+- 553+ tests pass.
 
 ### Phase 3: 真实 MCP stdio client
 
@@ -118,7 +119,7 @@
 - MCP Server 崩溃后自动恢复
 - 工具调用超时有 fallback
 - FakeMCPClient 仍可用于开发和测试
-- 513+ 测试全部通过
+- 553+ 测试全部通过
 
 ### Phase 4: LiteLLM 真实 provider + guardrails
 
@@ -138,7 +139,7 @@
 - LLM-as-Judge 打分与 FakeJudge 结果偏差 < 20%
 - PII 检测和 SQL 注入二次校验正常工作
 - 成本超预算自动降级到 mock
-- 513+ 测试全部通过
+- 553+ 测试全部通过
 
 ### Phase 5: Next.js 运营台和审批台
 
@@ -178,7 +179,7 @@
 - CI 包含 lint / type check / security scan / integration test
 - /health 正确反映所有依赖状态
 - 备份恢复脚本可用
-- 513+ 测试全部通过
+- 553+ 测试全部通过
 
 ## 核心原则
 

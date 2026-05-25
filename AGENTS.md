@@ -22,14 +22,15 @@
 | **v1.0** | Release | 全部能力稳定交付，370 个测试，生产级工程化框架 |
 | **v1.1** | Credibility & Eval Hardening | 表述对齐 / TrajectoryEvaluator / Multi-Agent eval 扩展 / 最小 LangGraph StateGraph 骨架 |
 | **v1.1.1** | Documentation & Eval Precision Cleanup | README/docs 口径统一 / expected_tools 补强 / HITL/Security eval semantic split / RiskIntentGuard / interview_guide / 432+ tests |
-| **v2.0.1** | Phase 1 Foundation + Integration Cleanup | SQLAlchemy + Alembic + psycopg / Redis + NoopRedisClient / JWT Auth + bcrypt / RBAC 接入关键 API / Store Factory 接入 app.main / Docker startup migration / Dockerfile Alembic 修复 / tools:read / 513+ tests |
+| **v2.0.1** | Phase 1 Foundation + Integration Cleanup | SQLAlchemy + Alembic + psycopg / Redis + NoopRedisClient / JWT Auth + bcrypt / RBAC 接入关键 API / Store Factory 接入 app.main / Docker startup migration / Dockerfile Alembic 修复 / tools:read / 553+ tests |
+| **v2.0.1 + Phase 2** | Graph Runtime Adapter Cleanup | Phase 2.1 GraphCheckpointStore / Phase 2.2 GraphRuntimeAdapter feature flag / Phase 2.3 graph interrupt -> approval mapping / Phase 2.4 graph approval resume adapter / Phase 2.5 release cleanup；默认 graph_runtime_enabled=false；553+ tests |
 
 ## Known Pitfalls
 
 - **Multi-Agent 是规则型多角色编排**：Coordinator / Analyst / Executor / Reviewer 当前是规则驱动边界划分，不是完全自治多 Agent。不要在文档或代码中包装为"自治多 Agent"。
 - **StdioMCPClient 是占位**：当前 `MCP_MODE=fake` 下使用 FakeMCPClient，StdioMCPClient 不实现真实 MCP stdio 协议。
 - **LLMJudgeProvider 是 skeleton**：不调用真实 LLM，返回 unavailable 提示。不要在评测结果中暗示 LLM-as-Judge 已实接。
-- **LangGraph StateGraph 只做最小主链路验证**：v1.1 引入最小 StateGraph 用于 keyword 主链路 smoke test，完整 checkpoint / interrupt 是 Roadmap。不要声称已实现 LangGraph checkpoint 或 interrupt。
+- **LangGraph runtime 边界**：v1.1 只有最小 StateGraph smoke；Phase 2 已实现默认关闭的 graph checkpoint / interrupt / resume adapter 最小闭环，仅支持 graph_runtime_enabled=true 下 graph_keyword 单工具 approval resume。不要声称已实现完整 LangGraph native Command resume。
 - **不要在文档中夸大为"生产环境即插即用"**：本项目是 production-grade engineering prototype，不可直接用于生产部署。
 - **auth_enabled 默认 false**：JWT / RBAC 默认不启用，旧 API 不需要 token。不要在默认配置下要求 token。
 - **rbac_enabled 默认 false**：即使关键 API 已接入 require_permission，RBAC 角色检查默认仍不启用。企业试点时设置 AUTH_ENABLED=true + RBAC_ENABLED=true。
@@ -57,4 +58,4 @@
 - 不要在默认配置下启用 auth_enabled / rbac_enabled / redis_enabled
 - 不要删除 SQLite demo 数据和 SQLite store 实现
 - 不要在 Phase 1 实现 LangGraph checkpoint / interrupt
-- 不要宣称 Phase 2/3/4/5/6 已完成
+- 不要宣称完整 LangGraph native Command resume、真实 MCP、真实 LLM、前端审批 UI 已完成
