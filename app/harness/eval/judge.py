@@ -87,10 +87,22 @@ class LLMJudgeProvider(BaseJudge):
         provider: str | None = None,
         fallback_to_fake: bool | None = None,
         fallback_judge: BaseJudge | None = None,
+        model: str | None = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
+        retry_backoff_seconds: float | None = None,
     ) -> None:
         self._provider = provider or "litellm"
         self._fallback_to_fake = settings.judge_fallback_to_fake if fallback_to_fake is None else fallback_to_fake
         self._fallback_judge = fallback_judge or FakeJudge()
+        self._model = settings.judge_model if model is None else model
+        self._timeout_seconds = settings.judge_timeout_seconds if timeout_seconds is None else timeout_seconds
+        self._max_retries = settings.judge_max_retries if max_retries is None else max_retries
+        self._retry_backoff_seconds = (
+            settings.judge_retry_backoff_seconds
+            if retry_backoff_seconds is None
+            else retry_backoff_seconds
+        )
 
     @staticmethod
     def _clamp_01(value: float) -> float:
@@ -179,7 +191,14 @@ class LLMJudgeProvider(BaseJudge):
 
     def evaluate(self, judge_input: JudgeInput) -> JudgeResult:
         try:
-            provider = create_provider(self._provider)
+            provider = create_provider(
+                self._provider,
+                model=self._model or None,
+                timeout_seconds=self._timeout_seconds,
+                max_retries=self._max_retries,
+                retry_backoff_seconds=self._retry_backoff_seconds,
+                temperature=settings.llm_temperature,
+            )
             prompt = self._build_prompt(judge_input)
             metadata = provider.generate_with_metadata(prompt)
             payload = self._extract_json_object(metadata.content)

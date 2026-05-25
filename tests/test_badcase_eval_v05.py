@@ -267,3 +267,49 @@ def test_bad_cases_run_api_litellm_config_error_not_500(monkeypatch):
     monkeypatch.setattr(settings, "judge_provider", "fake")
     monkeypatch.setattr(settings, "judge_fallback_to_fake", True)
     reset_runtime_for_test()
+
+
+def test_bad_cases_run_api_request_override_fake_provider(monkeypatch):
+    monkeypatch.setattr(settings, "judge_provider", "litellm")
+    monkeypatch.setattr(settings, "judge_fallback_to_fake", False)
+    reset_runtime_for_test()
+    resp = client.post(
+        "/eval/bad-cases/run",
+        json={"use_judge": True, "suite": "security", "limit": 1, "judge_provider": "fake"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["judge_average_score"] is not None
+    monkeypatch.setattr(settings, "judge_provider", "fake")
+    monkeypatch.setattr(settings, "judge_fallback_to_fake", True)
+    reset_runtime_for_test()
+
+
+def test_bad_cases_run_api_request_override_litellm_unavailable_not_500(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "")
+    reset_runtime_for_test()
+    resp = client.post(
+        "/eval/bad-cases/run",
+        json={
+            "use_judge": True,
+            "suite": "security",
+            "limit": 1,
+            "judge_provider": "litellm",
+            "judge_fallback_to_fake": False,
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["judge_average_score"] is not None
+    reset_runtime_for_test()
+
+
+def test_bad_cases_run_api_default_use_judge_false_still_works():
+    reset_runtime_for_test()
+    resp = client.post("/eval/bad-cases/run", json={})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] >= 30
+    reset_runtime_for_test()

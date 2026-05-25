@@ -12,6 +12,8 @@ class BadCaseRunRequest(BaseModel):
     use_judge: bool = False
     limit: int | None = None
     suite: str | None = None
+    judge_provider: str | None = None
+    judge_fallback_to_fake: bool | None = None
 
 
 class BadCaseRunResponse(BaseModel):
@@ -31,14 +33,33 @@ async def run_bad_cases(request: BadCaseRunRequest):
 
     metrics = get_metrics_recorder()
     judge = None
+    judge_provider = request.judge_provider or settings.judge_provider
+    fallback_to_fake = (
+        settings.judge_fallback_to_fake
+        if request.judge_fallback_to_fake is None
+        else request.judge_fallback_to_fake
+    )
     if request.use_judge:
-        if settings.judge_provider == "litellm":
+        if judge_provider == "litellm":
             judge = LLMJudgeProvider(
                 provider="litellm",
-                fallback_to_fake=settings.judge_fallback_to_fake,
+                fallback_to_fake=fallback_to_fake,
+                model=settings.judge_model or None,
+                timeout_seconds=settings.judge_timeout_seconds,
+                max_retries=settings.judge_max_retries,
+                retry_backoff_seconds=settings.judge_retry_backoff_seconds,
             )
-        else:
+        elif judge_provider == "fake":
             judge = FakeJudge()
+        else:
+            judge = LLMJudgeProvider(
+                provider=judge_provider,
+                fallback_to_fake=fallback_to_fake,
+                model=settings.judge_model or None,
+                timeout_seconds=settings.judge_timeout_seconds,
+                max_retries=settings.judge_max_retries,
+                retry_backoff_seconds=settings.judge_retry_backoff_seconds,
+            )
 
     runner = BadCaseRunner(metrics_recorder=metrics, judge=judge)
     summary = runner.run(use_judge=request.use_judge, limit=request.limit, suite=request.suite)

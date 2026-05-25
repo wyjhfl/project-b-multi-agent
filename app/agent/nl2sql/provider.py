@@ -194,13 +194,25 @@ class LiteLLMProvider(LLMProvider):
     def name(self) -> str:
         return "litellm"
 
-    def __init__(self) -> None:
-        self._api_key = settings.llm_api_key
-        self._model = settings.llm_model or "gpt-3.5-turbo"
-        self._timeout_seconds = max(1.0, float(settings.llm_timeout_seconds))
-        self._max_retries = max(0, int(settings.llm_max_retries))
-        self._retry_backoff_seconds = max(0.0, float(settings.llm_retry_backoff_seconds))
-        self._temperature = float(settings.llm_temperature)
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        model: str | None = None,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
+        retry_backoff_seconds: float | None = None,
+        temperature: float | None = None,
+    ) -> None:
+        self._api_key = settings.llm_api_key if api_key is None else api_key
+        self._model = model or settings.llm_model or "gpt-3.5-turbo"
+        self._timeout_seconds = max(1.0, float(settings.llm_timeout_seconds if timeout_seconds is None else timeout_seconds))
+        self._max_retries = max(0, int(settings.llm_max_retries if max_retries is None else max_retries))
+        self._retry_backoff_seconds = max(
+            0.0,
+            float(settings.llm_retry_backoff_seconds if retry_backoff_seconds is None else retry_backoff_seconds),
+        )
+        self._temperature = float(settings.llm_temperature if temperature is None else temperature)
 
         if not self._api_key:
             raise ProviderConfigError("LiteLLMProvider 需要 LLM_API_KEY 配置，当前为空。")
@@ -290,11 +302,27 @@ class LiteLLMProvider(LLMProvider):
         return ProviderResponseError(str(exc))
 
 
-def create_provider(provider_name: str | None = None) -> LLMProvider:
+def create_provider(
+    provider_name: str | None = None,
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+    timeout_seconds: float | None = None,
+    max_retries: int | None = None,
+    retry_backoff_seconds: float | None = None,
+    temperature: float | None = None,
+) -> LLMProvider:
     """根据配置创建 LLM Provider。"""
     name = provider_name or settings.llm_provider
     if name == "fake":
         return FakeLLMProvider()
     if name == "litellm":
-        return LiteLLMProvider()
+        return LiteLLMProvider(
+            api_key=api_key,
+            model=model,
+            timeout_seconds=timeout_seconds,
+            max_retries=max_retries,
+            retry_backoff_seconds=retry_backoff_seconds,
+            temperature=temperature,
+        )
     raise UnknownProviderError(f"未知的 LLM Provider: {name!r}，支持: fake, litellm (unknown provider)")
