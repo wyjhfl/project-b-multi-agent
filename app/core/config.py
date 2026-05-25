@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     mcp_server_command: str = ""
     mcp_server_args: str = ""
     mcp_server_timeout_seconds: float = 10.0
+    mcp_server_workdir: str = ""
+    mcp_server_env_allowlist: str = ""
+    mcp_server_command_allowlist: str = ""
 
     database_url: str = ""
     redis_url: str = "redis://localhost:6379/0"
