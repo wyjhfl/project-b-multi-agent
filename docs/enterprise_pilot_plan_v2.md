@@ -83,7 +83,7 @@ Current progress:
 - Phase 2.4 completed `graph_keyword` single-tool approval resume: after approval, checkpoint is atomically claimed, the approved tool is executed, task / approval payload / checkpoint are updated, repeated resume does not duplicate tool execution, and runtime reset recovery is verified.
 - Phase 2.5 completed release cleanup + failure-path hardening: if the tool returns failure or raises, checkpoint is still consumed, task is marked failed, approval payload is marked resumed, repeated resume does not call the tool again, and test count is updated to `553+`.
 
-Boundary: current Phase 2 is a graph checkpoint / interrupt / resume adapter minimal loop, not full LangGraph native `Command` resume. Real MCP stdio, real LLM / LLM-as-Judge, and frontend approval UI are still not implemented.
+Boundary: current Phase 2 is a graph checkpoint / interrupt / resume adapter minimal loop, not full LangGraph native `Command` resume. MCP stdio real protocol path is implemented in v2.2.0 (validated via fake stdio fixture), but real external MCP Server production acceptance is still pending; real LLM / LLM-as-Judge and frontend approval UI are still not implemented.
 
 Goal: production-grade Agent orchestration.
 

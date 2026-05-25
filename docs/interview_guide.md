@@ -24,7 +24,7 @@ Harness-native 运营中台 Agent：可审批、可审计、可评测的 Agent R
 
 ### Tool Gateway
 
-统一管理本地工具（5 个 ops_query）和 MCP 远程工具（FakeMCPClient 提供 date_lookup / calculator / rule_lookup）。StdioMCPClient 是真实 MCP stdio 协议占位，通过 MCP_MODE=real 环境变量切换。
+统一管理本地工具（5 个 ops_query）和 MCP 远程工具（FakeMCPClient 提供 date_lookup / calculator / rule_lookup）。StdioMCPClient 已实现真实 MCP stdio protocol path（initialize / tools/list / tools/call），默认 `MCP_MODE=fake`，通过 `MCP_MODE=real` + command/allowlist 显式切换。
 
 ### HITL
 
@@ -52,7 +52,7 @@ v1.1 引入了最小 StateGraph 骨架：AgentKernel.build_graph() 实现了 ass
 
 ### MCP 是真实接入了吗？
 
-当前使用 FakeMCPClient，内置 3 个 MCP 工具（date_lookup / calculator / rule_lookup），零外部依赖。StdioMCPClient 是真实 MCP stdio 协议的占位实现，通过 MCP_MODE=real 环境变量切换，但需要真实 MCP Server 配合。真实 MCP stdio 接入在 Roadmap 中。
+当前默认使用 FakeMCPClient，内置 3 个 MCP 工具（date_lookup / calculator / rule_lookup），零外部依赖。StdioMCPClient 已实现真实 MCP stdio protocol path，并可在 `MCP_MODE=real` 下配合 fake stdio fixture 验收；真实外部 MCP Server 生产验收仍在后续阶段。
 
 ### HITL resume 如何保证幂等？
 
@@ -77,7 +77,7 @@ approval_consumed 语义：审批通过后执行被拦截的 step，执行成功
 
 ### 为什么说是 production-grade prototype，不是 production-ready system？
 
-- 真实 MCP stdio 未接入（使用 FakeMCPClient）
+- 真实 MCP stdio protocol path 已接入，但默认仍使用 FakeMCPClient（`MCP_MODE=fake`）
 - 真实 LLM-as-Judge 未接入（使用 FakeJudge）
 - LangGraph checkpoint / interrupt 未完整实现
 - 前端审批 UI 未实现
@@ -89,7 +89,7 @@ approval_consumed 语义：审批通过后执行被拦截的 step，执行成功
 以下表述在面试和文档中**禁止使用**：
 
 - ~~完全自治多 Agent~~ → 确定性多角色编排 / deterministic multi-role orchestration
-- ~~已接真实 MCP stdio~~ → FakeMCPClient + StdioMCPClient 占位
+- ~~已完成真实外部 MCP Server 生产验收~~ → 当前仅完成 real MCP stdio protocol path + fake fixture 验收
 - ~~已接真实 LLM-as-Judge~~ → FakeJudge + LLMJudgeProvider 占位
 - ~~已完整实现 LangGraph checkpoint / interrupt~~ → 最小 StateGraph 骨架，完整 checkpoint / interrupt 在 Roadmap
 - ~~可直接生产上线~~ → production-grade engineering prototype，不可直接用于生产环境
