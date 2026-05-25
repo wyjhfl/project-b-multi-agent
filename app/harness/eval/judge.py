@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 from app.agent.nl2sql.provider import create_provider
 from app.core.config import settings
+from app.harness.llm.budget import get_llm_budget_manager
+from app.harness.llm.cache import build_judge_cache_key, get_llm_result_cache
 
 
 class JudgeInput(BaseModel):
@@ -103,6 +105,8 @@ class LLMJudgeProvider(BaseJudge):
             if retry_backoff_seconds is None
             else retry_backoff_seconds
         )
+        self._budget_manager = get_llm_budget_manager()
+        self._cache = get_llm_result_cache()
 
     @staticmethod
     def _clamp_01(value: float) -> float:
@@ -190,6 +194,56 @@ class LLMJudgeProvider(BaseJudge):
         raise ValueError("judge_passed_not_bool")
 
     def evaluate(self, judge_input: JudgeInput) -> JudgeResult:
+        if self._provider == "fake":
+            return self._fallback_judge.evaluate(judge_input)
+
+        budget_status = self._budget_manager.check_budget(
+            mode="judge",
+            provider=self._provider,
+            model=self._model or "",
+            estimated_cost=0.0,
+        )
+        if not budget_status.get("allowed", True):
+            return self._fallback_or_unavailable(
+                judge_input=judge_input,
+                reason=str(budget_status.get("reason", "budget_blocked")),
+            )
+
+        cache_key = build_judge_cache_key(
+            case_id=judge_input.case_id,
+            expected=judge_input.expected,
+            actual=judge_input.actual,
+            rubric=judge_input.rubric,
+            provider=self._provider,
+            model=self._model or "",
+        )
+        cached_result = self._cache.get(cache_key)
+        if cached_result is not None:
+            cached = dict(cached_result)
+            provider_metadata = dict(cached.get("provider_metadata") or {})
+            provider_metadata.update(
+                {
+                    "cache_hit": True,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                    "cost": 0.0,
+                }
+            )
+            return JudgeResult(
+                score=self._clamp_01(float(cached.get("score", 0.0))),
+                passed=bool(cached.get("passed", False)),
+                reasoning=str(cached.get("reasoning", "")),
+                judge_provider=str(cached.get("judge_provider", self._provider)),
+                fallback_used=bool(cached.get("fallback_used", False)),
+                fallback_reason=str(cached.get("fallback_reason", "")),
+                provider_metadata=provider_metadata,
+                prompt_tokens=0,
+                completion_tokens=0,
+                cost=0.0,
+                confidence=self._clamp_01(float(cached.get("confidence", 0.0))),
+            )
+
         try:
             provider = create_provider(
                 self._provider,
@@ -212,7 +266,7 @@ class LLMJudgeProvider(BaseJudge):
             reasoning = str(payload.get("reasoning", "")).strip() or "LLM judge returned empty reasoning"
 
             provider_metadata = metadata.to_dict()
-            return JudgeResult(
+            result = JudgeResult(
                 score=score,
                 passed=passed,
                 reasoning=reasoning,
@@ -225,5 +279,15 @@ class LLMJudgeProvider(BaseJudge):
                 cost=metadata.cost,
                 confidence=confidence,
             )
+            self._budget_manager.record_usage(
+                mode="judge",
+                provider=self._provider,
+                model=self._model or provider_metadata.get("model", ""),
+                prompt_tokens=metadata.prompt_tokens,
+                completion_tokens=metadata.completion_tokens,
+                cost=metadata.cost,
+            )
+            self._cache.set(cache_key, result.model_dump())
+            return result
         except Exception as exc:
             return self._fallback_or_unavailable(judge_input=judge_input, reason=str(exc))

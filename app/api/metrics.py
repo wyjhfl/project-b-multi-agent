@@ -20,7 +20,17 @@ def _get_metrics_store():
 @router.get("/runtime")
 async def get_runtime_metrics(_current_user=Depends(require_permission("metrics:read"))):
     recorder = _get_metrics_recorder()
-    return recorder.summary()
+    summary = recorder.summary()
+    try:
+        from app.harness.llm.budget import get_llm_budget_manager
+        from app.harness.llm.cache import get_llm_result_cache
+
+        summary["llm_budget"] = get_llm_budget_manager().summary()
+        summary["llm_cache"] = get_llm_result_cache().stats()
+    except Exception:
+        summary["llm_budget"] = {"enabled": False}
+        summary["llm_cache"] = {"enabled": False}
+    return summary
 
 
 @router.get("/cost/summary")

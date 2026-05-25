@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from app.agent.nl2sql.executor import SQLExecutionResult, SQLiteReadOnlyExecutor
@@ -8,6 +10,9 @@ from app.agent.nl2sql.generator import MockNL2SQLGenerator
 from app.agent.nl2sql.llm_generator import LLMNL2SQLGenerator
 from app.agent.nl2sql.metadata import SchemaMetadataExtractor
 from app.agent.nl2sql.provider import ProviderConfigError, UnknownProviderError, create_provider
+from app.core.config import settings
+from app.harness.llm.budget import get_llm_budget_manager
+from app.harness.llm.cache import build_nl2sql_cache_key, get_llm_result_cache
 from app.harness.security.guardrails import GuardrailsEngine
 from app.visualization.chart_planner import ChartPlanner
 
@@ -23,6 +28,8 @@ class NL2SQLPipeline:
     def __init__(self) -> None:
         self._metrics_recorder: Any | None = None
         self._guardrails = GuardrailsEngine()
+        self._budget_manager = get_llm_budget_manager()
+        self._cache = get_llm_result_cache()
 
     def set_metrics_recorder(self, recorder: Any) -> None:
         self._metrics_recorder = recorder
@@ -142,6 +149,8 @@ class NL2SQLPipeline:
         fallback_to_mock: bool,
     ) -> dict:
         provider_metadata: dict[str, Any] | None = None
+        budget_status: dict[str, Any] | None = None
+        cache_key: str | None = None
         if generator == "llm":
             try:
                 prov = create_provider(provider)
@@ -160,6 +169,7 @@ class NL2SQLPipeline:
                     "fallback_reason": str(exc),
                     "warnings": [],
                     "provider_metadata": None,
+                    "budget_status": None,
                 }
             except ProviderConfigError as exc:
                 if fallback_to_mock:
@@ -179,6 +189,7 @@ class NL2SQLPipeline:
                         "fallback_reason": str(exc),
                         "warnings": result.warnings,
                         "provider_metadata": None,
+                        "budget_status": None,
                     }
                 return {
                     "selected_tables": [],
@@ -193,17 +204,101 @@ class NL2SQLPipeline:
                     "fallback_reason": str(exc),
                     "warnings": [],
                     "provider_metadata": None,
+                    "budget_status": None,
                 }
+
+            provider_name = getattr(prov, "name", "unknown")
+            provider_model = str(getattr(prov, "_model", "") or settings.llm_model or "")
+            budget_status = self._budget_manager.check_budget(
+                mode="nl2sql",
+                provider=provider_name,
+                model=provider_model,
+                estimated_cost=0.0,
+            )
+            if self._metrics_recorder is not None:
+                try:
+                    self._metrics_recorder.set_budget_status("nl2sql", budget_status)
+                except Exception:
+                    pass
+            if not budget_status.get("allowed", True):
+                reason = str(budget_status.get("reason", "budget_blocked"))
+                if fallback_to_mock:
+                    mock_result = self._build_mock_fallback_result(query, schema, provider_name, reason)
+                    return mock_result | {"budget_status": budget_status}
+                return {
+                    "selected_tables": [],
+                    "sql": "",
+                    "guard_allowed": False,
+                    "guard_reason": reason,
+                    "reasoning": f"预算限制拦截: {reason}",
+                    "confidence": 0.0,
+                    "generator_used": "llm",
+                    "provider_used": provider_name,
+                    "fallback_used": False,
+                    "fallback_reason": reason,
+                    "warnings": [reason],
+                    "provider_metadata": None,
+                    "budget_status": budget_status,
+                }
+
+            schema_hash = self._build_schema_hash(schema)
+            cache_key = build_nl2sql_cache_key(
+                query=query,
+                schema_hash=schema_hash,
+                prompt_version="nl2sql_prompt_v1",
+                provider=provider_name,
+                model=provider_model,
+            )
+            cached = self._cache.get(cache_key)
+            if self._cache.enabled and self._metrics_recorder is not None:
+                try:
+                    if cached is None:
+                        self._metrics_recorder.record_cache_miss("nl2sql")
+                    else:
+                        self._metrics_recorder.record_cache_hit("nl2sql")
+                except Exception:
+                    pass
+            if cached is not None:
+                cached_result = dict(cached)
+                cached_warnings = list(cached_result.get("warnings") or [])
+                if "cache_hit:nl2sql" not in cached_warnings:
+                    cached_warnings.append("cache_hit:nl2sql")
+                cached_result["warnings"] = cached_warnings
+                cached_metadata = dict(cached_result.get("provider_metadata") or {})
+                cached_metadata.update(
+                    {
+                        "cache_hit": True,
+                        "prompt_tokens": 0,
+                        "completion_tokens": 0,
+                        "total_tokens": 0,
+                        "cost": 0.0,
+                    }
+                )
+                cached_result["provider_metadata"] = cached_metadata
+                cached_result["budget_status"] = budget_status
+                self._record_token_usage("nl2sql", cached_result.get("generator_used", "llm"), cached_metadata)
+                return cached_result
         else:
             gen = MockNL2SQLGenerator()
 
         result = gen.generate(query, schema)
         if isinstance(gen, LLMNL2SQLGenerator):
             provider_metadata = gen.last_provider_metadata
+            if provider_metadata:
+                try:
+                    self._budget_manager.record_usage(
+                        mode="nl2sql",
+                        provider=str(provider_metadata.get("provider", result.provider_used or "unknown")),
+                        model=str(provider_metadata.get("model", "") or ""),
+                        prompt_tokens=int(provider_metadata.get("prompt_tokens", 0) or 0),
+                        completion_tokens=int(provider_metadata.get("completion_tokens", 0) or 0),
+                        cost=float(provider_metadata.get("cost", 0.0) or 0.0),
+                    )
+                except Exception:
+                    pass
 
         self._record_token_usage("nl2sql", result.generator_used, provider_metadata)
-
-        return {
+        output = {
             "selected_tables": [t.name for t in result.pruned_schema.tables],
             "sql": result.sql,
             "guard_allowed": result.guard_result.allowed,
@@ -216,6 +311,60 @@ class NL2SQLPipeline:
             "fallback_reason": result.fallback_reason,
             "warnings": result.warnings,
             "provider_metadata": provider_metadata,
+            "budget_status": budget_status,
+        }
+        if generator == "llm" and output["generator_used"] == "llm":
+            try:
+                if cache_key is not None:
+                    self._cache.set(cache_key, output)
+            except Exception:
+                pass
+        return output
+
+    def _build_schema_hash(self, schema: Any) -> str:
+        try:
+            payload = []
+            for table in getattr(schema, "tables", []) or []:
+                payload.append(
+                    {
+                        "name": getattr(table, "name", ""),
+                        "fields": [
+                            {
+                                "name": getattr(field, "name", ""),
+                                "type": getattr(field, "type", ""),
+                            }
+                            for field in (getattr(table, "fields", []) or [])
+                        ],
+                    }
+                )
+            raw = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+            return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        except Exception:
+            return "schema_hash_unavailable"
+
+    def _build_mock_fallback_result(
+        self,
+        query: str,
+        schema: Any,
+        provider_name: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        gen = MockNL2SQLGenerator()
+        result = gen.generate(query, schema)
+        self._record_token_usage("nl2sql", "mock_fallback", None)
+        return {
+            "selected_tables": [t.name for t in result.pruned_schema.tables],
+            "sql": result.sql,
+            "guard_allowed": result.guard_result.allowed,
+            "guard_reason": result.guard_result.reason,
+            "reasoning": result.reasoning,
+            "confidence": result.confidence,
+            "generator_used": "mock_fallback",
+            "provider_used": provider_name,
+            "fallback_used": True,
+            "fallback_reason": reason,
+            "warnings": list(result.warnings) + [reason],
+            "provider_metadata": None,
         }
 
     def _record_token_usage(self, task_id: str, generator_used: str, provider_metadata: dict[str, Any] | None) -> None:

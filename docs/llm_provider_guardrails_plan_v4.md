@@ -112,7 +112,27 @@
 
 ## 7. 非目标（当前仍不做）
 
-- 默认测试接入真实外部 LLM。
-- 提交任何 API key 或敏感凭据。
-- 宣称系统已可直接生产上线。
-- 在 Phase 4.3 提前实现 Phase 4.4/4.5 的完整能力。
+- 默认测试接入真实外部 LLM。  
+- 提交任何 API key 或敏感凭据。  
+- 宣称系统已可直接生产上线。  
+- 在 Phase 4.3 提前实现 Phase 4.4/4.5 的完整能力。  
+
+## 8. Phase 4.5 进展（已完成最小闭环）
+
+- 新增 LLM 预算控制：支持 `check_budget` / `record_usage`，默认关闭。  
+- 新增 LLM 结果缓存：支持 NL2SQL/Judge 键构建与 TTL，默认关闭。  
+- NL2SQL 接入预算 + 缓存 + 失败降级：  
+  - 预算硬限制触发时，按 `fallback_to_mock` 执行回退或失败返回。  
+  - 缓存命中时不重复调用 provider，并标记 `cache_hit`。  
+- LLMJudgeProvider 接入预算 + 缓存：  
+  - 预算限制触发时，按 `judge_fallback_to_fake` 回退或返回 `llm_unavailable`。  
+  - FakeJudge 默认路径保持不变。  
+- Metrics 可观测增强：  
+  - runtime summary 增加 `cache_hit_count/cache_miss_count` 与 `budget_status`。  
+  - `/metrics/runtime` 增加 `llm_budget`、`llm_cache` 汇总信息。  
+
+### 8.1 当前边界（保持不变）
+
+- 默认 `fake/offline`，默认测试不调用真实 LLM。  
+- 缓存为进程内内存实现，未做持久化缓存。  
+- 未实现完整成本账单系统，仅做当前运行期预算与聚合观测。  

@@ -366,6 +366,13 @@ def reset_runtime_for_test() -> None:
     _graph_checkpoint_store = None
     _graph_runtime_adapter = None
     try:
+        from app.harness.llm import reset_llm_budget_manager_for_test, reset_llm_result_cache_for_test
+
+        reset_llm_budget_manager_for_test()
+        reset_llm_result_cache_for_test()
+    except Exception:
+        pass
+    try:
         import app.storage.database as db_mod
         db_mod._engine = None
         db_mod._session_factory = None

@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     judge_timeout_seconds: float = 15.0
     judge_max_retries: int = 0
     judge_retry_backoff_seconds: float = 0.5
+    llm_budget_enabled: bool = False
+    llm_budget_soft_usd: float = 0.0
+    llm_budget_hard_usd: float = 0.0
+    llm_budget_scope: str = "daily"
+    llm_cache_enabled: bool = False
+    llm_cache_ttl_seconds: int = 3600
 
     mcp_mode: str = "fake"
     mcp_server_name: str = "fake_ops_mcp"

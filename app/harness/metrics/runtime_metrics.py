@@ -24,6 +24,9 @@ class RuntimeMetricsRecorder:
     reflection_count: int = 0
     reflection_failed_count: int = 0
     skill_match_count: int = 0
+    llm_cache_hit_count: int = 0
+    llm_cache_miss_count: int = 0
+    budget_status_by_mode: dict[str, dict] = field(default_factory=dict)
     _task_latencies: list[float] = field(default_factory=list)
     _metrics_store: SQLiteMetricsStore | None = field(default=None, repr=False)
 
@@ -79,6 +82,17 @@ class RuntimeMetricsRecorder:
     def record_skill_match(self, count: int = 1) -> None:
         self.skill_match_count += count
 
+    def record_cache_hit(self, mode: str = "unknown") -> None:
+        self.llm_cache_hit_count += 1
+
+    def record_cache_miss(self, mode: str = "unknown") -> None:
+        self.llm_cache_miss_count += 1
+
+    def set_budget_status(self, mode: str, status: dict) -> None:
+        if not mode:
+            mode = "unknown"
+        self.budget_status_by_mode[mode] = dict(status or {})
+
     def summary(self) -> dict:
         avg_latency = 0.0
         if self._task_latencies:
@@ -99,4 +113,7 @@ class RuntimeMetricsRecorder:
             "reflection_count": self.reflection_count,
             "reflection_failed_count": self.reflection_failed_count,
             "skill_match_count": self.skill_match_count,
+            "cache_hit_count": self.llm_cache_hit_count,
+            "cache_miss_count": self.llm_cache_miss_count,
+            "budget_status": dict(self.budget_status_by_mode),
         }

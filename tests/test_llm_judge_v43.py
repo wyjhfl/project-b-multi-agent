@@ -165,3 +165,10 @@ def test_llm_judge_provider_uses_judge_specific_overrides(monkeypatch):
     assert captured["timeout_seconds"] == 21.5
     assert captured["max_retries"] == 3
     assert captured["retry_backoff_seconds"] == 1.25
+
+
+def test_llm_judge_provider_fake_mode_still_uses_fake_judge():
+    judge = LLMJudgeProvider(provider="fake", fallback_to_fake=False)
+    result = judge.evaluate(_build_input())
+    assert result.judge_provider == "fake"
+    assert result.passed is True
