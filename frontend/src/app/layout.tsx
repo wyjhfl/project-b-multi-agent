@@ -9,6 +9,7 @@ import {
   ListChecks,
   Radar,
   ScrollText,
+  ShieldCheck,
 } from "lucide-react";
 import "./globals.css";
 
@@ -65,6 +66,10 @@ export default function RootLayout({
               <Link href="/metrics" className="nav-link">
                 <BarChart3 size={16} />
                 <span>指标中心</span>
+              </Link>
+              <Link href="/rbac" className="nav-link">
+                <ShieldCheck size={16} />
+                <span>权限说明</span>
               </Link>
             </nav>
           </aside>

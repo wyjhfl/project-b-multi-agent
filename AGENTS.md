@@ -63,3 +63,10 @@
 - 不要在 Phase 1 实现 LangGraph checkpoint / interrupt
 - 不要宣称完整 LangGraph native Command resume、真实 MCP、真实 LLM 已完成
 - 不要宣称生产级 SSO、多租户、复杂 BI、真实外部系统对接已完成
+
+## v2.4.4 补充口径（试点前端收敛）
+
+- 允许实现试点级前端运营台/审批台/观测台页面，但不得宣称生产级前端交付完成。
+- RBAC 页面当前只做试点说明与状态展示，不实现生产登录系统，不实现 SSO。
+- 默认演示路径仍保持 `AUTH_ENABLED=false`、`RBAC_ENABLED=false`，不得破坏离线演示能力。
+- Docker 本地演示脚本仅用于本地试点验证，不作为生产部署方案。

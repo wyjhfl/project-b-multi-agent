@@ -252,3 +252,19 @@ Vite React 可作为轻量备选，但 v2.4 目标是“可试点交付”，优
 - 不做复杂 BI 可视化大屏。
 - 不做多租户隔离能力。
 - 不做生产级 SSO。
+
+## 13. v2.4.4 已完成范围（状态同步）
+
+- 已补充 RBAC 试点说明页：展示默认演示模式（auth/rbac 默认关闭）与启用后的角色边界。
+- 已补充本地 Docker 演示脚本：
+  - `scripts/demo_up.ps1`
+  - `scripts/demo_smoke.ps1`
+  - `scripts/demo_down.ps1`
+- 演示脚本覆盖页面可达性检查：`/`、`/tasks`、`/approvals`、`/audit`、`/metrics`、`/observability` 以及 `/api/health`。
+
+## 14. v2.4 阶段小结
+
+- v2.4.1：前端壳与任务中心最小闭环 ✅
+- v2.4.2：审批台闭环（approve/reject/resume）✅
+- v2.4.3：Trace/Audit/Metrics 聚合展示 ✅
+- v2.4.4：RBAC 试点说明与 Docker 本地演示脚本 ✅

@@ -667,3 +667,25 @@ project-b-multi-agent/
 | **持久化 Skill Learning** | 从规则型 SkillRegistry 升级为可学习、可持久化的技能系统 |
 | **Cost Dashboard 前端** | 基于成本 API 构建可视化看板 |
 | **50+ BadCase** | 扩展回归集到 50+ case，覆盖更多边界场景 |
+
+---
+
+## v2.4 试点运营台阶段进展（增量说明）
+
+- **v2.4.1**：完成前端壳与任务中心最小闭环（任务创建、列表、详情、Trace 入口）。
+- **v2.4.2**：完成审批台闭环（审批列表、审批详情、approve/reject/resume）。
+- **v2.4.3**：完成 Trace / Audit / Metrics 聚合展示。
+- **v2.4.4**：完成 RBAC 试点说明页与 Docker 本地演示脚本（`scripts/demo_up.ps1`、`scripts/demo_smoke.ps1`、`scripts/demo_down.ps1`）。
+
+### RBAC 试点口径
+
+- 默认演示路径保持不变：`AUTH_ENABLED=false`、`RBAC_ENABLED=false`。
+- 启用权限试点需显式设置：`AUTH_ENABLED=true`、`RBAC_ENABLED=true`。
+- 当前仅做试点级权限说明与页面收敛，不实现生产登录系统。
+
+### 仍保持的边界
+
+- 不宣称生产级 SSO 已完成。
+- 不宣称多租户已完成。
+- 不宣称复杂 BI 已完成。
+- 不接真实外部 MCP / 真实 LLM 作为默认演示依赖。

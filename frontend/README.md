@@ -40,7 +40,7 @@ curl http://localhost:3000/api/health
 
 预期：返回后端 `/health` 的 JSON 响应，且不是前端 404。
 
-## 当前页面范围（v2.4.3）
+## 当前页面范围（v2.4.4）
 
 - Dashboard（运行概览）
 - Tasks list（任务列表）
@@ -51,8 +51,9 @@ curl http://localhost:3000/api/health
 - Observability（按 task_id 查询 Trace）
 - Audit（审计筛选列表 + 审计详情）
 - Metrics（runtime / tasks / tools / cost / llm_budget / llm_cache 聚合展示）
+- RBAC 说明页（展示默认演示模式与试点角色边界）
 
-## v2.4.3 本地验证建议
+## v2.4.4 本地验证建议
 
 1. 启动后端（仓库根目录）：
    - `docker compose up -d app`
@@ -62,12 +63,21 @@ curl http://localhost:3000/api/health
    - `http://localhost:3000/metrics`
    - `http://localhost:3000/audit`
    - `http://localhost:3000/observability`
-4. 随机进入一个任务详情或审批详情，验证：
-   - 可跳转到 Trace / Audit 页面
-   - 页面展示无空白、无明显错位
+   - `http://localhost:3000/rbac`
+4. 验证联动入口：
+   - 任务详情可跳转 Trace / Audit
+   - 审批详情可跳转关联任务 Trace / Audit
+
+## RBAC 试点说明
+
+- 默认仍为演示路径：`AUTH_ENABLED=false`、`RBAC_ENABLED=false`
+- 若需启用权限控制，请显式设置：
+  - `AUTH_ENABLED=true`
+  - `RBAC_ENABLED=true`
+- 当前不实现生产登录系统，不提供 SSO、多租户能力。
 
 ## 当前边界
 
 - 默认离线可跑，不依赖真实 LLM。
 - 默认不依赖真实外部 MCP Server。
-- 当前不做复杂 BI、多租户、生产级 SSO。
+- 当前不做生产级 SSO、多租户、复杂 BI。
