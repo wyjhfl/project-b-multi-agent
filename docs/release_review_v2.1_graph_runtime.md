@@ -1,11 +1,20 @@
 # Release Review: v2.1 Graph Runtime Adapter
 
-## Baseline
+## Release summary
 
-- Baseline commit: `46776e2 feat: add graph approval resume adapter`
-- Scope: Phase 2.5 release cleanup + failure-path hardening
-- Formal version: keep `v2.0.1`; this cleanup does not change `pyproject.toml` / `app.version` and does not create a tag
-- Tag recommendation: wait for human confirmation of release notes and version strategy before tagging
+- Final release version: `v2.1.0`
+- Release name: Project B v2.1.0 - Graph Runtime Adapter
+- Baseline commit before release prep: `7df8923 chore: finalize graph runtime phase 2 cleanup`
+- Release-prep commit: created after this review, version bump, release notes, tests, and Docker verification are committed; see final report / git history
+- Tag status: pending until human confirmation; do not create tag automatically
+
+## Version files updated
+
+- `pyproject.toml`: `version = "2.1.0"`
+- `app/main.py`: FastAPI app version and `/health` version set to `2.1.0`
+- `README.md`: release badge and version route updated to `v2.1.0`
+- `AGENTS.md`: version route updated to `v2.1.0`
+- Tests with version assertions updated to `2.1.0`
 
 ## Phase 2.1-2.5 completed items
 
@@ -13,7 +22,7 @@
 - Phase 2.2 GraphRuntimeAdapter: added default-off `graph_runtime_enabled` feature flag; supports keyword low-risk smoke path and writes staged checkpoints.
 - Phase 2.3 graph interrupt -> approval mapping: high-risk graph keyword path creates interrupt payload, approval, and pending checkpoint.
 - Phase 2.4 GraphResumeAdapter: routes `approval.payload.mode == "graph_keyword"` with `checkpoint_id` to graph resume; atomically claims checkpoint, executes the approved single tool, updates task / approval payload / checkpoint, and cancels checkpoint on reject.
-- Phase 2.5 release cleanup: added graph resume failure-path tests, aligned docs wording, updated test count, and generated this release review.
+- Phase 2.5 release cleanup: added graph resume failure-path tests, aligned docs wording, updated test count, and generated release documentation.
 
 ## Current capability
 
@@ -36,11 +45,11 @@
 
 ## Verification results
 
-- `python -m pytest tests/test_graph_resume_v24.py tests/test_graph_interrupt_approval_v23.py tests/test_graph_checkpoint_store_v21.py -q`: `31 passed`
-- `python -m pytest tests/test_graph_runtime_adapter_v22.py tests/test_hitl_v04.py tests/test_approval_resume_v042.py tests/test_v043_full_resume.py tests/test_langgraph_kernel_v11.py -q`: `51 passed`
+- `python -m pytest tests/test_graph_resume_v24.py tests/test_graph_interrupt_approval_v23.py tests/test_graph_runtime_adapter_v22.py -q`: `20 passed`
+- `python -m pytest tests/test_hitl_v04.py tests/test_approval_resume_v042.py tests/test_v043_full_resume.py tests/test_langgraph_kernel_v11.py -q`: `45 passed`
 - `python -m pytest -q`: `553 passed`
 - `docker compose config`: passed
-- `docker compose build app`: passed, app image built
+- `docker compose build app`: passed, app image built as `project-b-multi-agent-app:latest`
 
 ## Known boundaries
 
@@ -53,5 +62,5 @@
 
 ## Release recommendation
 
-- Keep this as Phase 2 graph runtime adapter cleanup for now; do not tag immediately.
-- Publishing `v2.1` or another formal version should wait for human confirmation of release notes, version strategy, and deployment window.
+- If release-prep verification passes, recommend creating `v2.1.0` tag only after human confirmation.
+- Recommended next phase after release: Phase 3 real MCP stdio client planning.
