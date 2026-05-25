@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getApprovalSummary, listPendingApprovals } from "@/lib/api/approvals";
-import { getRuntimeSummary, getTaskSummary } from "@/lib/api/metrics";
+import { getRuntimeSummary, getTasksSummary } from "@/lib/api/metrics";
 import { listTasks } from "@/lib/api/tasks";
 import { formatDateTime, statusClass, statusLabel } from "@/lib/status";
 
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   const [runtimeRes, taskSummaryRes, approvalSummaryRes, tasksRes, pendingRes] =
     await Promise.all([
       safeLoad(() => getRuntimeSummary()),
-      safeLoad(() => getTaskSummary()),
+      safeLoad(() => getTasksSummary()),
       safeLoad(() => getApprovalSummary()),
       safeLoad(() => listTasks(8)),
       safeLoad(() => listPendingApprovals(8)),
@@ -40,9 +40,7 @@ export default async function DashboardPage() {
     <div className="stack">
       <header>
         <h1 className="page-title">Dashboard</h1>
-        <p className="page-subtitle">
-          聚焦任务执行、审批积压与运行状态，支持企业试点的日常巡检与问题定位。
-        </p>
+        <p className="page-subtitle">聚焦任务执行、审批积压与运行状态，支持日常运营巡检与问题定位。</p>
       </header>
 
       <section className="section">
@@ -68,23 +66,26 @@ export default async function DashboardPage() {
             <div className="metric-value">{runtime?.total_cost?.toFixed?.(4) ?? "-"}</div>
           </div>
           <div className="metric-card">
-            <div className="metric-label">运行中/待审批</div>
+            <div className="metric-label">运行中 / 待审批</div>
             <div className="metric-value">{runtime?.waiting_approval_count ?? "-"}</div>
           </div>
         </div>
       </section>
 
       <section className="section card">
-        <h2 className="card-title">任务中心快捷入口</h2>
+        <h2 className="card-title">快速入口</h2>
         <div className="toolbar">
           <Link className="button" href="/tasks">
-            进入任务中心
+            任务中心
           </Link>
           <Link className="button secondary" href="/approvals">
-            查看审批入口
+            审批中心
+          </Link>
+          <Link className="button secondary" href="/observability">
+            追踪审计
           </Link>
           <Link className="button secondary" href="/metrics">
-            查看指标入口
+            指标中心
           </Link>
         </div>
       </section>
@@ -130,7 +131,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="section card">
-        <h2 className="card-title">待审批入口（轻量）</h2>
+        <h2 className="card-title">待审批列表</h2>
         {pendingRes.error ? (
           <div className="empty">审批数据加载失败：{pendingRes.error}</div>
         ) : pendingApprovals.length === 0 ? (

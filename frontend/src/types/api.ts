@@ -54,21 +54,64 @@ export interface RuntimeSummary {
   failed_count?: number;
   waiting_approval_count?: number;
   cancelled_count?: number;
+  unknown_status_count?: number;
   tool_call_count?: number;
   tool_failure_count?: number;
+  total_prompt_tokens?: number;
+  total_completion_tokens?: number;
   total_cost?: number;
+  avg_task_latency_ms?: number;
   llm_budget?: Record<string, unknown>;
   llm_cache?: Record<string, unknown>;
 }
 
-export interface TaskSummary {
+export interface TasksSummary {
   task_count: number;
   success_count: number;
   failed_count: number;
   waiting_approval_count: number;
   cancelled_count: number;
+  unknown_status_count?: number;
   avg_task_latency_ms: number;
   by_mode?: Record<string, { count: number; success_count: number; failed_count: number }>;
+}
+
+export interface ToolsSummary {
+  tool_call_count: number;
+  tool_failure_count: number;
+  retry_count?: number;
+  avg_latency_ms?: number;
+  by_tool?: Record<
+    string,
+    {
+      call_count: number;
+      failure_count: number;
+      retry_count?: number;
+      avg_latency_ms?: number;
+    }
+  >;
+}
+
+export interface CostSummary {
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_cost: number;
+  by_mode?: Record<
+    string,
+    {
+      prompt_tokens: number;
+      completion_tokens: number;
+      cost: number;
+    }
+  >;
+  by_day?: Record<
+    string,
+    {
+      prompt_tokens: number;
+      completion_tokens: number;
+      cost: number;
+    }
+  >;
 }
 
 export interface ApprovalSummary {
@@ -132,4 +175,36 @@ export interface ApprovalResumeResult {
   resume_result?: Record<string, unknown> | null;
   error?: string;
   resumed?: boolean;
+}
+
+export interface AuditEventDetail {
+  [key: string]: unknown;
+}
+
+export interface AuditEvent {
+  event_id: string;
+  event_type: string;
+  timestamp: string;
+  actor?: string;
+  task_id?: string | null;
+  approval_id?: string | null;
+  tool_name?: string | null;
+  action?: string;
+  outcome?: string;
+  reason?: string | null;
+  severity?: string | null;
+  detail?: AuditEventDetail;
+  error?: string;
+}
+
+export interface AuditFilters {
+  event_type?: string;
+  actor?: string;
+  task_id?: string;
+  approval_id?: string;
+  outcome?: string;
+  severity?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
 }

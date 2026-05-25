@@ -237,3 +237,18 @@ Vite React 可作为轻量备选，但 v2.4 目标是“可试点交付”，优
 - v2.4.4：RBAC 页面收敛与 Docker 本地演示脚本。
 
 该切分确保“每步可演示、每步可回归”，避免一次性大前端改造风险。
+
+---
+
+## 11. v2.4.3 已完成范围（状态同步）
+
+- 已完成 Trace 查询页：支持按 `task_id` 查询时间线。
+- 已完成 Audit 查询页与详情页：支持 `event_type` / `task_id` / `severity` / `outcome` 基础筛选与详情查看。
+- 已完成 Metrics 聚合展示：覆盖 runtime、tasks、tools、cost、llm_budget、llm_cache 的紧凑卡片与表格展示。
+- 已完成任务详情与审批详情到 Trace/Audit 的联动入口。
+
+## 12. 仍保持的边界
+
+- 不做复杂 BI 可视化大屏。
+- 不做多租户隔离能力。
+- 不做生产级 SSO。

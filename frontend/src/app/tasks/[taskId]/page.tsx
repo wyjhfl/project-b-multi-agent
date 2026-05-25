@@ -33,9 +33,10 @@ function extractApprovalId(task: TaskItem | null, traceEvents: TraceEvent[]): st
   if (!task) {
     return "";
   }
-  const fromResult = task.result && typeof task.result === "object"
-    ? (task.result as Record<string, unknown>).approval_id
-    : undefined;
+  const fromResult =
+    task.result && typeof task.result === "object"
+      ? (task.result as Record<string, unknown>).approval_id
+      : undefined;
   if (typeof fromResult === "string" && fromResult) {
     return fromResult;
   }
@@ -95,6 +96,22 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
       </header>
 
       {created ? <div className="card">任务已创建，正在展示最新详情。</div> : null}
+
+      <section className="section card">
+        <div className="toolbar" style={{ justifyContent: "space-between" }}>
+          <h2 className="card-title" style={{ marginBottom: 0 }}>
+            可观测入口
+          </h2>
+          <div className="toolbar">
+            <Link className="button secondary" href={`/observability?task_id=${taskId}`}>
+              查看 Trace
+            </Link>
+            <Link className="button secondary" href={`/audit?task_id=${taskId}`}>
+              查看 Audit
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {waitingApproval ? (
         <section className="section card">

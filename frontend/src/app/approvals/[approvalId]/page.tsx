@@ -1,8 +1,5 @@
 import Link from "next/link";
-import {
-  getApproval,
-  getApprovalContext,
-} from "@/lib/api/approvals";
+import { getApproval, getApprovalContext } from "@/lib/api/approvals";
 import { formatDateTime, statusClass, statusLabel } from "@/lib/status";
 import type { ApprovalContext, ApprovalItem } from "@/types/api";
 import ApprovalActions from "./ApprovalActions";
@@ -61,6 +58,7 @@ export default async function ApprovalDetailPage({ params }: ApprovalDetailPageP
   }
 
   const mergedApproval = context?.approval || approval;
+  const relatedTaskId = mergedApproval?.task_id || "";
 
   return (
     <div className="stack">
@@ -73,13 +71,31 @@ export default async function ApprovalDetailPage({ params }: ApprovalDetailPageP
           <Link className="button secondary" href="/approvals">
             返回审批中心
           </Link>
-          {mergedApproval?.task_id ? (
-            <Link className="button secondary" href={`/tasks/${mergedApproval.task_id}`}>
+          {relatedTaskId ? (
+            <Link className="button secondary" href={`/tasks/${relatedTaskId}`}>
               查看关联任务
             </Link>
           ) : null}
         </div>
       </header>
+
+      {relatedTaskId ? (
+        <section className="section card">
+          <div className="toolbar" style={{ justifyContent: "space-between" }}>
+            <h2 className="card-title" style={{ marginBottom: 0 }}>
+              可观测入口
+            </h2>
+            <div className="toolbar">
+              <Link className="button secondary" href={`/observability?task_id=${relatedTaskId}`}>
+                查看关联 Trace
+              </Link>
+              <Link className="button secondary" href={`/audit?task_id=${relatedTaskId}`}>
+                查看关联 Audit
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="section card">
         <h2 className="card-title">审批基本信息</h2>
