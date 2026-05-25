@@ -1,9 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import and_, or_
+from sqlalchemy import or_
 
 from app.storage.database import get_session_factory
 from app.storage.models import GraphRunStateRow
@@ -39,30 +39,32 @@ class PostgresGraphCheckpointStore:
     ) -> dict[str, Any]:
         now = datetime.now()
         with self._session_factory() as session:
-            existing = session.query(GraphRunStateRow).filter_by(checkpoint_id=checkpoint_id).first()
-            row = existing or GraphRunStateRow(checkpoint_id=checkpoint_id)
-            row.task_id = task_id
-            row.approval_id = approval_id
-            row.graph_thread_id = graph_thread_id
-            row.run_id = run_id
-            row.status = status
-            row.current_node = current_node
-            row.graph_state = graph_state
-            row.pending_interrupt = pending_interrupt
-            row.resume_payload = resume_payload
-            row.result_snapshot = result_snapshot
-            row.consumed = consumed
-            row.resumed_at = self._parse_dt(resumed_at)
-            row.created_at = self._parse_dt(created_at) or now
-            row.updated_at = self._parse_dt(updated_at) or row.created_at or now
-            row.expires_at = self._parse_dt(expires_at)
-            row.schema_version = schema_version
-            row.resume_attempt_count = resume_attempt_count
-            row.last_resume_error = last_resume_error
-            row.locked_by = locked_by
-            row.locked_at = self._parse_dt(locked_at)
-            if existing is None:
-                session.add(row)
+            if session.query(GraphRunStateRow).filter_by(checkpoint_id=checkpoint_id).first() is not None:
+                raise ValueError(f"{checkpoint_id} already exists")
+            row = GraphRunStateRow(
+                checkpoint_id=checkpoint_id,
+                task_id=task_id,
+                approval_id=approval_id,
+                graph_thread_id=graph_thread_id,
+                run_id=run_id,
+                status=status,
+                current_node=current_node,
+                graph_state=graph_state,
+                pending_interrupt=pending_interrupt,
+                resume_payload=resume_payload,
+                result_snapshot=result_snapshot,
+                consumed=consumed,
+                resumed_at=self._parse_dt(resumed_at),
+                created_at=self._parse_dt(created_at) or now,
+                updated_at=self._parse_dt(updated_at) or self._parse_dt(created_at) or now,
+                expires_at=self._parse_dt(expires_at),
+                schema_version=schema_version,
+                resume_attempt_count=resume_attempt_count,
+                last_resume_error=last_resume_error,
+                locked_by=locked_by,
+                locked_at=self._parse_dt(locked_at),
+            )
+            session.add(row)
             session.commit()
         loaded = self.get_checkpoint(checkpoint_id)
         assert loaded is not None

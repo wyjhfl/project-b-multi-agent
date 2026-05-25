@@ -3,6 +3,8 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 
 def _make_sqlite_store(tmp_path):
     from app.storage.graph_checkpoint_store import SQLiteGraphCheckpointStore
@@ -34,6 +36,40 @@ def test_sqlite_create_get_checkpoint(tmp_path):
     assert loaded["consumed"] is False
     assert loaded["schema_version"] == 1
     assert loaded["resume_attempt_count"] == 0
+
+
+def test_sqlite_duplicate_create_checkpoint_raises_value_error(tmp_path):
+    store = _make_sqlite_store(tmp_path)
+    store.create_checkpoint(checkpoint_id="cp-dup", task_id="task-1", graph_state={"original": True})
+
+    with pytest.raises(ValueError, match="cp-dup already exists"):
+        store.create_checkpoint(checkpoint_id="cp-dup", task_id="task-2", graph_state={"replacement": True})
+
+
+def test_sqlite_duplicate_create_does_not_overwrite_existing_consumed_checkpoint(tmp_path):
+    store = _make_sqlite_store(tmp_path)
+    store.create_checkpoint(checkpoint_id="cp-dup", task_id="task-1", graph_state={"original": True})
+    store.mark_cancelled("cp-dup", "already cancelled")
+
+    with pytest.raises(ValueError, match="cp-dup already exists"):
+        store.create_checkpoint(checkpoint_id="cp-dup", task_id="task-2", graph_state={"replacement": True})
+
+    loaded = store.get_checkpoint("cp-dup")
+    assert loaded is not None
+    assert loaded["task_id"] == "task-1"
+    assert loaded["graph_state"] == {"original": True}
+    assert loaded["status"] == "cancelled"
+    assert loaded["consumed"] is True
+
+
+def test_postgres_create_checkpoint_source_has_no_existing_overwrite_logic():
+    source = Path(__file__).parent.parent / "app" / "storage" / "postgres" / "graph_checkpoint_store.py"
+    content = source.read_text(encoding="utf-8")
+
+    create_section = content.split("    def get_checkpoint", 1)[0]
+    assert "existing =" not in create_section
+    assert "existing or GraphRunStateRow" not in create_section
+    assert "already exists" in create_section
 
 
 def test_sqlite_get_latest_for_task(tmp_path):

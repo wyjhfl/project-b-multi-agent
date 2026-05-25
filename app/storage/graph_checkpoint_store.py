@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import os
@@ -83,38 +83,41 @@ class SQLiteGraphCheckpointStore:
         created = self._format_dt(created_at or now)
         updated = self._format_dt(updated_at or created_at or now)
         with closing(sqlite3.connect(self._db_path)) as conn:
-            conn.execute(
-                """INSERT OR REPLACE INTO graph_run_states (
+            try:
+                conn.execute(
+                    """INSERT INTO graph_run_states (
                     checkpoint_id, task_id, approval_id, graph_thread_id, run_id, status,
                     current_node, graph_state, pending_interrupt, resume_payload, result_snapshot,
                     consumed, resumed_at, created_at, updated_at, expires_at, schema_version,
                     resume_attempt_count, last_resume_error, locked_by, locked_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    checkpoint_id,
-                    task_id,
-                    approval_id,
-                    graph_thread_id,
-                    run_id,
-                    status,
-                    current_node,
-                    self._json_dumps(graph_state),
-                    self._json_dumps(pending_interrupt),
-                    self._json_dumps(resume_payload),
-                    self._json_dumps(result_snapshot),
-                    1 if consumed else 0,
-                    self._format_dt(resumed_at),
-                    created,
-                    updated,
-                    self._format_dt(expires_at),
-                    schema_version,
-                    resume_attempt_count,
-                    last_resume_error,
-                    locked_by,
-                    self._format_dt(locked_at),
-                ),
-            )
-            conn.commit()
+                    (
+                        checkpoint_id,
+                        task_id,
+                        approval_id,
+                        graph_thread_id,
+                        run_id,
+                        status,
+                        current_node,
+                        self._json_dumps(graph_state),
+                        self._json_dumps(pending_interrupt),
+                        self._json_dumps(resume_payload),
+                        self._json_dumps(result_snapshot),
+                        1 if consumed else 0,
+                        self._format_dt(resumed_at),
+                        created,
+                        updated,
+                        self._format_dt(expires_at),
+                        schema_version,
+                        resume_attempt_count,
+                        last_resume_error,
+                        locked_by,
+                        self._format_dt(locked_at),
+                    ),
+                )
+                conn.commit()
+            except sqlite3.IntegrityError as exc:
+                raise ValueError(f"{checkpoint_id} already exists") from exc
         loaded = self.get_checkpoint(checkpoint_id)
         assert loaded is not None
         return loaded
