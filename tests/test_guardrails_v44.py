@@ -66,3 +66,17 @@ def test_guardrails_engine_llm_output_dangerous_suggestion_warn_or_block():
     assert result["allowed"] is True
     assert result["action"] == "warn"
     assert result["risk_level"] == "high"
+
+
+def test_guardrails_findings_do_not_expose_raw_pii_value():
+    engine = GuardrailsEngine()
+    raw_email = "test.user@example.com"
+    raw_mobile = "13812345678"
+    raw_text = f"邮箱{raw_email} 手机{raw_mobile}"
+    result = engine.check_input(raw_text)
+    findings = result["findings"]
+    serialized = str(result)
+    assert all("value" not in f for f in findings)
+    assert raw_email not in serialized
+    assert raw_mobile not in serialized
+    assert any("masked_value" in f for f in findings)

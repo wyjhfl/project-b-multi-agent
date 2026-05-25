@@ -175,7 +175,6 @@ class GuardrailsEngine:
     def _pii_to_dict(self, finding: PIIFinding) -> dict[str, Any]:
         return {
             "type": finding.type,
-            "value": finding.value,
             "masked_value": finding.masked_value,
             "risk_level": finding.risk_level,
             "span": [finding.start, finding.end],

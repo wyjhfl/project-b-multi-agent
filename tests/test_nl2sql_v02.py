@@ -389,6 +389,15 @@ def test_nl2sql_preview_api_masks_pii_in_query_field():
     assert "test.user@example.com" not in sanitized
 
 
+def test_nl2sql_preview_api_response_json_no_raw_pii():
+    raw_email = "test.user@example.com"
+    response = client.post("/nl2sql/preview", json={"query": f"邮箱{raw_email} 今天GMV多少"})
+    assert response.status_code == 200
+    payload_text = str(response.json())
+    assert raw_email not in payload_text
+    assert "***@" in payload_text
+
+
 def test_nl2sql_eval_api_default_mock():
     response = client.post("/nl2sql/eval")
     assert response.status_code == 200
@@ -807,6 +816,15 @@ def test_v023_execute_litellm_fallback_mock():
     data = response.json()
     assert data["generator_used"] == "mock_fallback"
     assert data["execution"]["success"] is True
+
+
+def test_nl2sql_execute_api_response_json_no_raw_pii():
+    raw_email = "test.user@example.com"
+    response = client.post("/nl2sql/execute", json={"query": f"邮箱{raw_email} 今天GMV多少"})
+    assert response.status_code == 200
+    payload_text = str(response.json())
+    assert raw_email not in payload_text
+    assert "***@" in payload_text
 
 
 def test_v023_dangerous_sql_eval_no_execution():
