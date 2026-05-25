@@ -4,9 +4,9 @@
 
 > **⚠️ 边界说明（请务必阅读）**
 >
-> 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），但真实外部 MCP Server 生产验收、真实 LLM-as-Judge、前端审批 UI 仍在 Roadmap。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
+> 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-582+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.2.0-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-636+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.3.0-green)]()
 
 ---
 
@@ -39,7 +39,7 @@
 
 > **⚠️ 边界说明**
 >
-> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）；真实外部 MCP Server 生产验收、真实 LLM-as-Judge、前端审批 UI、完全自治的 LLM 多 Agent 规划属于后续扩展。
+> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）和 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline）；真实外部 MCP Server 与真实 LLM 生产验收、前端审批 UI、完全自治的 LLM 多 Agent 规划属于后续扩展。
 >
 > - Multi-Agent 当前是**确定性多角色编排 / deterministic multi-role orchestration**（Coordinator / Analyst / Executor / Reviewer 规则驱动边界划分），后续可替换为 LLM Planner。
 > - LangGraph 当前 v1.0 以 Harness Runtime 可测试顺序流为主，v1.1 引入最小 LangGraph StateGraph，用于 keyword 主链路验证；Phase 2 已实现 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
@@ -199,14 +199,14 @@ Harness Runtime 是整个系统的执行骨架，所有 Agent 行为均通过五
 - **RuntimeMetricsRecorder**：运行时指标采集（任务数 / 工具调用数 / token 用量 / 成本 / 延迟），内存 + SQLite 双写
 - **SQLiteMetricsStore**：三张 append-only 表（task_metrics / tool_metrics / token_usage），支持时间范围查询与汇总
 
-### 9. BadCase Eval / Judge Skeleton
+### 9. BadCase Eval / Optional LLM-as-Judge
 
 30+ BadCase 回归评测集 + LLM-as-Judge 评测骨架：
 
 - **30+ BadCase**：覆盖 6 个 suite（security × 8 / nl2sql × 6 / multitool × 5 / approval × 5 / multi_agent × 4 / runtime × 2）
 - **6 suite 分层**：security（注入绕过）、nl2sql（unmatched / dangerous SQL）、multitool（unknown tool / high risk）、approval（pending resume / payload tampered）、multi_agent（unknown / vague / mixed）、runtime（空状态）
 - **FakeJudge**：规则型打分（expected==actual → 1.0，blocked-like → 0.8，mismatch → 0.0）
-- **LLMJudgeProvider 占位**：不调用真实 LLM，返回 unavailable 提示，为后续 LLM-as-Judge 实接预留接口
+- **LLMJudgeProvider 可选实接**：支持通过可选真实 provider 路径进行评测（默认仍 FakeJudge/fake-offline，默认测试不调用真实 LLM）
 
 ### 10. Short Memory / Skills / Reflection
 
@@ -440,7 +440,7 @@ curl http://localhost:8000/auth/me \
 python -m pytest -q
 ```
 
-共 **582+ 个测试**，覆盖全部模块：
+共 **636+ 个测试**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -483,6 +483,7 @@ python -m pytest -q
 | **v2.0.1** | Phase 1 Foundation + Integration Cleanup | SQLAlchemy + Alembic + psycopg / Redis + NoopRedisClient / JWT Auth + bcrypt / RBAC 接入关键 API / Store Factory 接入 app.main / Docker startup migration / Dockerfile Alembic 修复 / tools:read / 553+ tests |
 | **v2.1.0** | Graph Runtime Adapter | Phase 2.1 GraphCheckpointStore / Phase 2.2 GraphRuntimeAdapter feature flag / Phase 2.3 graph interrupt -> approval mapping / Phase 2.4 GraphResumeAdapter / Phase 2.5 release cleanup + failure-path hardening; default graph_runtime_enabled=false; legacy behavior unchanged; 553+ tests |
 | **v2.2.0** | MCP Stdio Runtime Hardening | Phase 3.1 stdio protocol skeleton / Phase 3.2 tools/list mapping / Phase 3.3 tools/call integration / Phase 3.4 lifecycle hardening / Phase 3.5 release cleanup; default MCP_MODE=fake unchanged; real mode requires explicit command + allowlist; verified with 582 passed tests |
+| **v2.3.0** | LLM Provider + Guardrails Runtime | Phase 4.1 LiteLLMProvider 硬化 / Phase 4.2 NL2SQL 真实 LLM 生成链路 + 结构化校验 + fallback / Phase 4.3 可选 LLMJudgeProvider + 评测元数据 / Phase 4.4 Guardrails 编排 + PII 脱敏防泄漏 / Phase 4.5 预算+缓存+降级闭环；默认 fake/offline，默认测试不调用真实 LLM；verified with 636 passed tests |
 
 ---
 
@@ -623,7 +624,7 @@ project-b-multi-agent/
 │   ├── init_demo_db.py             #   初始化 demo 数据库
 │   ├── start_dev.py                #   开发启动脚本
 │   └── check_health.py             #   健康检查
-├── tests/                          # 测试（582+ 个）
+├── tests/                          # 测试（636+ 个）
 ├── .github/workflows/ci.yml        # CI 配置
 ├── Dockerfile                      # Docker 镜像
 ├── docker-compose.yml              # Docker Compose
@@ -647,7 +648,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 582+ 个测试，覆盖全部模块 |
+| **测试** | pytest + httpx | 636+ 个测试，覆盖全部模块 |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -660,7 +661,7 @@ project-b-multi-agent/
 | **完整 LangGraph native checkpoint / Command resume** | 当前已有 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint、Command interrupt、Command resume 仍在 Roadmap |
 | **真实 LLM provider eval** | LiteLLMProvider 接入真实 LLM API，运行完整 NL2SQL / Multi-Agent eval |
 | **前端审批 UI** | 基于 Approval UI API 构建审批交互界面，实现 HITL 完整闭环 |
-| **LLM-as-Judge 实接** | LLMJudgeProvider 接入真实 LLM，替代 FakeJudge 规则打分 |
+| **LLM-as-Judge 生产验收** | LLMJudgeProvider 真实 provider 路径在真实环境完成稳定性与成本验收，并补齐评测治理策略 |
 | **LLM 自主多 Agent 规划** | 从确定性多角色编排升级为 LLM 自主决策的多 Agent 协作 |
 | **长期记忆 / 向量库** | 从 ShortTermMemory 升级为持久化 + 向量检索的长期记忆 |
 | **持久化 Skill Learning** | 从规则型 SkillRegistry 升级为可学习、可持久化的技能系统 |

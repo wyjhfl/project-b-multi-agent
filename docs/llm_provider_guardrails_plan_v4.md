@@ -26,7 +26,7 @@
 
 ### 1.3 Phase 4.3（已完成）
 
-- `LLMJudgeProvider` 已从 unavailable skeleton 升级为可选实接实现：
+- `LLMJudgeProvider` 已从 unavailable 状态升级为可选实接实现：
   - 输入包含 `query/expected/actual/rubric`。
   - 期望输出 JSON：`score/passed/reasoning/confidence`。
   - 解析失败、provider 不可用时支持 fallback 或 `llm_unavailable` 返回。

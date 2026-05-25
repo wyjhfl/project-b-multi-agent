@@ -25,12 +25,13 @@
 | **v2.0.1** | Phase 1 Foundation + Integration Cleanup | SQLAlchemy + Alembic + psycopg / Redis + NoopRedisClient / JWT Auth + bcrypt / RBAC 接入关键 API / Store Factory 接入 app.main / Docker startup migration / Dockerfile Alembic 修复 / tools:read / 553+ tests |
 | **v2.1.0** | Graph Runtime Adapter | Phase 2.1 GraphCheckpointStore / Phase 2.2 GraphRuntimeAdapter feature flag / Phase 2.3 graph interrupt -> approval mapping / Phase 2.4 GraphResumeAdapter / Phase 2.5 release cleanup + failure-path hardening; default graph_runtime_enabled=false; legacy behavior unchanged; 553+ tests |
 | **v2.2.0** | MCP Stdio Runtime Hardening | Phase 3.1 stdio protocol skeleton / Phase 3.2 tools/list mapping / Phase 3.3 tools/call integration / Phase 3.4 lifecycle hardening / Phase 3.5 release cleanup; default MCP_MODE=fake unchanged; real mode requires explicit command + allowlist; 582+ tests |
+| **v2.3.0** | LLM Provider + Guardrails Runtime | Phase 4.1 LiteLLMProvider 硬化 / Phase 4.2 NL2SQL 真实 LLM 生成链路 + 结构化校验 + fallback / Phase 4.3 可选 LLMJudgeProvider + 评测元数据 / Phase 4.4 Guardrails 编排 + PII 脱敏防泄漏 / Phase 4.5 预算+缓存+降级闭环；默认 fake/offline，默认测试不调用真实 LLM；636+ tests |
 
 ## Known Pitfalls
 
 - **Multi-Agent 是规则型多角色编排**：Coordinator / Analyst / Executor / Reviewer 当前是规则驱动边界划分，不是完全自治多 Agent。不要在文档或代码中包装为"自治多 Agent"。
 - **StdioMCPClient 已有 real protocol path**：支持 subprocess stdio + JSON-RPC initialize/tools/list/tools/call + lifecycle hardening；默认仍 `MCP_MODE=fake`，real 模式需显式配置 command/allowlist，且当前验收基于 fake stdio server fixture。
-- **LLMJudgeProvider 是 skeleton**：不调用真实 LLM，返回 unavailable 提示。不要在评测结果中暗示 LLM-as-Judge 已实接。
+- **LLMJudgeProvider 已支持可选真实 provider 路径**：默认仍 fake/offline，默认测试不调用真实 LLM。不要在文档中宣称真实 LLM 生产验收已完成。
 - **LangGraph runtime 边界**：v1.1 只有最小 StateGraph smoke；Phase 2 已实现默认关闭的 graph checkpoint / interrupt / resume adapter 最小闭环，仅支持 graph_runtime_enabled=true 下 graph_keyword 单工具 approval resume。不要声称已实现完整 LangGraph native Command resume。
 - **不要在文档中夸大为"生产环境即插即用"**：本项目是 production-grade engineering prototype，不可直接用于生产部署。
 - **auth_enabled 默认 false**：JWT / RBAC 默认不启用，旧 API 不需要 token。不要在默认配置下要求 token。
@@ -51,8 +52,8 @@
 
 ## 不要做的事
 
-- 不要接入真实 MCP Server
-- 不要接入真实 LLM API
+- 不要在默认测试与默认配置下依赖真实外部 MCP Server
+- 不要在默认测试中调用真实 LLM API
 - 不要做前端审批 UI
 - 不要重写 Harness Runtime
 - 不要把规则型 Multi-Agent 包装成自治多 Agent

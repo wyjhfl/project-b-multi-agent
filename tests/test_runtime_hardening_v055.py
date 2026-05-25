@@ -169,7 +169,7 @@ def test_runtime_snapshot_section_failure_not_500():
 
 
 def test_app_version_updated():
-    assert app.version == "2.2.0"
+    assert app.version == "2.3.0"
 
 
 def test_metrics_tools_summary_no_regression():
