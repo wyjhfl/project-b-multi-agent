@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     llm_provider: str = "fake"
     llm_model: str = ""
     llm_api_key: str = ""
+    llm_timeout_seconds: float = 15.0
+    llm_max_retries: int = 0
+    llm_retry_backoff_seconds: float = 0.5
+    llm_temperature: float = 0.0
 
     mcp_mode: str = "fake"
     mcp_server_name: str = "fake_ops_mcp"

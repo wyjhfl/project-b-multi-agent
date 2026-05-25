@@ -127,6 +127,7 @@ class NL2SQLPipeline:
         provider: str | None,
         fallback_to_mock: bool,
     ) -> dict:
+        provider_metadata: dict[str, Any] | None = None
         if generator == "llm":
             try:
                 prov = create_provider(provider)
@@ -144,12 +145,13 @@ class NL2SQLPipeline:
                     "fallback_used": False,
                     "fallback_reason": str(exc),
                     "warnings": [],
+                    "provider_metadata": None,
                 }
             except ProviderConfigError as exc:
                 if fallback_to_mock:
                     gen = MockNL2SQLGenerator()
                     result = gen.generate(query, schema)
-                    self._record_token_placeholder("nl2sql", "mock_fallback")
+                    self._record_token_usage("nl2sql", "mock_fallback", None)
                     return {
                         "selected_tables": [t.name for t in result.pruned_schema.tables],
                         "sql": result.sql,
@@ -162,6 +164,7 @@ class NL2SQLPipeline:
                         "fallback_used": True,
                         "fallback_reason": str(exc),
                         "warnings": result.warnings,
+                        "provider_metadata": None,
                     }
                 return {
                     "selected_tables": [],
@@ -175,13 +178,16 @@ class NL2SQLPipeline:
                     "fallback_used": False,
                     "fallback_reason": str(exc),
                     "warnings": [],
+                    "provider_metadata": None,
                 }
         else:
             gen = MockNL2SQLGenerator()
 
         result = gen.generate(query, schema)
+        if isinstance(gen, LLMNL2SQLGenerator):
+            provider_metadata = gen.last_provider_metadata
 
-        self._record_token_placeholder("nl2sql", result.generator_used)
+        self._record_token_usage("nl2sql", result.generator_used, provider_metadata)
 
         return {
             "selected_tables": [t.name for t in result.pruned_schema.tables],
@@ -195,17 +201,21 @@ class NL2SQLPipeline:
             "fallback_used": result.fallback_used,
             "fallback_reason": result.fallback_reason,
             "warnings": result.warnings,
+            "provider_metadata": provider_metadata,
         }
 
-    def _record_token_placeholder(self, task_id: str, generator_used: str) -> None:
+    def _record_token_usage(self, task_id: str, generator_used: str, provider_metadata: dict[str, Any] | None) -> None:
         if self._metrics_recorder is None:
             return
         try:
+            prompt_tokens = int((provider_metadata or {}).get("prompt_tokens", 0) or 0)
+            completion_tokens = int((provider_metadata or {}).get("completion_tokens", 0) or 0)
+            cost = float((provider_metadata or {}).get("cost", 0.0) or 0.0)
             self._metrics_recorder.record_token_usage(
                 task_id=task_id,
-                prompt_tokens=0,
-                completion_tokens=0,
-                cost=0.0,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                cost=cost,
             )
         except Exception:
             pass

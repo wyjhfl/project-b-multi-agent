@@ -1,0 +1,317 @@
+from __future__ import annotations
+
+import json
+import types
+
+import pytest
+
+from app.agent.nl2sql.llm_generator import LLMNL2SQLGenerator
+from app.agent.nl2sql.metadata import SchemaMetadataExtractor
+from app.agent.nl2sql.provider import (
+    FakeLLMProvider,
+    LLMGenerateMetadata,
+    LLMProvider,
+    LiteLLMProvider,
+    ProviderAuthError,
+    ProviderConfigError,
+    ProviderModelError,
+    ProviderRateLimitError,
+    ProviderResponseError,
+    ProviderTimeoutError,
+    create_provider,
+)
+from app.core.config import settings
+from app.agent.nl2sql.metadata import SchemaField, SchemaTable
+from app.services.nl2sql_pipeline import NL2SQLPipeline
+
+
+def _get_schema():
+    return SchemaMetadataExtractor().extract()
+
+
+def _get_schema_with_daily_metrics():
+    schema = _get_schema()
+    if any(t.name == "daily_metrics" for t in schema.tables):
+        return schema
+    synthetic_table = SchemaTable(
+        name="daily_metrics",
+        fields=[SchemaField(name="metric_date", type="TEXT", is_primary_key=False, sample_values=[])],
+        row_count=1,
+    )
+    schema.tables.append(synthetic_table)
+    return schema
+
+
+def test_fake_llm_provider_metadata_complete():
+    provider = FakeLLMProvider()
+    metadata = provider.generate_with_metadata("今天GMV多少")
+    assert metadata.provider == "fake"
+    assert metadata.model == "fake-offline"
+    assert isinstance(metadata.content, str)
+    assert metadata.prompt_tokens == 0
+    assert metadata.completion_tokens == 0
+    assert metadata.total_tokens == 0
+    assert metadata.cost == 0.0
+    assert metadata.request_id == "fake-request"
+    assert metadata.latency_ms >= 0
+    assert metadata.error_type is None
+
+
+def test_litellm_provider_no_key_raises_provider_config_error(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "")
+    monkeypatch.setattr(settings, "llm_model", "gpt-4o-mini")
+    with pytest.raises(ProviderConfigError):
+        LiteLLMProvider()
+
+
+def test_litellm_provider_import_error_is_clear(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "gpt-4o-mini")
+    provider = LiteLLMProvider()
+    monkeypatch.setattr(provider, "_import_litellm", lambda: (_ for _ in ()).throw(ProviderConfigError("需要安装 litellm")))
+    with pytest.raises(ProviderConfigError, match="litellm"):
+        provider.generate_with_metadata("hello")
+
+
+def test_litellm_provider_success_with_usage_metadata(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "gpt-4o-mini")
+    monkeypatch.setattr(settings, "llm_timeout_seconds", 10.0)
+    monkeypatch.setattr(settings, "llm_max_retries", 0)
+    provider = LiteLLMProvider()
+
+    usage = types.SimpleNamespace(prompt_tokens=11, completion_tokens=7, total_tokens=18)
+    message = types.SimpleNamespace(content='{"sql":"SELECT 1","confidence":0.5,"reasoning":"ok","selected_tables":[]}')
+    choice = types.SimpleNamespace(message=message)
+    response = types.SimpleNamespace(
+        usage=usage,
+        choices=[choice],
+        id="req-123",
+        _hidden_params={"response_cost": 0.0025},
+    )
+    fake_litellm = types.SimpleNamespace(completion=lambda **_: response)
+    monkeypatch.setattr(provider, "_import_litellm", lambda: fake_litellm)
+
+    metadata = provider.generate_with_metadata("query")
+    assert metadata.content.startswith("{")
+    assert metadata.prompt_tokens == 11
+    assert metadata.completion_tokens == 7
+    assert metadata.total_tokens == 18
+    assert metadata.cost == 0.0025
+    assert metadata.request_id == "req-123"
+    assert metadata.error_type is None
+
+
+@pytest.mark.parametrize(
+    ("exc", "expected"),
+    [
+        (Exception("authentication failed"), ProviderAuthError),
+        (Exception("request timeout"), ProviderTimeoutError),
+        (Exception("rate limit exceeded"), ProviderRateLimitError),
+        (Exception("model not found"), ProviderModelError),
+        (Exception("unknown response shape"), ProviderResponseError),
+    ],
+)
+def test_litellm_provider_error_mapping(monkeypatch, exc: Exception, expected):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "gpt-4o-mini")
+    monkeypatch.setattr(settings, "llm_max_retries", 0)
+    provider = LiteLLMProvider()
+    fake_litellm = types.SimpleNamespace(completion=lambda **_: (_ for _ in ()).throw(exc))
+    monkeypatch.setattr(provider, "_import_litellm", lambda: fake_litellm)
+    with pytest.raises(expected):
+        provider.generate_with_metadata("query")
+
+
+def test_llm_generator_non_json_fallback():
+    schema = _get_schema_with_daily_metrics()
+
+    class BadProvider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "bad"
+
+        def generate(self, prompt: str) -> str:
+            return "not-json"
+
+    generator = LLMNL2SQLGenerator(provider=BadProvider(), fallback_to_mock=True)
+    result = generator.generate("今天GMV多少", schema)
+    assert result.fallback_used is True
+    assert result.generator_used == "mock_fallback"
+    assert "invalid_json" in (result.fallback_reason or "")
+
+
+def test_llm_generator_json_not_object_fallback():
+    schema = _get_schema_with_daily_metrics()
+
+    class BadProvider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "bad"
+
+        def generate(self, prompt: str) -> str:
+            return json.dumps(["not-object"])
+
+    generator = LLMNL2SQLGenerator(provider=BadProvider(), fallback_to_mock=True)
+    result = generator.generate("今天GMV多少", schema)
+    assert result.fallback_used is True
+    assert "not_object" in (result.fallback_reason or "")
+
+
+def test_llm_generator_confidence_clamped_and_selected_tables_warning():
+    schema = _get_schema_with_daily_metrics()
+
+    class Provider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "provider"
+
+        def generate(self, prompt: str) -> str:
+            return json.dumps(
+                {
+                    "sql": "SELECT metric_date, gmv FROM daily_metrics",
+                    "confidence": 3.8,
+                    "reasoning": 1,
+                    "selected_tables": "daily_metrics",
+                },
+                ensure_ascii=False,
+            )
+
+        def generate_with_metadata(self, prompt: str):
+            return LLMGenerateMetadata(
+                content=self.generate(prompt),
+                provider=self.name,
+                model="x",
+                prompt_tokens=2,
+                completion_tokens=3,
+                total_tokens=5,
+                cost=0.01,
+                request_id="r1",
+                latency_ms=1.1,
+                error_type=None,
+            )
+
+    generator = LLMNL2SQLGenerator(provider=Provider(), fallback_to_mock=False)
+    result = generator.generate("今天GMV多少", schema)
+    assert result.confidence == 1.0
+    assert any("selected_tables 非 list" in w for w in result.warnings)
+
+
+def test_llm_generator_dangerous_sql_blocked_by_guard():
+    schema = _get_schema_with_daily_metrics()
+
+    class Provider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "provider"
+
+        def generate(self, prompt: str) -> str:
+            return json.dumps(
+                {
+                    "sql": "DELETE FROM orders",
+                    "confidence": 0.8,
+                    "reasoning": "dangerous",
+                    "selected_tables": ["orders"],
+                }
+            )
+
+    generator = LLMNL2SQLGenerator(provider=Provider(), fallback_to_mock=False)
+    result = generator.generate("删除订单", schema)
+    assert result.guard_result.allowed is False
+    assert result.fallback_used is False
+    assert "guard_blocked" in (result.fallback_reason or "")
+
+
+def test_llm_generator_fallback_false_no_mock():
+    schema = _get_schema_with_daily_metrics()
+
+    class BadProvider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "bad"
+
+        def generate(self, prompt: str) -> str:
+            return "not-json"
+
+    generator = LLMNL2SQLGenerator(provider=BadProvider(), fallback_to_mock=False)
+    result = generator.generate("今天GMV多少", schema)
+    assert result.fallback_used is False
+    assert result.generator_used == "llm"
+    assert result.guard_result.allowed is False
+
+
+def test_pipeline_records_provider_metadata_tokens(monkeypatch):
+    class RichProvider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "rich"
+
+        def generate(self, prompt: str) -> str:
+            return json.dumps(
+                {
+                    "sql": "SELECT metric_date, gmv FROM daily_metrics",
+                    "confidence": 0.8,
+                    "reasoning": "ok",
+                    "selected_tables": ["daily_metrics"],
+                }
+            )
+
+        def generate_with_metadata(self, prompt: str):
+            return LLMGenerateMetadata(
+                content=self.generate(prompt),
+                provider=self.name,
+                model="rich-model",
+                prompt_tokens=20,
+                completion_tokens=10,
+                total_tokens=30,
+                cost=0.12,
+                request_id="rid",
+                latency_ms=2.0,
+                error_type=None,
+            )
+
+    monkeypatch.setattr("app.services.nl2sql_pipeline.create_provider", lambda _: RichProvider())
+    pipeline = NL2SQLPipeline()
+
+    class Recorder:
+        def __init__(self) -> None:
+            self.calls: list[tuple[int, int, float]] = []
+
+        def record_token_usage(self, task_id: str, prompt_tokens: int, completion_tokens: int, cost: float) -> None:
+            self.calls.append((prompt_tokens, completion_tokens, cost))
+
+    recorder = Recorder()
+    pipeline.set_metrics_recorder(recorder)
+    result = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    assert result["guard_allowed"] is True
+    assert recorder.calls[-1] == (20, 10, 0.12)
+
+
+def test_pipeline_fallback_false_no_execute(monkeypatch):
+    class BadProvider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "bad"
+
+        def generate(self, prompt: str) -> str:
+            return "not-json"
+
+    monkeypatch.setattr("app.services.nl2sql_pipeline.create_provider", lambda _: BadProvider())
+    pipeline = NL2SQLPipeline()
+
+    called = {"execute": 0}
+
+    class DummyExecutor:
+        def execute(self, sql: str):
+            called["execute"] += 1
+            raise AssertionError("不应执行 SQL")
+
+    monkeypatch.setattr("app.services.nl2sql_pipeline.SQLiteReadOnlyExecutor", DummyExecutor)
+    result = pipeline.run("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    assert result["guard_allowed"] is False
+    assert called["execute"] == 0
+
+
+def test_create_provider_unknown_provider_message():
+    with pytest.raises(Exception, match="unknown provider"):
+        create_provider("not-exists")
