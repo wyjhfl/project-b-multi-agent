@@ -113,7 +113,7 @@
   - `inputSchema -> input_schema`
   - `output schema`（若无则默认 `{}`）
 - 缺省策略：
-  - `risk_level`: 默认 `low`
+  - `risk_level`: 默认 `medium`（除非 MCP server 明确声明 read-only）
   - `permission_scope`: 默认 `read`
 - 映射失败项跳过并记录 warning
 
@@ -159,7 +159,7 @@
 6. **stdout/stderr 最大长度**
    - 防日志爆炸/内存风险
 7. **risk_level 默认策略**
-   - 未声明风险等级时默认 `low`（保守可改 `medium`，需评审）
+   - 未声明风险等级时默认 `medium`，仅在 MCP server 明确声明 read-only 时可降为 `low`
 8. **permission_scope 默认策略**
    - 默认 `read`
 9. **prompt injection 不应污染 MCP command**
@@ -258,6 +258,8 @@
 ## 8. 分阶段实现路线
 
 ### Phase 3.1 protocol client skeleton + fake stdio server tests
+
+状态：已完成 Phase 3.1（protocol skeleton + initialize tests）。
 
 - 搭建进程管理、JSON-RPC 基础收发、initialize
 - 增加 fake stdio server 测试
