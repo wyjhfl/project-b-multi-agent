@@ -42,7 +42,7 @@
 - blocked-like → score 0.8
 - 其他 mismatch → score 0.0
 
-LLMJudgeProvider 占位：不调用真实 LLM，返回 unavailable 提示。
+LLMJudgeProvider 提供可选真实 provider 路径：默认仍使用 FakeJudge 与离线回归路径，不在默认测试中调用真实 LLM。
 
 真实 LLM Judge 后移，不在本阶段。
 

@@ -90,6 +90,6 @@ approval_consumed 语义：审批通过后执行被拦截的 step，执行成功
 
 - ~~完全自治多 Agent~~ → 确定性多角色编排 / deterministic multi-role orchestration
 - ~~已完成真实外部 MCP Server 生产验收~~ → 当前仅完成 real MCP stdio protocol path + fake fixture 验收
-- ~~已接真实 LLM-as-Judge~~ → FakeJudge + LLMJudgeProvider 占位
+- ~~已接真实 LLM-as-Judge~~ → 当前为 FakeJudge 默认路径，LLMJudgeProvider 提供可选真实 provider 路径（默认不启用）
 - ~~已完整实现 LangGraph checkpoint / interrupt~~ → 最小 StateGraph 骨架，完整 checkpoint / interrupt 在 Roadmap
 - ~~可直接生产上线~~ → production-grade engineering prototype，不可直接用于生产环境
