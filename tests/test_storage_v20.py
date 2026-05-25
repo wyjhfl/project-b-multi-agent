@@ -107,6 +107,12 @@ class TestAlembicMigration:
         path = Path(__file__).parent.parent / "alembic" / "env.py"
         assert path.exists()
 
+    def test_alembic_env_reads_database_url_from_environment(self):
+        path = Path(__file__).parent.parent / "alembic" / "env.py"
+        content = path.read_text(encoding="utf-8")
+        assert "os.environ.get(\"DATABASE_URL\"" in content
+        assert "config.set_main_option(\"sqlalchemy.url\"" in content
+
 
 class TestStorageModels:
 
