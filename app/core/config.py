@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     rbac_enabled: bool = False
     storage_backend: str = "sqlite"
     redis_enabled: bool = False
+    graph_runtime_enabled: bool = False
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

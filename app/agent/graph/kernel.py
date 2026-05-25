@@ -47,6 +47,7 @@ class AgentKernel:
         multitool_pipeline: Any | None = None,
         multi_agent_orchestrator: Any | None = None,
         approval_store: Any | None = None,
+        graph_runtime_adapter: Any | None = None,
     ) -> None:
         self._context_assembler = context_assembler
         self._tool_gateway = tool_gateway
@@ -58,6 +59,7 @@ class AgentKernel:
         self._multitool_pipeline = multitool_pipeline
         self._multi_agent_orchestrator = multi_agent_orchestrator
         self._approval_store = approval_store
+        self._graph_runtime_adapter = graph_runtime_adapter
         self._metrics_recorder: Any | None = None
         self._memory: Any | None = None
         self._self_check_engine: Any | None = None
@@ -206,6 +208,27 @@ class AgentKernel:
     ) -> TaskRun:
         sid = session_id or task.task_id
         self._memory_add(sid, "user", task.query)
+
+        if mode == "keyword":
+            try:
+                from app.core.config import settings
+                graph_enabled = bool(getattr(settings, "graph_runtime_enabled", False))
+            except Exception:
+                graph_enabled = False
+            if graph_enabled and self._graph_runtime_adapter is not None:
+                result_payload = self._graph_runtime_adapter.run_keyword(task.task_id, task.query)
+                task.result = result_payload
+                if result_payload.get("requires_approval"):
+                    task.status = TaskStatus.waiting_approval
+                elif result_payload.get("success"):
+                    task.status = TaskStatus.completed
+                else:
+                    task.status = TaskStatus.failed
+                task.updated_at = self._now()
+                self._record_task_metrics(task, "keyword")
+                self._memory_add(sid, "assistant", str(result_payload.get("answer", ""))[:200])
+                self._run_self_check(task)
+                return task
 
         if mode == "nl2sql":
             result = await self._run_nl2sql(task, generator, provider, fallback_to_mock)

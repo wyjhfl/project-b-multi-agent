@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from app.agent.graph.kernel import AgentKernel
+from app.agent.graph.runtime_adapter import GraphRuntimeAdapter
 from app.agent.multi_agent.executor import ExecutorAgent
 from app.agent.multi_agent.orchestrator import MultiAgentOrchestrator
 from app.agent.nodes.planner import KeywordPlanner
@@ -45,10 +46,12 @@ _metrics_recorder: RuntimeMetricsRecorder | None = None
 _metrics_store = None
 _memory: ShortTermMemory | None = None
 _skill_registry: SkillRegistry | None = None
+_graph_checkpoint_store = None
+_graph_runtime_adapter: GraphRuntimeAdapter | None = None
 
 
 def _build_runtime() -> tuple[AgentKernel, TraceRecorder, KeywordPlanner, ToolGateway, PolicyEngine]:
-    global _kernel, _trace_recorder, _planner, _gateway, _policy_engine, _orchestrator, _approval_store, _audit_store, _audit_recorder, _metrics_recorder, _metrics_store, _memory
+    global _kernel, _trace_recorder, _planner, _gateway, _policy_engine, _orchestrator, _approval_store, _audit_store, _audit_recorder, _metrics_recorder, _metrics_store, _memory, _graph_checkpoint_store, _graph_runtime_adapter
 
     assembler = ContextAssembler()
     gateway = ToolGateway()
@@ -87,6 +90,17 @@ def _build_runtime() -> tuple[AgentKernel, TraceRecorder, KeywordPlanner, ToolGa
 
     multitool_pipeline = MultiToolPipeline(gateway, policy_engine=engine, trace_recorder=recorder, approval_store=_approval_store, audit_recorder=_audit_recorder)
 
+    if _graph_checkpoint_store is None:
+        _graph_checkpoint_store = get_graph_checkpoint_store()
+    _graph_runtime_adapter = GraphRuntimeAdapter(
+        context_assembler=assembler,
+        gateway=gateway,
+        policy_engine=engine,
+        checkpoint_store=_graph_checkpoint_store,
+        trace_recorder=recorder,
+        planner=planner,
+    )
+
     executor = ExecutorAgent(
         nl2sql_pipeline=nl2sql_pipeline,
         multitool_pipeline=multitool_pipeline,
@@ -112,6 +126,7 @@ def _build_runtime() -> tuple[AgentKernel, TraceRecorder, KeywordPlanner, ToolGa
         multitool_pipeline=multitool_pipeline,
         multi_agent_orchestrator=orchestrator,
         approval_store=_approval_store,
+        graph_runtime_adapter=_graph_runtime_adapter,
     )
     _kernel.set_metrics_recorder(_metrics_recorder)
     _kernel.set_memory(_memory)
@@ -306,6 +321,13 @@ def get_metrics_store():
     return _metrics_store
 
 
+def get_graph_checkpoint_store():
+    global _graph_checkpoint_store
+    if _graph_checkpoint_store is None:
+        _graph_checkpoint_store = store_factory.get_graph_checkpoint_store()
+    return _graph_checkpoint_store
+
+
 def get_memory() -> ShortTermMemory:
     global _memory
     if _memory is None:
@@ -321,7 +343,7 @@ def get_skill_registry() -> SkillRegistry:
 
 
 def reset_runtime_for_test() -> None:
-    global _kernel, _trace_recorder, _planner, _gateway, _policy_engine, _task_store, _orchestrator, _approval_store, _audit_store, _audit_recorder, _metrics_recorder, _metrics_store, _memory, _skill_registry
+    global _kernel, _trace_recorder, _planner, _gateway, _policy_engine, _task_store, _orchestrator, _approval_store, _audit_store, _audit_recorder, _metrics_recorder, _metrics_store, _memory, _skill_registry, _graph_checkpoint_store, _graph_runtime_adapter
     _kernel = None
     _trace_recorder = None
     _planner = None
@@ -336,6 +358,8 @@ def reset_runtime_for_test() -> None:
     _metrics_store = None
     _memory = None
     _skill_registry = None
+    _graph_checkpoint_store = None
+    _graph_runtime_adapter = None
     try:
         import app.storage.database as db_mod
         db_mod._engine = None
