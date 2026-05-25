@@ -27,6 +27,7 @@ class ApprovalResumeService:
         policy_engine: PolicyEngine | None = None,
         approval_store_for_new: SQLiteApprovalStore | None = None,
         audit_recorder: AuditRecorder | None = None,
+        graph_checkpoint_store: Any | None = None,
     ) -> None:
         self._approval_store = approval_store
         self._task_store = task_store
@@ -35,6 +36,7 @@ class ApprovalResumeService:
         self._policy_engine = policy_engine
         self._approval_store_for_new = approval_store_for_new or approval_store
         self._audit_recorder = audit_recorder
+        self._graph_checkpoint_store = graph_checkpoint_store
 
     def resume(self, approval_id: str) -> dict[str, Any]:
         approval = self._approval_store.get_approval(approval_id)
@@ -59,6 +61,26 @@ class ApprovalResumeService:
 
         self._trace("approval_resume_started", task_id, approval_id=approval_id, mode=mode)
         self._audit("approval_resume_started", task_id=task_id, approval_id=approval_id, action="resume", outcome="success", detail={"mode": mode})
+
+        if mode == "graph_keyword":
+            if not payload.get("checkpoint_id"):
+                return {
+                    "resumed": False,
+                    "error": "graph_keyword approval missing checkpoint_id",
+                    "error_type": "missing_checkpoint_id",
+                    "approval_id": approval_id,
+                }
+            from app.agent.graph.resume_adapter import GraphResumeAdapter
+
+            result = GraphResumeAdapter(
+                checkpoint_store=self._get_graph_checkpoint_store(),
+                task_store=self._task_store,
+                approval_store=self._approval_store,
+                gateway=self._gateway,
+                trace_recorder=self._trace_recorder,
+                audit_recorder=self._audit_recorder,
+            ).resume(approval_id, approval)
+            return result
 
         approval_tool_name = approval.get("tool_name", "")
         plan_steps = payload.get("plan", {}).get("steps") if mode == "multitool" else None
@@ -105,6 +127,14 @@ class ApprovalResumeService:
             })
 
         return result
+
+    def _get_graph_checkpoint_store(self) -> Any:
+        if self._graph_checkpoint_store is not None:
+            return self._graph_checkpoint_store
+        from app.main import get_graph_checkpoint_store
+
+        self._graph_checkpoint_store = get_graph_checkpoint_store()
+        return self._graph_checkpoint_store
 
     def _resume_keyword(self, approval_id: str, task_id: str, payload: dict) -> dict[str, Any]:
         tool_name = payload.get("tool_name", "")

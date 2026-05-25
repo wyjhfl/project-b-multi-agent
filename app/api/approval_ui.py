@@ -35,6 +35,11 @@ def _get_policy_engine():
     return get_policy_engine()
 
 
+def _get_graph_checkpoint_store():
+    from app.main import get_graph_checkpoint_store
+    return get_graph_checkpoint_store()
+
+
 def _record_audit(**kwargs) -> None:
     try:
         from app.main import get_audit_recorder
@@ -83,6 +88,7 @@ def _do_resume(approval_id: str) -> dict | None:
             trace_recorder=_get_trace_recorder(),
             policy_engine=_get_policy_engine(),
             approval_store_for_new=store,
+            graph_checkpoint_store=_get_graph_checkpoint_store(),
         )
         return service.resume(approval_id)
     except Exception as exc:

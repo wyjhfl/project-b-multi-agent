@@ -42,6 +42,11 @@ def _get_trace_recorder():
     return get_trace_recorder()
 
 
+def _get_graph_checkpoint_store():
+    from app.main import get_graph_checkpoint_store
+    return get_graph_checkpoint_store()
+
+
 def _record_trace(event_type: str, task_id: str, detail: dict) -> None:
     try:
         recorder = _get_trace_recorder()
@@ -74,6 +79,17 @@ def _cancel_task(task_id: str, approval_id: str, reason: str) -> dict | None:
                 "decision_reason": reason,
             },
         )
+    except Exception:
+        return None
+
+
+def _cancel_graph_checkpoint_if_needed(approval: dict, reason: str) -> dict | None:
+    payload = approval.get("payload") or {}
+    checkpoint_id = payload.get("checkpoint_id")
+    if payload.get("mode") != "graph_keyword" or not checkpoint_id:
+        return None
+    try:
+        return _get_graph_checkpoint_store().mark_cancelled(checkpoint_id, reason)
     except Exception:
         return None
 
@@ -118,6 +134,8 @@ def _do_resume(approval_id: str) -> dict | None:
             trace_recorder=_get_trace_recorder(),
             policy_engine=_get_policy_engine(),
             approval_store_for_new=store,
+            audit_recorder=_get_audit_recorder(),
+            graph_checkpoint_store=_get_graph_checkpoint_store(),
         )
         return service.resume(approval_id)
     except Exception as exc:
@@ -284,6 +302,7 @@ async def reject_approval(approval_id: str, req: DecideRequest = DecideRequest()
     cancellation_result = None
     if task_id:
         cancellation_result = _cancel_task(task_id, approval_id, req.reason)
+        _cancel_graph_checkpoint_if_needed(result, req.reason)
         _record_trace("task_cancelled_by_approval", task_id=task_id, detail={
             "approval_id": approval_id,
             "decided_by": req.decided_by,

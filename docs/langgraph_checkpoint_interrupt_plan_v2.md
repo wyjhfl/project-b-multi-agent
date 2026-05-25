@@ -518,6 +518,16 @@ Phase 2.1 创建迁移，但本规划阶段不创建迁移文件。
 
 ### Phase 2.4：resume idempotency + restart recovery
 
+状态：已完成 Phase 2.4 最小闭环。当前实现为 `graph_keyword` 单工具 graph approval resume：
+
+- `ApprovalResumeService` 仅在 approval payload `mode=="graph_keyword"` 且存在 `checkpoint_id` 时分流到 `GraphResumeAdapter`。
+- `GraphResumeAdapter` 通过 `GraphCheckpointStore.claim_for_resume()` 原子 claim checkpoint，执行被批准工具，写回 task、approval payload、checkpoint result snapshot。
+- 重复 resume 通过 approval payload `resumed=true` 与 checkpoint `consumed=true/status=resumed` 双层幂等保护，不重复执行工具。
+- reject graph approval 时 checkpoint 标记为 `cancelled`，task 仍按 legacy reject 逻辑标记为 `cancelled`。
+- runtime reset 后可依赖持久化 approval payload、checkpoint、task store 和重新构造的 gateway 恢复单个工具调用。
+
+边界：这仍不是完整 LangGraph native `Command` resume；尚未恢复 LangGraph 运行栈、thread config、后续节点或二次 interrupt。仍未接真实 MCP stdio、真实 LLM / LLM-as-Judge 或前端审批 UI。
+
 修改/新增文件：
 
 - 新增 `app/agent/graph/resume_adapter.py`。

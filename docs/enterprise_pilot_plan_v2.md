@@ -73,7 +73,16 @@
 - PostgreSQL Store 实现最小 CRUD，与 SQLite store 返回结构一致；v2.0.1 后主链路通过 Store Factory 创建，默认仍走 SQLite，postgres 配置开启后走 PostgreSQL
 - passlib[bcrypt] 与新版 bcrypt 不兼容，已切换为直接使用 bcrypt 库
 
-### Phase 2: 真实 LangGraph checkpoint / interrupt / resume（尚未开始）
+### Phase 2: LangGraph checkpoint / interrupt / resume adapter（进行中）
+
+当前进展：
+
+- Phase 2.1 已完成 `GraphCheckpointStore` + `graph_run_states` schema + SQLite/PostgreSQL store。
+- Phase 2.2 已完成默认关闭的 `GraphRuntimeAdapter`；`graph_runtime_enabled=false` 时旧主链路不变。
+- Phase 2.3 已完成 high-risk graph interrupt -> approval 映射。
+- Phase 2.4 已完成 `graph_keyword` 单工具 approval resume：审批通过后通过 checkpoint 原子 claim、执行被批准工具、写回 task / approval payload / checkpoint，并验证重复 resume 不重复执行工具、runtime reset 后可恢复。
+
+边界：当前 Phase 2.4 仍不是完整 LangGraph native `Command` resume；尚未接真实 MCP stdio、真实 LLM / LLM-as-Judge 或前端审批 UI。
 
 **目标**: Agent 编排生产化
 
