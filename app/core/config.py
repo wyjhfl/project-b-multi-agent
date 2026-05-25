@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     llm_max_retries: int = 0
     llm_retry_backoff_seconds: float = 0.5
     llm_temperature: float = 0.0
+    judge_provider: str = "fake"
+    judge_fallback_to_fake: bool = True
+    judge_model: str = ""
+    judge_timeout_seconds: float = 15.0
+    judge_max_retries: int = 0
+    judge_retry_backoff_seconds: float = 0.5
 
     mcp_mode: str = "fake"
     mcp_server_name: str = "fake_ops_mcp"

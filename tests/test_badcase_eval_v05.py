@@ -7,8 +7,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.harness.eval.bad_case_runner import BadCaseRunner, BadCaseSpec
-from app.harness.eval.judge import FakeJudge, JudgeInput, LLMJudgeProvider
+from app.harness.eval.judge import FakeJudge, JudgeInput, LLMJudgeProvider, JudgeResult
 from app.harness.metrics.runtime_metrics import RuntimeMetricsRecorder
+from app.core.config import settings
 from app.main import app, reset_runtime_for_test
 
 BAD_CASES_PATH = os.path.join(
@@ -146,7 +147,7 @@ def test_bad_case_runner_with_judge():
 
 
 def test_llm_judge_provider_unavailable():
-    judge = LLMJudgeProvider(provider="litellm")
+    judge = LLMJudgeProvider(provider="litellm", fallback_to_fake=False)
     result = judge.evaluate(JudgeInput(
         case_id="test_llm",
         query="test",
@@ -157,6 +158,32 @@ def test_llm_judge_provider_unavailable():
     assert result.judge_provider == "llm_unavailable"
     assert result.score == 0.0
     assert "unavailable" in result.reasoning.lower() or "not configured" in result.reasoning.lower()
+
+
+def test_bad_case_runner_records_judge_metadata_tokens():
+    class StubJudge:
+        def evaluate(self, judge_input: JudgeInput) -> JudgeResult:
+            return JudgeResult(
+                score=0.7,
+                passed=True,
+                reasoning="stub judge",
+                judge_provider="litellm",
+                fallback_used=False,
+                fallback_reason="",
+                provider_metadata={"request_id": "judge-r1"},
+                prompt_tokens=33,
+                completion_tokens=17,
+                cost=0.08,
+                confidence=0.75,
+            )
+
+    recorder = RuntimeMetricsRecorder()
+    runner = BadCaseRunner(metrics_recorder=recorder, judge=StubJudge())
+    summary = runner.run(use_judge=True, suite="security", limit=1)
+    assert summary.total == 1
+    assert recorder.total_prompt_tokens == 33
+    assert recorder.total_completion_tokens == 17
+    assert recorder.total_cost == 0.08
 
 
 def test_bad_cases_run_api():
@@ -224,4 +251,19 @@ def test_bad_cases_run_api_with_judge():
     data = resp.json()
     assert data["total"] >= 8
     assert data["judge_average_score"] is not None
+    reset_runtime_for_test()
+
+
+def test_bad_cases_run_api_litellm_config_error_not_500(monkeypatch):
+    monkeypatch.setattr(settings, "judge_provider", "litellm")
+    monkeypatch.setattr(settings, "judge_fallback_to_fake", False)
+    monkeypatch.setattr(settings, "llm_api_key", "")
+    reset_runtime_for_test()
+    resp = client.post("/eval/bad-cases/run", json={"use_judge": True, "suite": "security", "limit": 1})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["judge_average_score"] is not None
+    monkeypatch.setattr(settings, "judge_provider", "fake")
+    monkeypatch.setattr(settings, "judge_fallback_to_fake", True)
     reset_runtime_for_test()

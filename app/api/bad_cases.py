@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
+from app.core.config import settings
+
 router = APIRouter(prefix="/eval", tags=["eval"])
 
 
@@ -24,11 +26,19 @@ class BadCaseRunResponse(BaseModel):
 @router.post("/bad-cases/run", response_model=BadCaseRunResponse)
 async def run_bad_cases(request: BadCaseRunRequest):
     from app.harness.eval.bad_case_runner import BadCaseRunner
-    from app.harness.eval.judge import FakeJudge
+    from app.harness.eval.judge import FakeJudge, LLMJudgeProvider
     from app.main import get_metrics_recorder
 
     metrics = get_metrics_recorder()
-    judge = FakeJudge() if request.use_judge else None
+    judge = None
+    if request.use_judge:
+        if settings.judge_provider == "litellm":
+            judge = LLMJudgeProvider(
+                provider="litellm",
+                fallback_to_fake=settings.judge_fallback_to_fake,
+            )
+        else:
+            judge = FakeJudge()
 
     runner = BadCaseRunner(metrics_recorder=metrics, judge=judge)
     summary = runner.run(use_judge=request.use_judge, limit=request.limit, suite=request.suite)

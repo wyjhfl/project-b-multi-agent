@@ -34,6 +34,14 @@ class BadCaseResult(BaseModel):
     trace_task_id: str = ""
     tags: list[str] = Field(default_factory=list)
     judge_score: float | None = None
+    judge_provider: str | None = None
+    judge_fallback_used: bool = False
+    judge_fallback_reason: str = ""
+    judge_prompt_tokens: int = 0
+    judge_completion_tokens: int = 0
+    judge_cost: float = 0.0
+    judge_confidence: float | None = None
+    judge_provider_metadata: dict[str, Any] | None = None
 
 
 class BadCaseRunSummary(BaseModel):
@@ -126,6 +134,14 @@ class BadCaseRunner:
                 reason += f" expected_error_type={case.expected_error_type} actual_error_type={actual_error_type}"
 
         judge_score = None
+        judge_provider: str | None = None
+        judge_fallback_used = False
+        judge_fallback_reason = ""
+        judge_prompt_tokens = 0
+        judge_completion_tokens = 0
+        judge_cost = 0.0
+        judge_confidence: float | None = None
+        judge_provider_metadata: dict[str, Any] | None = None
         if use_judge and self._judge is not None:
             try:
                 from app.harness.eval.judge import JudgeInput
@@ -137,8 +153,19 @@ class BadCaseRunner:
                     rubric=f"expected_error_type={case.expected_error_type}",
                 ))
                 judge_score = judge_result.score
+                judge_provider = judge_result.judge_provider
+                judge_fallback_used = judge_result.fallback_used
+                judge_fallback_reason = judge_result.fallback_reason
+                judge_prompt_tokens = judge_result.prompt_tokens
+                judge_completion_tokens = judge_result.completion_tokens
+                judge_cost = judge_result.cost
+                judge_confidence = judge_result.confidence
+                judge_provider_metadata = judge_result.provider_metadata
             except Exception:
                 judge_score = 0.0
+                judge_provider = "judge_error"
+                judge_fallback_used = False
+                judge_fallback_reason = "judge_exception"
 
         if self._metrics_recorder is not None:
             try:
@@ -151,9 +178,9 @@ class BadCaseRunner:
                 if use_judge:
                     self._metrics_recorder.record_token_usage(
                         task_id=f"badcase_{case.case_id}",
-                        prompt_tokens=0,
-                        completion_tokens=0,
-                        cost=0.0,
+                        prompt_tokens=judge_prompt_tokens,
+                        completion_tokens=judge_completion_tokens,
+                        cost=judge_cost,
                     )
             except Exception:
                 pass
@@ -171,6 +198,14 @@ class BadCaseRunner:
             trace_task_id=trace_task_id,
             tags=case.tags,
             judge_score=judge_score,
+            judge_provider=judge_provider,
+            judge_fallback_used=judge_fallback_used,
+            judge_fallback_reason=judge_fallback_reason,
+            judge_prompt_tokens=judge_prompt_tokens,
+            judge_completion_tokens=judge_completion_tokens,
+            judge_cost=judge_cost,
+            judge_confidence=judge_confidence,
+            judge_provider_metadata=judge_provider_metadata,
         )
 
     def _dispatch(self, case: BadCaseSpec) -> tuple[str, str]:
