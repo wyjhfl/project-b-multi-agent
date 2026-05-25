@@ -208,3 +208,87 @@ export interface AuditFilters {
   end_time?: string;
   limit?: number;
 }
+
+export interface ToolSpec {
+  tool_name: string;
+  description: string;
+  source: string;
+  server_name?: string | null;
+  risk_level: string;
+  permission_scope: string;
+  is_local?: boolean;
+}
+
+export interface ToolCallResult {
+  call_id: string;
+  tool_name: string;
+  arguments: Record<string, unknown>;
+  result?: unknown;
+  status: string;
+  success: boolean;
+  latency_ms: number;
+  error?: string | null;
+}
+
+export interface GuardrailsFinding {
+  type?: string;
+  masked_value?: string;
+  risk_level?: string;
+  span?: unknown;
+  [key: string]: unknown;
+}
+
+export interface GuardrailsResult {
+  allowed?: boolean;
+  action?: string;
+  reason?: string;
+  risk_level?: string;
+  findings?: GuardrailsFinding[];
+  sanitized_text?: string;
+  [key: string]: unknown;
+}
+
+export interface NL2SQLPreviewRequest {
+  query: string;
+  generator?: string;
+  provider?: string;
+  fallback_to_mock?: boolean;
+}
+
+export interface NL2SQLPreviewResult {
+  selected_tables: string[];
+  fallback: boolean;
+  sql: string;
+  guard_allowed: boolean;
+  guard_reason?: string;
+  reasoning: string;
+  confidence: number;
+  generator_used: string;
+  provider_used?: string | null;
+  fallback_used: boolean;
+  fallback_reason?: string | null;
+  warnings: string[];
+  guardrails?: Record<string, GuardrailsResult | unknown> | null;
+}
+
+export type NL2SQLExecuteRequest = NL2SQLPreviewRequest;
+
+export interface NL2SQLExecuteResult extends NL2SQLPreviewResult {
+  execution?: {
+    sql?: string;
+    success?: boolean;
+    row_count?: number;
+    rows?: Record<string, unknown>[] | unknown[];
+    error?: string | null;
+    [key: string]: unknown;
+  } | null;
+  formatted_result?: {
+    summary?: string;
+    columns?: string[];
+    rows?: Record<string, unknown>[] | unknown[];
+    row_count?: number;
+    truncated?: boolean;
+    [key: string]: unknown;
+  } | null;
+  chart_spec?: Record<string, unknown> | null;
+}

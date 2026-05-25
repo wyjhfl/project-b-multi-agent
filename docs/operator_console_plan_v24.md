@@ -268,3 +268,23 @@ Vite React 可作为轻量备选，但 v2.4 目标是“可试点交付”，优
 - v2.4.2：审批台闭环（approve/reject/resume）✅
 - v2.4.3：Trace/Audit/Metrics 聚合展示 ✅
 - v2.4.4：RBAC 试点说明与 Docker 本地演示脚本 ✅
+- v2.4.5：Tools + NL2SQL 试点页 ✅
+
+## 15. v2.4.5 已完成范围（状态同步）
+
+- 已补齐 Tools API client 与页面：
+  - 工具目录展示 `name/description/source/risk_level/permission_scope/is_local`
+  - 支持按 `source/risk_level` 筛选
+  - 支持最小 JSON arguments 调用验证
+- 已补齐 NL2SQL API client 与页面：
+  - 支持 `preview` 与 `execute`
+  - 展示 `sql/confidence/selected_tables/warnings/guardrails/fallback/result/error`
+  - 页面仅展示后端返回的脱敏内容，不展示原始 PII
+- 已补强本地演示脚本检查范围：
+  - 新增 `/rbac`、`/tools`、`/nl2sql` 页面可达性检测
+
+## 16. v2.4.5 边界说明
+
+- 默认仍为离线演示路径，不接真实 LLM。
+- 默认不接真实外部 MCP Server。
+- 当前仍不做生产级 SSO、多租户、复杂 BI。

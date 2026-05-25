@@ -40,7 +40,7 @@ curl http://localhost:3000/api/health
 
 预期：返回后端 `/health` 的 JSON 响应，且不是前端 404。
 
-## 当前页面范围（v2.4.4）
+## 当前页面范围（v2.4.5）
 
 - Dashboard（运行概览）
 - Tasks list（任务列表）
@@ -52,19 +52,22 @@ curl http://localhost:3000/api/health
 - Audit（审计筛选列表 + 审计详情）
 - Metrics（runtime / tasks / tools / cost / llm_budget / llm_cache 聚合展示）
 - RBAC 说明页（展示默认演示模式与试点角色边界）
+- Tools 试点页（工具目录 + 最小调用验证）
+- NL2SQL 试点页（preview / execute + guardrails/warnings/fallback 展示）
 
-## v2.4.4 本地验证建议
+## v2.4.5 本地验证建议
 
 1. 启动后端（仓库根目录）：
    - `docker compose up -d app`
 2. 启动前端（frontend 目录）：
    - `npm run dev`
 3. 浏览器验证页面：
-   - `http://localhost:3000/metrics`
-   - `http://localhost:3000/audit`
-   - `http://localhost:3000/observability`
+   - `http://localhost:3000/tools`
+   - `http://localhost:3000/nl2sql`
    - `http://localhost:3000/rbac`
+   - `http://localhost:3000/metrics`
 4. 验证联动入口：
+   - Dashboard 可进入工具目录和 NL2SQL
    - 任务详情可跳转 Trace / Audit
    - 审批详情可跳转关联任务 Trace / Audit
 

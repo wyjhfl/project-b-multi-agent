@@ -4,7 +4,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import {
   BarChart3,
+  Boxes,
   ClipboardCheck,
+  Database,
   LayoutDashboard,
   ListChecks,
   Radar,
@@ -54,6 +56,14 @@ export default function RootLayout({
               <Link href="/approvals" className="nav-link">
                 <ClipboardCheck size={16} />
                 <span>审批中心</span>
+              </Link>
+              <Link href="/tools" className="nav-link">
+                <Boxes size={16} />
+                <span>工具目录</span>
+              </Link>
+              <Link href="/nl2sql" className="nav-link">
+                <Database size={16} />
+                <span>NL2SQL</span>
               </Link>
               <Link href="/observability" className="nav-link">
                 <Radar size={16} />

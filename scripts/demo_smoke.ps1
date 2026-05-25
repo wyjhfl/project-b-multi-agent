@@ -37,6 +37,9 @@ $urls = @(
   "http://localhost:3000/",
   "http://localhost:3000/tasks",
   "http://localhost:3000/approvals",
+  "http://localhost:3000/rbac",
+  "http://localhost:3000/tools",
+  "http://localhost:3000/nl2sql",
   "http://localhost:3000/audit",
   "http://localhost:3000/metrics",
   "http://localhost:3000/observability"

@@ -87,6 +87,12 @@ export default async function DashboardPage() {
           <Link className="button secondary" href="/metrics">
             指标中心
           </Link>
+          <Link className="button secondary" href="/tools">
+            工具目录
+          </Link>
+          <Link className="button secondary" href="/nl2sql">
+            NL2SQL
+          </Link>
         </div>
       </section>
 
