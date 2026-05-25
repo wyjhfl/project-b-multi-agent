@@ -104,6 +104,15 @@ Acceptance:
 
 ### Phase 3: 真实 MCP stdio client
 
+Current progress (v2.2.0 prep):
+
+- Phase 3.1 completed protocol skeleton + initialize path.
+- Phase 3.2 completed tools/list -> MCPToolInfo/ToolSpec mapping + main real-mode safety setting pass-through.
+- Phase 3.3 completed tools/call integration via ToolGateway and API smoke on fake stdio server.
+- Phase 3.4 completed lifecycle hardening: health, request serialization, conservative restart recovery, bounded stderr capture.
+- Phase 3.5 completed release cleanup: docs/test-count/version alignment for v2.2.0 prep (no tag in this step).
+- Boundaries: default `MCP_MODE=fake` remains unchanged; real mode requires explicit command + allowlist. Current validation is based on fake stdio server fixture, not real external MCP Server production acceptance.
+
 **目标**: 工具层生产化
 
 | 任务 | 说明 |
@@ -119,7 +128,7 @@ Acceptance:
 - MCP Server 崩溃后自动恢复
 - 工具调用超时有 fallback
 - FakeMCPClient 仍可用于开发和测试
-- 553+ 测试全部通过
+- 582+ 测试全部通过
 
 ### Phase 4: LiteLLM 真实 provider + guardrails
 

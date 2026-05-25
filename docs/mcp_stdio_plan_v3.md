@@ -1,6 +1,6 @@
 ﻿# Phase 3 规划：Real MCP Stdio Client（设计文档）
 
-> 范围：仅设计与风险拆解，不改业务代码，不实现真实 MCP stdio。
+> 范围：Phase 3 设计 + 实现收口文档（截至 Phase 3.5 release cleanup）。
 
 ## 1. 当前 MCP 状态审查
 
@@ -19,16 +19,16 @@
 ### 1.2 StdioMCPClient 当前真实能力边界
 
 - 位置：`app/tools/mcp/stdio_client.py`
-- 当前是占位实现：
-  - 校验 `MCP_SERVER_COMMAND` 是否配置（`_ensure_configured`）
-  - `list_tools()`：未配置 command 时记录 warning 并返回空列表
-  - `call_tool()`：未配置 command 返回 error；已配置时也返回“尚未实现真实协议调用”
-- **尚未实现**：
-  - 子进程启动
-  - JSON-RPC 收发
-  - initialize handshake
-  - tools/list、tools/call
-  - timeout/crash/stderr 捕获
+- 当前已实现 real protocol path（默认关闭，`MCP_MODE=fake` 不变）：
+  - subprocess 启动（`shell=False`）
+  - JSON-RPC 请求/响应（initialize、tools/list、tools/call）
+  - command allowlist、workdir、env_allowlist 配置透传
+  - timeout/crash/protocol error 后保守恢复
+  - lifecycle health、请求串行化、bounded stderr capture
+- **仍未完成**：
+  - 真实外部 MCP Server 生产验收
+  - 完整 sandbox 隔离
+  - 多 server 管理平台
 
 ### 1.3 ToolGateway 如何 register / discover / call MCP tools
 
@@ -67,7 +67,7 @@
   - `MCP_MODE=real` + 空 command 不崩溃
   - StdioMCPClient 未配置 command 的报错行为
   - Docker 基础文件存在性
-- 结论：已覆盖“fake 可用 + real 占位不崩溃”，未覆盖真实 stdio 协议。
+- 结论：已覆盖 fake 与 real 协议链路（基于 fake stdio fixture），并覆盖 lifecycle hardening；真实外部 MCP Server 仍未验收。
 
 ---
 
@@ -251,7 +251,7 @@
 ### 7.4 回归保证
 
 - `MCP_MODE=fake` 旧测试不变
-- 当前 v2.1.0 全量测试继续通过
+- 当前 v2.2.0 prep 全量测试继续通过（582 passed）
 
 ---
 
@@ -295,8 +295,12 @@
 
 ### Phase 3.5 security hardening + docs + release cleanup
 
-- command/args/env/workdir 安全收敛
-- 文档、验收、release 口径更新
+状态：已完成 Phase 3.5（v2.2.0 release prep）。
+
+- command/args/env/workdir 安全口径收敛
+- 文档、验收、release 口径更新（测试口径 582 passed）
+- 明确默认 `MCP_MODE=fake` 不变，real 模式需显式配置 command/allowlist
+- 明确当前仅完成 fake stdio fixture 验收，未完成真实外部 MCP Server 生产验收
 
 ---
 
@@ -308,7 +312,7 @@
 4. 不改变 graph runtime
 5. 不让 MCP tool 绕过 ToolGateway / PolicyEngine / Audit / Metrics
 6. 不宣称为 production-ready MCP runtime
-7. 不宣称完成真实外部 MCP Server 验收、完整 sandbox、release cleanup
+7. 不宣称完成真实外部 MCP Server 生产验收或完整 sandbox
 
 ---
 

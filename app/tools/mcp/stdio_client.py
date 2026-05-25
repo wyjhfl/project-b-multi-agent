@@ -218,7 +218,7 @@ class StdioMCPClient:
         result = self._request(
             "initialize",
             {
-                "clientInfo": {"name": "project-b", "version": "2.1.0"},
+                "clientInfo": {"name": "project-b", "version": "2.2.0"},
                 "capabilities": {},
             },
         )
