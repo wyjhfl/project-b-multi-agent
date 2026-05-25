@@ -266,8 +266,11 @@
 
 ### Phase 3.2 tools/list -> ToolSpec mapping
 
-- 完成 list 映射和字段缺省策略
-- 接入 ToolGateway discover
+状态：已完成 Phase 3.2（tools/list -> MCPToolInfo/ToolSpec mapping）。
+
+- 完成 list 映射和字段缺省策略（`risk_level` 缺省 `medium`）
+- 接入 ToolGateway discover（real + fake stdio server）
+- `tools/call` 仍未实现，保留至 Phase 3.3
 
 ### Phase 3.3 tools/call integration
 

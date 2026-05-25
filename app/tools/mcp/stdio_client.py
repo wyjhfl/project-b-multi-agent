@@ -7,8 +7,9 @@ import shlex
 import subprocess
 import threading
 from queue import Empty, Queue
-from typing import Any
+from typing import Any, TextIO
 
+from app.models.schemas import RiskLevel
 from app.tools.mcp.client import MCPToolInfo
 
 logger = logging.getLogger(__name__)
@@ -73,8 +74,7 @@ class StdioMCPClient:
     def _ensure_configured(self) -> None:
         if not self._command:
             raise MCPConfigError(
-                f"MCP Server '{self._server_name}' 未配置 command，"
-                f"请设置 MCP_SERVER_COMMAND 环境变量"
+                f"MCP Server '{self._server_name}' 未配置 command，请设置 MCP_SERVER_COMMAND"
             )
         allow = self._parse_csv(self._command_allowlist)
         if allow and self._command not in allow:
@@ -104,7 +104,7 @@ class StdioMCPClient:
         self._started = True
         self._initialized = False
 
-    def _readline_with_timeout(self, stream, timeout_seconds: float) -> str:
+    def _readline_with_timeout(self, stream: TextIO, timeout_seconds: float) -> str:
         q: Queue[str | None] = Queue(maxsize=1)
 
         def _reader() -> None:
@@ -124,7 +124,7 @@ class StdioMCPClient:
             raise MCPProtocolError(f"MCP Server '{self._server_name}' 无法读取响应")
         return line
 
-    def _request(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    def _request(self, method: str, params: dict[str, Any]) -> Any:
         if self._process is None:
             raise MCPProcessCrashedError(f"MCP Server '{self._server_name}' 未启动")
         if self._process.poll() is not None:
@@ -156,13 +156,15 @@ class StdioMCPClient:
         try:
             resp = json.loads(line)
         except json.JSONDecodeError as exc:
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' 返回非法 JSON: {line}") from exc
+            raise MCPProtocolError(
+                f"MCP Server '{self._server_name}' 返回非法 JSON: {line}"
+            ) from exc
 
         if resp.get("jsonrpc") != "2.0":
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' JSON-RPC 版本不合法")
+            raise MCPProtocolError(f"MCP Server '{self._server_name}' JSON-RPC 版本非法")
         if resp.get("id") != req_id:
             raise MCPProtocolError(
-                f"MCP Server '{self._server_name}' 响应 id 不匹配: expect={req_id} got={resp.get('id')}"
+                f"MCP Server '{self._server_name}' 响应 id 不匹配 expect={req_id} got={resp.get('id')}"
             )
         if "error" in resp and resp["error"] is not None:
             err = resp["error"]
@@ -194,13 +196,78 @@ class StdioMCPClient:
         if not self._initialized:
             self._initialize()
 
+    @staticmethod
+    def _normalize_risk_level(value: Any) -> RiskLevel:
+        if isinstance(value, RiskLevel):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in ("low", "medium", "high"):
+                return RiskLevel(normalized)
+        return RiskLevel.medium
+
+    @staticmethod
+    def _normalize_permission_scope(value: Any) -> str:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return "read"
+
+    def _map_tool_item(self, item: Any) -> MCPToolInfo | None:
+        if not isinstance(item, dict):
+            logger.warning("MCP tool item 非法，已跳过: %r", item)
+            return None
+        name = item.get("name")
+        if not isinstance(name, str) or not name.strip():
+            logger.warning("MCP tool item 缺少有效 name，已跳过: %r", item)
+            return None
+        description = item.get("description", "")
+        input_schema = item.get("inputSchema")
+        if input_schema is None:
+            input_schema = item.get("input_schema")
+        output_schema = item.get("outputSchema")
+        if output_schema is None:
+            output_schema = item.get("output_schema")
+        risk_level = item.get("riskLevel")
+        if risk_level is None:
+            risk_level = item.get("risk_level")
+        permission_scope = item.get("permissionScope")
+        if permission_scope is None:
+            permission_scope = item.get("permission_scope")
+        return MCPToolInfo(
+            name=name.strip(),
+            description=description if isinstance(description, str) else str(description),
+            input_schema=input_schema if isinstance(input_schema, dict) else {},
+            output_schema=output_schema if isinstance(output_schema, dict) else {},
+            risk_level=self._normalize_risk_level(risk_level),
+            permission_scope=self._normalize_permission_scope(permission_scope),
+        )
+
     def list_tools(self) -> list[MCPToolInfo]:
         try:
             self._ensure_started()
+            result = self._request("tools/list", {})
         except (MCPConfigError, MCPProtocolError, MCPTimeoutError, MCPProcessCrashedError) as exc:
             logger.warning("StdioMCPClient.list_tools 失败: %s", exc)
             return []
-        return []
+
+        if isinstance(result, dict):
+            raw_tools = result.get("tools", [])
+        elif isinstance(result, list):
+            raw_tools = result
+        else:
+            logger.warning("StdioMCPClient.list_tools result 非法: %r", result)
+            return []
+
+        if not isinstance(raw_tools, list):
+            logger.warning("StdioMCPClient.list_tools tools 字段不是 list: %r", raw_tools)
+            return []
+
+        tools: list[MCPToolInfo] = []
+        for item in raw_tools:
+            mapped = self._map_tool_item(item)
+            if mapped is not None:
+                tools.append(mapped)
+        return tools
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         try:

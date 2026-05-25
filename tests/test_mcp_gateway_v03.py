@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import sys
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +12,7 @@ from app.harness.gateway.tool_gateway import ToolGateway
 from app.main import app, reset_runtime_for_test
 from app.models.schemas import RiskLevel, ToolCallStatus, ToolSpec
 from app.tools.mcp.client import FakeMCPClient, MCPClient, MCPToolInfo
+from app.tools.mcp.stdio_client import StdioMCPClient
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "db", "ops_demo.sqlite")
 
@@ -161,3 +164,25 @@ def test_existing_local_tools_still_work():
     mcp_record = gateway.call("date_lookup")
     assert mcp_record.status == ToolCallStatus.completed
     assert mcp_record.success is True
+
+
+def _fake_stdio_script() -> str:
+    return str((Path(__file__).parent / "fixtures" / "fake_mcp_stdio_server.py").resolve())
+
+
+def test_gateway_discover_mcp_tools_with_stdio_client():
+    gateway = ToolGateway()
+    client = StdioMCPClient(
+        server_name="stdio_fake",
+        command=sys.executable,
+        args=f"\"{_fake_stdio_script()}\" normal",
+        timeout_seconds=1.0,
+    )
+    gateway.register_mcp_server("stdio_fake", client)
+    specs = gateway.discover_mcp_tools("stdio_fake")
+    assert len(specs) == 3
+    by_name = {s.tool_name: s for s in specs}
+    assert by_name["stdio_date_lookup"].source == "mcp"
+    assert by_name["stdio_date_lookup"].is_local is False
+    assert by_name["stdio_refund_update"].risk_level == RiskLevel.high
+    client.close()
