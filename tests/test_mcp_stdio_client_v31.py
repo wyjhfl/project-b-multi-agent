@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
@@ -249,6 +248,7 @@ def test_timeout_then_recover_on_next_list_tools(tmp_path):
         assert len(first) >= 2
     health = client.get_health()
     assert health["restart_count"] >= 1
+    assert health["process_alive"] is True
     client.close()
 
 
@@ -263,6 +263,10 @@ def test_call_tool_timeout_not_replayed(tmp_path):
     result = client.call_tool("stdio_date_lookup", {})
     assert "error" in result
     assert state_file.exists()
+    second = client.call_tool("stdio_date_lookup", {})
+    assert second.get("source") == "stdio"
+    health = client.get_health()
+    assert health["restart_count"] >= 1
     client.close()
 
 
@@ -290,4 +294,24 @@ def test_stderr_bounded_capture_and_health_error():
     assert health["last_error"]
     assert "stderr_tail" in health["last_error"] or "response" in health["last_error"]
     assert len(health["last_error"]) < MCP_STDERR_MAX_CHARS + 500
+    client.close()
+
+
+def test_timeout_recovery_has_no_stale_process(tmp_path):
+    state_file = tmp_path / "timeout_stale_process.flag"
+    client = StdioMCPClient(
+        server_name="stale_process_check",
+        command=_python_command(),
+        args=f"\"{_server_script()}\" timeout-once-then-normal \"{state_file}\"",
+        timeout_seconds=0.3,
+    )
+    client.list_tools()
+    after_timeout = client.get_health()
+    assert after_timeout["process_alive"] is True
+    pid_after = after_timeout["pid"]
+    tools = client.list_tools()
+    assert len(tools) >= 2
+    after_recovery = client.get_health()
+    assert after_recovery["process_alive"] is True
+    assert after_recovery["pid"] == pid_after
     client.close()

@@ -63,7 +63,7 @@ def _handle_request(mode: str, req: dict[str, Any]) -> bool:
         sys.stdout.flush()
         return False
     if mode == "no-response":
-        time.sleep(2.0)
+        time.sleep(1.0)
         return False
     if mode == "crash":
         raise RuntimeError("server crashed")
@@ -153,7 +153,7 @@ def main() -> int:
             if mode == "timeout-once-then-normal" and state_file and not os.path.exists(state_file):
                 with open(state_file, "w", encoding="utf-8") as f:
                     f.write("timed_out_once")
-                time.sleep(2.0)
+                time.sleep(1.0)
                 continue
             keep_running = _handle_request(mode, req)
         except Exception:

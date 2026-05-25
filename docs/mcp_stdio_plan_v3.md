@@ -291,6 +291,7 @@
 - 已加入 bounded stderr capture（用于错误摘要与诊断）
 - 未做自动重放高风险工具调用
 - 未完成并发请求队列与更完整 lifecycle manager（留在后续收敛）
+- Phase 3.4 Review Cleanup 已完成（测试耗时收敛、close/health 稳定性补强、timeout/recovery 回归补强）
 
 ### Phase 3.5 security hardening + docs + release cleanup
 
@@ -307,6 +308,7 @@
 4. 不改变 graph runtime
 5. 不让 MCP tool 绕过 ToolGateway / PolicyEngine / Audit / Metrics
 6. 不宣称为 production-ready MCP runtime
+7. 不宣称完成真实外部 MCP Server 验收、完整 sandbox、release cleanup
 
 ---
 
