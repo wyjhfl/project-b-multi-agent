@@ -99,6 +99,8 @@ def _build_runtime() -> tuple[AgentKernel, TraceRecorder, KeywordPlanner, ToolGa
         checkpoint_store=_graph_checkpoint_store,
         trace_recorder=recorder,
         planner=planner,
+        approval_store=_approval_store,
+        audit_recorder=_audit_recorder,
     )
 
     executor = ExecutorAgent(

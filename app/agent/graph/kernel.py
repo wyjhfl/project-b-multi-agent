@@ -219,7 +219,7 @@ class AgentKernel:
                 result_payload = self._graph_runtime_adapter.run_keyword(task.task_id, task.query)
                 task.result = result_payload
                 if result_payload.get("requires_approval"):
-                    task.status = TaskStatus.waiting_approval
+                    task.status = TaskStatus.waiting_approval if result_payload.get("approval_id") else TaskStatus.failed
                 elif result_payload.get("success"):
                     task.status = TaskStatus.completed
                 else:

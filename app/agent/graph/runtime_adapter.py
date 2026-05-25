@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from app.agent.graph.interrupts import build_tool_approval_interrupt_payload
 from app.agent.graph.state import GraphRuntimeState
 from app.agent.nodes.planner import KeywordPlanner
 from app.models.schemas import RiskLevel, TaskRun
@@ -12,9 +13,9 @@ from app.models.schemas import RiskLevel, TaskRun
 class GraphRuntimeAdapter:
     """Feature-flagged graph runtime smoke adapter.
 
-    Phase 2.2 only supports a minimal low-risk keyword path. It writes durable
-    graph checkpoints but deliberately does not implement LangGraph interrupt or
-    approval resume.
+    Phase 2.3 supports a minimal keyword graph path. Low-risk tools execute
+    directly; high-risk tools are mapped to approval requests and pending
+    checkpoints, but graph resume is still deliberately not implemented.
     """
 
     STAGES = ["assemble_context", "plan", "execute", "verify", "respond"]
@@ -27,6 +28,8 @@ class GraphRuntimeAdapter:
         checkpoint_store: Any,
         trace_recorder: Any | None = None,
         planner: KeywordPlanner | None = None,
+        approval_store: Any | None = None,
+        audit_recorder: Any | None = None,
     ) -> None:
         self._context_assembler = context_assembler
         self._gateway = gateway
@@ -34,6 +37,8 @@ class GraphRuntimeAdapter:
         self._checkpoint_store = checkpoint_store
         self._trace_recorder = trace_recorder
         self._planner = planner or KeywordPlanner()
+        self._approval_store = approval_store
+        self._audit_recorder = audit_recorder
 
     def run_keyword(self, task_id: str, query: str) -> dict[str, Any]:
         state: GraphRuntimeState = {
@@ -95,21 +100,74 @@ class GraphRuntimeAdapter:
 
             decision = self._policy_engine.evaluate(tool_name, risk_level=spec.risk_level)
             if spec.risk_level == RiskLevel.high or decision.get("requires_approval"):
-                response = {
-                    "answer": f"高风险工具 '{tool_name}' 需要人工审批；Phase 2.2 graph runtime 尚未实现 interrupt/resume。",
+                state["stage"] = "execute"
+                base_response = {
                     "tool_called": tool_name,
                     "success": False,
                     "requires_approval": True,
                     "not_supported": True,
                     "graph_runtime": True,
-                    "graph_interrupt": False,
                     "risk_level": spec.risk_level.value,
                     "reason": decision.get("reason", "high risk not supported in graph runtime smoke path"),
                 }
-                state["stage"] = "execute"
-                state["execution_result"] = response
+                state["execution_result"] = base_response
+                checkpoint_id = self._checkpoint(state, "execute", "interrupted" if self._approval_store is not None else "blocked")
+                interrupt_payload = build_tool_approval_interrupt_payload(
+                    task_id=task_id,
+                    checkpoint_id=checkpoint_id,
+                    tool_name=tool_name,
+                    arguments={},
+                    risk_level=spec.risk_level.value,
+                    permission_scope=spec.permission_scope,
+                    policy_decision=decision,
+                    agent_reason=decision.get("reason", "High-risk tool requires approval"),
+                    trace_context={"checkpoint_id": checkpoint_id},
+                )
+
+                if self._approval_store is None:
+                    response = {
+                        **base_response,
+                        "answer": (
+                            f"High-risk tool '{tool_name}' requires approval, but graph runtime "
+                            "has no approval_store; no approval was created."
+                        ),
+                        "approval_id": None,
+                        "checkpoint_id": checkpoint_id,
+                        "graph_interrupt": False,
+                    }
+                    state["response"] = response
+                    return response
+
+                approval = self._approval_store.create_approval(
+                    task_id=task_id,
+                    tool_name=tool_name,
+                    action=f"Graph runtime approval for {tool_name}",
+                    risk_level=spec.risk_level,
+                    impact_scope=spec.permission_scope,
+                    agent_reason=decision.get("reason", "High-risk tool requires approval"),
+                    payload={
+                        "mode": "graph_keyword",
+                        "checkpoint_id": checkpoint_id,
+                        "graph_runtime": True,
+                        "interrupt_payload": interrupt_payload,
+                        "query": query,
+                        "tool_name": tool_name,
+                        "arguments": {},
+                    },
+                )
+                self._checkpoint_store.mark_pending_interrupt(checkpoint_id, approval.approval_id, interrupt_payload)
+                response = {
+                    **base_response,
+                    "answer": (
+                        f"Approval has been created for high-risk tool '{tool_name}'; "
+                        "graph resume is not implemented yet."
+                    ),
+                    "approval_id": approval.approval_id,
+                    "checkpoint_id": checkpoint_id,
+                    "graph_interrupt": True,
+                }
                 state["response"] = response
-                self._checkpoint(state, "execute", "blocked")
+                self._audit("graph_interrupt_approval_created", task_id=task_id, approval_id=approval.approval_id, tool_name=tool_name, checkpoint_id=checkpoint_id)
                 return response
 
             record = self._gateway.call(tool_name, task_id=task_id)
@@ -178,3 +236,19 @@ class GraphRuntimeAdapter:
             except Exception:
                 pass
         return checkpoint_id
+
+    def _audit(self, event_type: str, **detail: Any) -> None:
+        if self._audit_recorder is None:
+            return
+        try:
+            self._audit_recorder.record(
+                event_type=event_type,
+                task_id=detail.get("task_id", ""),
+                approval_id=detail.get("approval_id"),
+                tool_name=detail.get("tool_name"),
+                action="graph_interrupt",
+                outcome="success",
+                detail=detail,
+            )
+        except Exception:
+            pass

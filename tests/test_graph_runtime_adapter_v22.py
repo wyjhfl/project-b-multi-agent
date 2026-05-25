@@ -147,7 +147,7 @@ def test_high_risk_returns_requires_approval_without_graph_interrupt(tmp_path, m
     task = TaskRun(task_id="task-danger", query="危险操作")
     result = asyncio.run(kernel.run_with_options(task, mode="keyword"))
 
-    assert result.status == TaskStatus.waiting_approval
+    assert result.status == TaskStatus.failed
     assert result.result is not None
     assert result.result["requires_approval"] is True
     assert result.result["graph_interrupt"] is False
