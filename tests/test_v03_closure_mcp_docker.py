@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -126,3 +128,54 @@ def test_check_health_script_exists():
     assert "/tools" in content
     assert "/eval/summary" in content
     assert "/observability/tasks/summary" in content
+
+
+def _fake_stdio_script() -> str:
+    return str((Path(__file__).parent / "fixtures" / "fake_mcp_stdio_server.py").resolve())
+
+
+def test_real_mode_allowlist_allows_stdio_tools(monkeypatch):
+    reset_runtime_for_test()
+    from app.core.config import settings
+    from app.main import get_gateway
+
+    command = sys.executable
+    monkeypatch.setattr(settings, "mcp_mode", "real")
+    monkeypatch.setattr(settings, "mcp_server_name", "fake_stdio_allow")
+    monkeypatch.setattr(settings, "mcp_server_command", command)
+    monkeypatch.setattr(settings, "mcp_server_args", f"\"{_fake_stdio_script()}\" normal")
+    monkeypatch.setattr(settings, "mcp_server_timeout_seconds", 1.0)
+    monkeypatch.setattr(settings, "mcp_server_workdir", "")
+    monkeypatch.setattr(settings, "mcp_server_env_allowlist", "")
+    monkeypatch.setattr(settings, "mcp_server_command_allowlist", command)
+
+    gateway = get_gateway()
+    tools = gateway.list_tools()
+    tool_names = [t.tool_name for t in tools]
+    assert "stdio_date_lookup" in tool_names
+    assert "get_today_gmv" in tool_names
+    reset_runtime_for_test()
+
+
+def test_real_mode_allowlist_blocks_unlisted_command_but_local_tools_remain(monkeypatch):
+    reset_runtime_for_test()
+    from app.core.config import settings
+    from app.main import get_gateway
+
+    command = sys.executable
+    monkeypatch.setattr(settings, "mcp_mode", "real")
+    monkeypatch.setattr(settings, "mcp_server_name", "fake_stdio_blocked")
+    monkeypatch.setattr(settings, "mcp_server_command", command)
+    monkeypatch.setattr(settings, "mcp_server_args", f"\"{_fake_stdio_script()}\" normal")
+    monkeypatch.setattr(settings, "mcp_server_timeout_seconds", 1.0)
+    monkeypatch.setattr(settings, "mcp_server_workdir", "")
+    monkeypatch.setattr(settings, "mcp_server_env_allowlist", "")
+    monkeypatch.setattr(settings, "mcp_server_command_allowlist", "python3,node")
+
+    gateway = get_gateway()
+    tools = gateway.list_tools()
+    tool_names = [t.tool_name for t in tools]
+    assert "stdio_date_lookup" not in tool_names
+    assert "stdio_refund_update" not in tool_names
+    assert "get_today_gmv" in tool_names
+    reset_runtime_for_test()

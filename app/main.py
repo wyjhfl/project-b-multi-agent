@@ -219,6 +219,9 @@ def _register_mcp_tools(gateway: ToolGateway) -> None:
                 command=settings.mcp_server_command,
                 args=settings.mcp_server_args,
                 timeout_seconds=settings.mcp_server_timeout_seconds,
+                workdir=settings.mcp_server_workdir,
+                env_allowlist=settings.mcp_server_env_allowlist,
+                command_allowlist=settings.mcp_server_command_allowlist,
             )
             gateway.register_mcp_server(settings.mcp_server_name, client)
             discovered = gateway.discover_mcp_tools(settings.mcp_server_name)

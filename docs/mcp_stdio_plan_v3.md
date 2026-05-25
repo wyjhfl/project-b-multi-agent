@@ -270,6 +270,7 @@
 
 - 完成 list 映射和字段缺省策略（`risk_level` 缺省 `medium`）
 - 接入 ToolGateway discover（real + fake stdio server）
+- `app.main` real-mode 注册链路已将 `workdir/env_allowlist/command_allowlist` 透传到 `StdioMCPClient`
 - `tools/call` 仍未实现，保留至 Phase 3.3
 
 ### Phase 3.3 tools/call integration
