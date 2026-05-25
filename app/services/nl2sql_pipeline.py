@@ -8,6 +8,7 @@ from app.agent.nl2sql.generator import MockNL2SQLGenerator
 from app.agent.nl2sql.llm_generator import LLMNL2SQLGenerator
 from app.agent.nl2sql.metadata import SchemaMetadataExtractor
 from app.agent.nl2sql.provider import ProviderConfigError, UnknownProviderError, create_provider
+from app.harness.security.guardrails import GuardrailsEngine
 from app.visualization.chart_planner import ChartPlanner
 
 
@@ -21,6 +22,7 @@ class NL2SQLPipeline:
 
     def __init__(self) -> None:
         self._metrics_recorder: Any | None = None
+        self._guardrails = GuardrailsEngine()
 
     def set_metrics_recorder(self, recorder: Any) -> None:
         self._metrics_recorder = recorder
@@ -36,6 +38,16 @@ class NL2SQLPipeline:
         schema = extractor.extract()
 
         gen_result = self._generate(query, schema, generator, provider, fallback_to_mock)
+        output_guard = self._guardrails.sanitize_response(gen_result["reasoning"])
+        if output_guard.get("sanitized_text"):
+            gen_result["reasoning"] = output_guard["sanitized_text"]
+        if output_guard.get("action") == "redact":
+            gen_result["warnings"] = list(gen_result["warnings"]) + [
+                f"guardrails_output_redact: {output_guard.get('reason', 'response contains pii')}"
+            ]
+        guardrails_info = {
+            "output": output_guard,
+        }
 
         return {
             "mode": "nl2sql_preview",
@@ -52,6 +64,7 @@ class NL2SQLPipeline:
             "fallback_used": gen_result["fallback_used"],
             "fallback_reason": gen_result["fallback_reason"],
             "warnings": gen_result["warnings"],
+            "guardrails": guardrails_info,
         }
 
     def run(
@@ -117,6 +130,7 @@ class NL2SQLPipeline:
             "fallback_used": preview_result["fallback_used"],
             "fallback_reason": preview_result["fallback_reason"],
             "warnings": preview_result["warnings"],
+            "guardrails": preview_result.get("guardrails"),
         }
 
     def _generate(

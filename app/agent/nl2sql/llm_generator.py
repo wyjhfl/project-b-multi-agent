@@ -10,6 +10,7 @@ from app.agent.nl2sql.metadata import DatabaseSchema
 from app.agent.nl2sql.pruner import SchemaPruner
 from app.agent.nl2sql.provider import FakeLLMProvider, LLMGenerateMetadata, LLMProvider
 from app.agent.nl2sql.sql_guard import SQLGuard, SQLGuardResult
+from app.harness.security.guardrails import GuardrailsEngine
 
 
 class LLMNL2SQLGenerator:
@@ -23,6 +24,7 @@ class LLMNL2SQLGenerator:
         self._provider = provider or FakeLLMProvider()
         self._pruner = SchemaPruner()
         self._guard = SQLGuard()
+        self._guardrails = GuardrailsEngine()
         self._mock_generator = MockNL2SQLGenerator()
         self._fallback_to_mock = fallback_to_mock
         self._prompt_template = self._load_prompt_template()
@@ -156,6 +158,23 @@ class LLMNL2SQLGenerator:
             reasoning = ""
         if not reasoning:
             reasoning = "LLM 未提供 reasoning，已使用默认值。"
+
+        llm_output_guard = self._guardrails.check_llm_output(reasoning)
+        if llm_output_guard.get("sanitized_text"):
+            reasoning = str(llm_output_guard["sanitized_text"])
+        if llm_output_guard.get("action") in ("warn", "redact"):
+            warnings.append(
+                f"guardrails_output_{llm_output_guard['action']}: {llm_output_guard.get('reason', '')}"
+            )
+        if llm_output_guard.get("risk_level") == "high":
+            return self._fallback_or_failure(
+                query,
+                pruned,
+                provider_name,
+                "dangerous_output_suggestion",
+                warnings=warnings + ["LLM 输出包含危险操作建议"],
+                schema=schema,
+            )
 
         selected_tables_raw = data.get("selected_tables", [])
         selected_tables: list[str] = []

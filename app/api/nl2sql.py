@@ -6,12 +6,14 @@ from pydantic import BaseModel, Field
 from app.agent.nl2sql.metadata import SchemaMetadataExtractor
 from app.agent.nl2sql.provider import ProviderConfigError, UnknownProviderError, create_provider
 from app.harness.eval.nl2sql_runner import NL2SQLEvalRunner
+from app.harness.security.guardrails import GuardrailsEngine
 from app.harness.security.injection_guard import PromptInjectionGuard
 from app.services.nl2sql_pipeline import NL2SQLPipeline
 
 router = APIRouter(prefix="/nl2sql", tags=["nl2sql"])
 
 _injection_guard = PromptInjectionGuard()
+_guardrails = GuardrailsEngine()
 
 
 def _get_audit_recorder():
@@ -39,10 +41,13 @@ class PreviewResponse(BaseModel):
     fallback_used: bool = False
     fallback_reason: str | None = None
     warnings: list[str] = Field(default_factory=list)
+    guardrails: dict | None = None
 
 
 @router.post("/preview", response_model=PreviewResponse)
 async def preview_nl2sql(req: PreviewRequest):
+    input_guard = _guardrails.check_input(req.query, context={"api": "nl2sql_preview"})
+    safe_query = input_guard.get("sanitized_text") or req.query
     finding = _injection_guard.check_text(req.query)
     if finding.action == "block":
         _get_audit_recorder().record(
@@ -51,7 +56,7 @@ async def preview_nl2sql(req: PreviewRequest):
             outcome="blocked",
             severity=finding.severity,
             reason=finding.reason,
-            detail={"query": req.query, "matched_patterns": finding.matched_patterns},
+            detail={"query": safe_query, "matched_patterns": finding.matched_patterns},
         )
         return PreviewResponse(
             selected_tables=[],
@@ -63,8 +68,9 @@ async def preview_nl2sql(req: PreviewRequest):
             confidence=0.0,
             generator_used="none",
             warnings=[f"prompt_injection_blocked: {finding.reason}"],
+            guardrails={"input": input_guard},
         )
-    return _generate_nl2sql_result(req)
+    return _generate_nl2sql_result(req, safe_query=safe_query, input_guard=input_guard)
 
 
 class EvalRequest(BaseModel):
@@ -145,16 +151,20 @@ class ExecuteResponse(BaseModel):
     execution: dict | None = None
     formatted_result: dict | None = None
     chart_spec: dict | None = None
+    guardrails: dict | None = None
 
 
-def _generate_nl2sql_result(req: PreviewRequest):
+def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, input_guard: dict | None = None):
     pipeline = NL2SQLPipeline()
     result = pipeline.preview(
-        query=req.query,
+        query=safe_query or req.query,
         generator=req.generator,
         provider=req.provider,
         fallback_to_mock=req.fallback_to_mock,
     )
+    merged_guardrails = result.get("guardrails") or {}
+    if input_guard is not None:
+        merged_guardrails = {"input": input_guard, **merged_guardrails}
     return PreviewResponse(
         selected_tables=result["selected_tables"],
         fallback=result["fallback"],
@@ -168,11 +178,14 @@ def _generate_nl2sql_result(req: PreviewRequest):
         fallback_used=result["fallback_used"],
         fallback_reason=result["fallback_reason"],
         warnings=result["warnings"],
+        guardrails=merged_guardrails,
     )
 
 
 @router.post("/execute", response_model=ExecuteResponse)
 async def execute_nl2sql(req: ExecuteRequest):
+    input_guard = _guardrails.check_input(req.query, context={"api": "nl2sql_execute"})
+    safe_query = input_guard.get("sanitized_text") or req.query
     finding = _injection_guard.check_text(req.query)
     if finding.action == "block":
         _get_audit_recorder().record(
@@ -181,7 +194,7 @@ async def execute_nl2sql(req: ExecuteRequest):
             outcome="blocked",
             severity=finding.severity,
             reason=finding.reason,
-            detail={"query": req.query, "matched_patterns": finding.matched_patterns},
+            detail={"query": safe_query, "matched_patterns": finding.matched_patterns},
         )
         return ExecuteResponse(
             selected_tables=[],
@@ -193,14 +206,17 @@ async def execute_nl2sql(req: ExecuteRequest):
             confidence=0.0,
             generator_used="none",
             warnings=[f"prompt_injection_blocked: {finding.reason}"],
+            guardrails={"input": input_guard},
         )
     pipeline = NL2SQLPipeline()
     result = pipeline.run(
-        query=req.query,
+        query=safe_query,
         generator=req.generator,
         provider=req.provider,
         fallback_to_mock=req.fallback_to_mock,
     )
+    merged_guardrails = result.get("guardrails") or {}
+    merged_guardrails = {"input": input_guard, **merged_guardrails}
     return ExecuteResponse(
         selected_tables=result["selected_tables"],
         fallback=not result["guard_allowed"],
@@ -217,4 +233,5 @@ async def execute_nl2sql(req: ExecuteRequest):
         execution=result["execution"],
         formatted_result=result["formatted_result"],
         chart_spec=result["chart_spec"],
+        guardrails=merged_guardrails,
     )

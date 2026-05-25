@@ -8,12 +8,14 @@ from pydantic import BaseModel, Field
 
 from app.agent.graph.kernel import AgentKernel
 from app.auth.dependencies import require_permission
+from app.harness.security.guardrails import GuardrailsEngine
 from app.harness.security.injection_guard import PromptInjectionGuard
 from app.models.schemas import TaskRun, TaskStatus
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 _injection_guard = PromptInjectionGuard()
+_guardrails = GuardrailsEngine()
 
 
 class CreateTaskRequest(BaseModel):
@@ -56,12 +58,14 @@ def _get_audit_recorder():
 
 @router.post("", response_model=CreateTaskResponse)
 async def create_task(req: CreateTaskRequest, _current_user=Depends(require_permission("tasks:create"))):
+    input_guard = _guardrails.check_input(req.query, context={"api": "tasks"})
+    safe_query = input_guard.get("sanitized_text") or req.query
     finding = _injection_guard.check_text(req.query)
     if finding.action == "block":
         task_id = str(uuid.uuid4())
         recorder = _get_trace_recorder()
         recorder.record("prompt_injection_blocked", task_id=task_id, detail={
-            "query": req.query,
+            "query": safe_query,
             "severity": finding.severity,
             "reason": finding.reason,
             "matched_patterns": finding.matched_patterns,
@@ -74,11 +78,16 @@ async def create_task(req: CreateTaskRequest, _current_user=Depends(require_perm
             outcome="blocked",
             severity=finding.severity,
             reason=finding.reason,
-            detail={"matched_patterns": finding.matched_patterns, "mode": req.mode, "query": req.query},
+            detail={
+                "matched_patterns": finding.matched_patterns,
+                "mode": req.mode,
+                "query": safe_query,
+                "guardrails": input_guard,
+            },
         )
         return CreateTaskResponse(
             task_id=task_id,
-            query=req.query,
+            query=safe_query,
             status=TaskStatus.failed.value,
             result={
                 "error_type": "prompt_injection_blocked",
@@ -89,12 +98,13 @@ async def create_task(req: CreateTaskRequest, _current_user=Depends(require_perm
                     "matched_patterns": finding.matched_patterns,
                     "action": finding.action,
                 },
+                "guardrails": {"input": input_guard},
             },
         )
 
     task = TaskRun(
         task_id=str(uuid.uuid4()),
-        query=req.query,
+        query=safe_query,
         status=TaskStatus.created,
         created_at=datetime.now(),
         updated_at=datetime.now(),

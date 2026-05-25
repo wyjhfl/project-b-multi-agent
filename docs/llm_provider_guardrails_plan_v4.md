@@ -65,14 +65,34 @@
   - `judge_fallback_to_fake`（本次运行覆盖）
 - 不可用 provider、配置缺失、JSON 解析失败不会导致 API 500。
 
-## 4. Phase 4.4 规划（未开始）
+## 4. Phase 4.4（已完成最小闭环）
 
-> 本阶段仅保留规划，不在本次改动中实现。
+- 已新增 `GuardrailsEngine` 统一编排层，提供：
+  - `check_input`
+  - `check_llm_output`
+  - `check_sql`
+  - `sanitize_response`
+- 已新增 `PIIGuard` 规则检测与脱敏：
+  - 邮箱、手机号、身份证、银行卡、token/key 形态。
+- 已在 NL2SQL 与 API 入口最小接入：
+  - `/nl2sql/preview`
+  - `/nl2sql/execute`（对应 run 链路）
+  - `/tasks`
+- 保持既有硬约束：
+  - PromptInjectionGuard 高风险仍 block。
+  - SQLGuard 仍是 SQL 执行前硬门禁。
 
-- Prompt Injection 防护增强与审计字段补齐。
-- SQL 安全链路加固（生成后与执行前双重校验）。
-- PII 检测与脱敏策略（规则优先，模型增强后置）。
-- 危险操作建议拦截与审批语义联动。
+### 4.1 PII 检测边界说明
+
+- 当前是规则型检测，不是完整 DLP 系统。
+- 主要用于减少明显敏感信息泄露风险，不保证覆盖所有变体。
+- 检测结果用于 warning/redact 与审计辅助，不替代合规审查流程。
+
+### 4.2 Guardrails 定位说明
+
+- Guardrails 是规则编排层，不是黑箱安全模型。
+- 不绕过现有 PolicyEngine / SQLGuard / PromptInjectionGuard。
+- 默认 fake/offline 路径保持可跑，默认测试不调用真实 LLM。
 
 ## 5. Phase 4.5 规划（未开始）
 

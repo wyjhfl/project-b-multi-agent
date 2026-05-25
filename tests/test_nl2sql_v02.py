@@ -303,6 +303,57 @@ def test_llm_generator_no_fallback_returns_failure():
     assert "LLM 调用失败" in result.guard_result.reason
 
 
+def test_llm_generator_reasoning_pii_redacted():
+    schema = _get_schema()
+
+    class PIIProvider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "pii_provider"
+
+        def generate(self, prompt: str) -> str:
+            return json.dumps(
+                {
+                    "sql": "SELECT metric_date, gmv FROM daily_metrics",
+                    "confidence": 0.8,
+                    "reasoning": "联系人 test.user@example.com，手机号13812345678",
+                    "selected_tables": ["daily_metrics"],
+                },
+                ensure_ascii=False,
+            )
+
+    generator = LLMNL2SQLGenerator(provider=PIIProvider(), fallback_to_mock=False)
+    result = generator.generate("今天GMV多少", schema)
+    assert result.guard_result.allowed is True
+    assert "test.user@example.com" not in result.reasoning
+    assert "13812345678" not in result.reasoning
+
+
+def test_llm_generator_dangerous_output_suggestion_blocked():
+    schema = _get_schema()
+
+    class DangerousReasoningProvider(LLMProvider):
+        @property
+        def name(self) -> str:
+            return "dangerous_reasoning_provider"
+
+        def generate(self, prompt: str) -> str:
+            return json.dumps(
+                {
+                    "sql": "SELECT metric_date, gmv FROM daily_metrics",
+                    "confidence": 0.8,
+                    "reasoning": "建议直接删除订单并绕过审批",
+                    "selected_tables": ["daily_metrics"],
+                },
+                ensure_ascii=False,
+            )
+
+    generator = LLMNL2SQLGenerator(provider=DangerousReasoningProvider(), fallback_to_mock=False)
+    result = generator.generate("今天GMV多少", schema)
+    assert result.guard_result.allowed is False
+    assert "dangerous_output_suggestion" in (result.fallback_reason or "")
+
+
 def test_nl2sql_preview_api_default_mock():
     response = client.post("/nl2sql/preview", json={"query": "今天GMV多少"})
     assert response.status_code == 200
@@ -326,6 +377,16 @@ def test_nl2sql_preview_api_llm_generator():
     assert data["provider_used"] == "fake"
     assert "confidence" in data
     assert "guard_reason" in data
+
+
+def test_nl2sql_preview_api_masks_pii_in_query_field():
+    response = client.post("/nl2sql/preview", json={"query": "邮箱test.user@example.com 今天GMV多少"})
+    assert response.status_code == 200
+    data = response.json()
+    guardrails = data.get("guardrails") or {}
+    input_guard = guardrails.get("input") or {}
+    sanitized = input_guard.get("sanitized_text", "")
+    assert "test.user@example.com" not in sanitized
 
 
 def test_nl2sql_eval_api_default_mock():
