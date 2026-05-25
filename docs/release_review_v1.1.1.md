@@ -61,7 +61,7 @@
 ## 已知边界
 
 1. **RiskIntentGuard 当前在 MultiAgentOrchestrator 前置 block 高风险意图**：检测到删除/修改/批量/导出等关键词直接返回 success=false。生产化阶段应升级为 PolicyEngine + Approval 流程，而不是永久一律 block。
-2. **真实 MCP stdio**：当前使用 FakeMCPClient，StdioMCPClient 是占位。真实 MCP stdio 在 v2.0+ Roadmap。
+2. **真实 MCP stdio**：当前默认使用 FakeMCPClient；v2.2.0 已实现 StdioMCPClient real protocol path（基于 fake stdio fixture 验收），真实外部 MCP Server 生产验收仍在后续阶段。
 3. **LangGraph checkpoint / interrupt**：当前只有最小 StateGraph 骨架，完整 checkpoint 持久化与 interrupt/resume 在 v2.0+ Roadmap。
 4. **Auth / RBAC**：当前无认证授权，v2.0+ 引入 JWT + RBAC。
 5. **前端审批 UI**：当前只有 API，无前端界面，v2.0+ 引入 Next.js 审批台。

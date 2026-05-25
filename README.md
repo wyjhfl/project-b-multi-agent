@@ -81,7 +81,7 @@
 │                     MCP Tool Gateway                                │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
 │  │ Local Tools  │  │FakeMCPClient │  │StdioMCPClient│             │
-│  │ ops_query ×5 │  │date_lookup   │  │  (占位)      │             │
+│  │ ops_query ×5 │  │date_lookup   │  │stdio JSON-RPC│             │
 │  │              │  │calculator    │  │              │             │
 │  │              │  │rule_lookup   │  │              │             │
 │  └──────────────┘  └──────────────┘  └──────────────┘             │
