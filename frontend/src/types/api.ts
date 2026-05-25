@@ -77,3 +77,59 @@ export interface ApprovalSummary {
   rejected_count: number;
   expired_count: number;
 }
+
+export interface ApprovalItem {
+  approval_id: string;
+  task_id: string;
+  tool_name?: string;
+  action?: string;
+  risk_level?: string;
+  status: string;
+  requested_at?: string;
+  created_at?: string;
+  decided_at?: string | null;
+  decided_by?: string | null;
+  decision_reason?: string | null;
+  payload?: Record<string, unknown> | null;
+  already_decided?: boolean;
+  already_resumed?: boolean;
+  decision_error?: string;
+  error?: string;
+}
+
+export interface ApprovalTimelineEvent {
+  event_type: string;
+  timestamp: string;
+  detail?: Record<string, unknown> | null;
+}
+
+export interface ApprovalContext {
+  approval?: ApprovalItem;
+  task?: TaskItem | null;
+  payload?: Record<string, unknown> | null;
+  timeline: ApprovalTimelineEvent[];
+  resume_status?: string | null;
+  can_approve: boolean;
+  can_reject: boolean;
+  can_resume: boolean;
+  error?: string;
+}
+
+export interface ApprovalDecisionPayload {
+  decided_by: string;
+  reason: string;
+  auto_resume?: boolean;
+}
+
+export interface ApprovalDecisionResult extends ApprovalItem {
+  resume_result?: Record<string, unknown> | null;
+  cancellation_result?: Record<string, unknown> | null;
+}
+
+export interface ApprovalResumeResult {
+  approval_id: string;
+  already_resumed?: boolean;
+  resume_result?: Record<string, unknown> | null;
+  error?: string;
+  resumed?: boolean;
+}

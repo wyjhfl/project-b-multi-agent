@@ -1,18 +1,19 @@
 export function statusClass(status: string): string {
   switch (status) {
     case "completed":
+    case "approved":
       return "status-completed";
     case "failed":
+    case "rejected":
       return "status-failed";
     case "waiting_approval":
+    case "pending":
       return "status-waiting_approval";
     case "cancelled":
       return "status-cancelled";
     case "running":
     case "created":
       return "status-running";
-    case "pending":
-      return "status-waiting_approval";
     default:
       return "status-default";
   }
@@ -34,6 +35,10 @@ export function statusLabel(status: string): string {
       return "已创建";
     case "pending":
       return "待处理";
+    case "approved":
+      return "已通过";
+    case "rejected":
+      return "已拒绝";
     default:
       return status || "未知";
   }

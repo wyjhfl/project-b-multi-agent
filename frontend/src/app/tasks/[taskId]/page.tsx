@@ -29,6 +29,30 @@ function renderCompactJson(value: unknown) {
   return `${text.slice(0, 120)}...`;
 }
 
+function extractApprovalId(task: TaskItem | null, traceEvents: TraceEvent[]): string {
+  if (!task) {
+    return "";
+  }
+  const fromResult = task.result && typeof task.result === "object"
+    ? (task.result as Record<string, unknown>).approval_id
+    : undefined;
+  if (typeof fromResult === "string" && fromResult) {
+    return fromResult;
+  }
+
+  for (const event of traceEvents) {
+    const detail = event.detail;
+    if (!detail || typeof detail !== "object") {
+      continue;
+    }
+    const value = (detail as Record<string, unknown>).approval_id;
+    if (typeof value === "string" && value) {
+      return value;
+    }
+  }
+  return "";
+}
+
 export default async function TaskDetailPage({ params, searchParams }: TaskDetailPageProps) {
   const { taskId } = await params;
   const query = (await searchParams) ?? {};
@@ -55,12 +79,15 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
     traceError = error instanceof Error ? error.message : "Trace 加载失败";
   }
 
+  const approvalId = extractApprovalId(task, traceEvents);
+  const waitingApproval = task?.status === "waiting_approval";
+
   return (
     <div className="stack">
       <header className="toolbar" style={{ justifyContent: "space-between" }}>
         <div>
           <h1 className="page-title">任务详情</h1>
-          <p className="page-subtitle">查看任务结果、错误原因与执行时间线。</p>
+          <p className="page-subtitle">查看任务结果、错误信息与执行时间线。</p>
         </div>
         <Link className="button secondary" href="/tasks">
           返回任务列表
@@ -68,6 +95,27 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
       </header>
 
       {created ? <div className="card">任务已创建，正在展示最新详情。</div> : null}
+
+      {waitingApproval ? (
+        <section className="section card">
+          <h2 className="card-title">审批联动</h2>
+          {approvalId ? (
+            <div className="toolbar">
+              <div className="muted">当前任务正在等待审批，请进入审批详情执行通过/拒绝/恢复操作。</div>
+              <Link className="button" href={`/approvals/${approvalId}`}>
+                前往审批详情
+              </Link>
+            </div>
+          ) : (
+            <div className="toolbar">
+              <div className="muted">当前任务正在等待审批，但未在任务详情中找到 approval_id。</div>
+              <Link className="button secondary" href="/approvals?status=pending">
+                前往审批中心查看待审批项
+              </Link>
+            </div>
+          )}
+        </section>
+      ) : null}
 
       <section className="section card">
         <h2 className="card-title">基本信息</h2>
