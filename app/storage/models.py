@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text, func
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, JSON, String, Text, func
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -95,3 +95,27 @@ class RuntimeTokenUsageRow(Base):
     completion_tokens = Column(Integer, default=0)
     total_cost = Column(Float, default=0.0)
     timestamp = Column(DateTime, server_default=func.now())
+
+class GraphRunStateRow(Base):
+    __tablename__ = "graph_run_states"
+    checkpoint_id = Column(String, primary_key=True)
+    task_id = Column(String, nullable=False, index=True)
+    approval_id = Column(String, nullable=True, index=True)
+    graph_thread_id = Column(String, nullable=True)
+    run_id = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="running")
+    current_node = Column(String, nullable=True)
+    graph_state = Column(JSON, nullable=False, default=dict)
+    pending_interrupt = Column(JSON, nullable=True)
+    resume_payload = Column(JSON, nullable=True)
+    result_snapshot = Column(JSON, nullable=True)
+    consumed = Column(Boolean, nullable=False, default=False)
+    resumed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    expires_at = Column(DateTime, nullable=True)
+    schema_version = Column(Integer, nullable=False, default=1)
+    resume_attempt_count = Column(Integer, nullable=False, default=0)
+    last_resume_error = Column(Text, nullable=True)
+    locked_by = Column(String, nullable=True)
+    locked_at = Column(DateTime, nullable=True)

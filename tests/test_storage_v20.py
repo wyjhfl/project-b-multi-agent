@@ -24,6 +24,12 @@ class TestStoreFactory:
         store = get_audit_store()
         assert isinstance(store, SQLiteAuditStore)
 
+    def test_sqlite_graph_checkpoint_store_by_default(self):
+        from app.storage.factory import get_graph_checkpoint_store
+        from app.storage.graph_checkpoint_store import SQLiteGraphCheckpointStore
+        store = get_graph_checkpoint_store()
+        assert isinstance(store, SQLiteGraphCheckpointStore)
+
 
 class TestMainStoreFactoryIntegration:
 
@@ -132,6 +138,10 @@ class TestStorageModels:
         from app.storage.models import RuntimeTokenUsageRow
         assert RuntimeTokenUsageRow.__tablename__ == "runtime_token_usage"
 
+    def test_graph_run_state_row_tablename(self):
+        from app.storage.models import GraphRunStateRow
+        assert GraphRunStateRow.__tablename__ == "graph_run_states"
+
 
 class TestStoreProtocol:
 
@@ -149,6 +159,11 @@ class TestStoreProtocol:
         from app.storage.base import AuditStoreProtocol
         from app.storage.audit_store import SQLiteAuditStore
         assert isinstance(SQLiteAuditStore, AuditStoreProtocol)
+
+    def test_sqlite_graph_checkpoint_store_implements_protocol(self):
+        from app.storage.base import GraphCheckpointStoreProtocol
+        from app.storage.graph_checkpoint_store import SQLiteGraphCheckpointStore
+        assert isinstance(SQLiteGraphCheckpointStore, GraphCheckpointStoreProtocol)
 
 
 class TestDockerCompose:

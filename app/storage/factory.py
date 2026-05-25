@@ -33,3 +33,10 @@ def get_metrics_store():
         return PostgresMetricsStore()
     from app.harness.metrics.metrics_store import SQLiteMetricsStore
     return SQLiteMetricsStore()
+
+def get_graph_checkpoint_store():
+    if settings.storage_backend == "postgres" and settings.database_url:
+        from app.storage.postgres.graph_checkpoint_store import PostgresGraphCheckpointStore
+        return PostgresGraphCheckpointStore()
+    from app.storage.graph_checkpoint_store import SQLiteGraphCheckpointStore
+    return SQLiteGraphCheckpointStore()
