@@ -33,8 +33,8 @@ def _tools_payload() -> list[dict[str, Any]]:
             "description": "Update refund status",
             "inputSchema": {
                 "type": "object",
-                "properties": {"order_id": {"type": "string"}, "status": {"type": "string"}},
-                "required": ["order_id", "status"],
+                "properties": {"refund_id": {"type": "string"}, "status": {"type": "string"}},
+                "required": ["refund_id"],
             },
             "outputSchema": {"type": "object", "properties": {"ok": {"type": "boolean"}}},
             "riskLevel": "high",
@@ -88,6 +88,36 @@ def _handle_request(mode: str, req: dict[str, Any]) -> bool:
             _write({"jsonrpc": "2.0", "id": req_id, "result": _tools_payload()})
             return True
         _write({"jsonrpc": "2.0", "id": req_id, "result": {"tools": _tools_payload()}})
+        return True
+
+    if method == "tools/call":
+        if mode == "tool-error":
+            _write({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32010, "message": "tool call failed"}})
+            return True
+        if mode == "malformed-result":
+            _write({"jsonrpc": "2.0", "id": req_id, "result": ["malformed", "result"]})
+            return True
+        params = req.get("params") or {}
+        if not isinstance(params, dict):
+            _write({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32602, "message": "invalid params"}})
+            return True
+        name = params.get("name")
+        arguments = params.get("arguments") or {}
+        if not isinstance(arguments, dict):
+            arguments = {}
+        if name == "stdio_date_lookup":
+            _write({"jsonrpc": "2.0", "id": req_id, "result": {"date": "2026-05-25", "source": "stdio"}})
+            return True
+        if name == "stdio_refund_update":
+            _write(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {"updated": True, "refund_id": arguments.get("refund_id", "")},
+                }
+            )
+            return True
+        _write({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"unknown tool: {name}"}})
         return True
 
     _write({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"unknown method: {method}"}})

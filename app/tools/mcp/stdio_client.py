@@ -272,9 +272,19 @@ class StdioMCPClient:
     def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         try:
             self._ensure_started()
+            result = self._request(
+                "tools/call",
+                {
+                    "name": name,
+                    "arguments": arguments or {},
+                },
+            )
         except (MCPConfigError, MCPProtocolError, MCPTimeoutError, MCPProcessCrashedError) as exc:
             return {"error": str(exc)}
-        return {"error": f"MCP Server '{self._server_name}' 尚未实现 tools/call（Phase 3.3）"}
+
+        if isinstance(result, dict):
+            return result
+        return {"content": result}
 
     def close(self) -> None:
         if self._process is None:

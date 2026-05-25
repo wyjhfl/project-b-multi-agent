@@ -116,11 +116,35 @@ def test_process_crash_no_crash_to_caller():
     client.close()
 
 
-def test_call_tool_still_not_implemented_phase33():
+def test_call_tool_success_returns_dict():
     client = _build_client("normal")
     result = client.call_tool("stdio_date_lookup", {})
+    assert result["date"] == "2026-05-25"
+    assert result["source"] == "stdio"
+    client.close()
+
+
+def test_call_tool_unknown_tool_returns_error():
+    client = _build_client("normal")
+    result = client.call_tool("unknown_tool", {})
     assert "error" in result
-    assert "Phase 3.3" in result["error"]
+    assert "unknown tool" in result["error"]
+    client.close()
+
+
+def test_call_tool_jsonrpc_error_returns_error():
+    client = _build_client("tool-error")
+    result = client.call_tool("stdio_date_lookup", {})
+    assert "error" in result
+    assert "tool call failed" in result["error"]
+    client.close()
+
+
+def test_call_tool_non_dict_result_wrapped_as_content():
+    client = _build_client("malformed-result")
+    result = client.call_tool("stdio_date_lookup", {})
+    assert "content" in result
+    assert isinstance(result["content"], list)
     client.close()
 
 

@@ -179,3 +179,25 @@ def test_real_mode_allowlist_blocks_unlisted_command_but_local_tools_remain(monk
     assert "stdio_refund_update" not in tool_names
     assert "get_today_gmv" in tool_names
     reset_runtime_for_test()
+
+
+def test_real_mode_tools_api_call_stdio_smoke(monkeypatch):
+    reset_runtime_for_test()
+    from app.core.config import settings
+
+    command = sys.executable
+    monkeypatch.setattr(settings, "mcp_mode", "real")
+    monkeypatch.setattr(settings, "mcp_server_name", "fake_stdio_tools_api")
+    monkeypatch.setattr(settings, "mcp_server_command", command)
+    monkeypatch.setattr(settings, "mcp_server_args", f"\"{_fake_stdio_script()}\" normal")
+    monkeypatch.setattr(settings, "mcp_server_timeout_seconds", 1.0)
+    monkeypatch.setattr(settings, "mcp_server_workdir", "")
+    monkeypatch.setattr(settings, "mcp_server_env_allowlist", "")
+    monkeypatch.setattr(settings, "mcp_server_command_allowlist", command)
+
+    response = client.post("/tools/stdio_date_lookup/call", json={"arguments": {}})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["success"] is True
+    assert payload["result"]["source"] == "stdio"
+    reset_runtime_for_test()

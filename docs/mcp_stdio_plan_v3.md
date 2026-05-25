@@ -275,8 +275,11 @@
 
 ### Phase 3.3 tools/call integration
 
-- 完成 call 映射和错误传递
+状态：已完成 Phase 3.3（tools/call integration，基于 fake stdio server 协议验收）。
+
+- 完成 `tools/call` 请求映射与错误传递（JSON-RPC error/timeout/crash/protocol error -> `{"error": ...}`）
 - 保持 ToolGateway 返回 `ToolCallRecord` 语义不变
+- 真实外部 MCP Server 尚未验收，仅完成 fake stdio server 协议链路
 
 ### Phase 3.4 lifecycle / timeout / crash recovery
 

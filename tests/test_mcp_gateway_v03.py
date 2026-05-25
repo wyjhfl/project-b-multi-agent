@@ -186,3 +186,60 @@ def test_gateway_discover_mcp_tools_with_stdio_client():
     assert by_name["stdio_date_lookup"].is_local is False
     assert by_name["stdio_refund_update"].risk_level == RiskLevel.high
     client.close()
+
+
+def test_stdio_client_call_tool_success_and_unknown_error():
+    client = StdioMCPClient(
+        server_name="stdio_call_test",
+        command=sys.executable,
+        args=f"\"{_fake_stdio_script()}\" normal",
+        timeout_seconds=1.0,
+    )
+    ok = client.call_tool("stdio_date_lookup", {})
+    assert ok["date"] == "2026-05-25"
+    assert ok["source"] == "stdio"
+
+    bad = client.call_tool("unknown_tool", {})
+    assert "error" in bad
+    client.close()
+
+
+def test_gateway_call_stdio_tools_success():
+    gateway = ToolGateway()
+    client = StdioMCPClient(
+        server_name="stdio_gateway_call",
+        command=sys.executable,
+        args=f"\"{_fake_stdio_script()}\" normal",
+        timeout_seconds=1.0,
+    )
+    gateway.register_mcp_server("stdio_gateway_call", client)
+    gateway.discover_mcp_tools("stdio_gateway_call")
+
+    record = gateway.call("stdio_date_lookup", {})
+    assert record.success is True
+    assert record.status == ToolCallStatus.completed
+    assert record.result["source"] == "stdio"
+
+    high_risk_record = gateway.call("stdio_refund_update", {"refund_id": "r1"})
+    assert high_risk_record.success is True
+    assert high_risk_record.result["updated"] is True
+    assert high_risk_record.result["refund_id"] == "r1"
+    assert gateway.get_tool("stdio_refund_update").risk_level == RiskLevel.high
+    client.close()
+
+
+def test_gateway_call_stdio_tool_error_returns_failed_record():
+    gateway = ToolGateway()
+    client = StdioMCPClient(
+        server_name="stdio_gateway_tool_error",
+        command=sys.executable,
+        args=f"\"{_fake_stdio_script()}\" tool-error",
+        timeout_seconds=1.0,
+    )
+    gateway.register_mcp_server("stdio_gateway_tool_error", client)
+    gateway.discover_mcp_tools("stdio_gateway_tool_error")
+    record = gateway.call("stdio_date_lookup", {})
+    assert record.success is False
+    assert record.status == ToolCallStatus.failed
+    assert record.error is not None
+    client.close()
