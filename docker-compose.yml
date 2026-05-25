@@ -54,5 +54,16 @@ services:
       retries: 3
       start_period: 10s
 
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://app:8000
+    depends_on:
+      app:
+        condition: service_started
+
 volumes:
   pgdata:

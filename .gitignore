@@ -22,3 +22,7 @@ htmlcov/
 .coverage
 data/db/*.db
 data/db/*.sqlite
+frontend/node_modules/
+frontend/.next/
+frontend/.turbo/
+frontend/out/
