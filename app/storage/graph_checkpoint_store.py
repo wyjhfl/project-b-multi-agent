@@ -141,14 +141,26 @@ class SQLiteGraphCheckpointStore:
             row = cur.fetchone()
         return self._row_to_dict(row) if row is not None else None
 
-    def mark_pending_interrupt(self, checkpoint_id: str, approval_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    def mark_pending_interrupt(
+        self,
+        checkpoint_id: str,
+        approval_id: str,
+        payload: dict[str, Any],
+        graph_state: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         now = datetime.now().isoformat()
+        graph_state_sql = ", graph_state = ?" if graph_state is not None else ""
+        params: tuple[Any, ...]
+        if graph_state is not None:
+            params = (approval_id, self._json_dumps(payload), now, self._json_dumps(graph_state), checkpoint_id)
+        else:
+            params = (approval_id, self._json_dumps(payload), now, checkpoint_id)
         with closing(sqlite3.connect(self._db_path)) as conn:
             conn.execute(
-                """UPDATE graph_run_states
-                   SET approval_id = ?, pending_interrupt = ?, status = 'interrupted', updated_at = ?
+                f"""UPDATE graph_run_states
+                   SET approval_id = ?, pending_interrupt = ?, status = 'interrupted', updated_at = ?{graph_state_sql}
                    WHERE checkpoint_id = ?""",
-                (approval_id, self._json_dumps(payload), now, checkpoint_id),
+                params,
             )
             conn.commit()
         return self.get_checkpoint(checkpoint_id)

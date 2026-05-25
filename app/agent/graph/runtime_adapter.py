@@ -155,7 +155,6 @@ class GraphRuntimeAdapter:
                         "arguments": {},
                     },
                 )
-                self._checkpoint_store.mark_pending_interrupt(checkpoint_id, approval.approval_id, interrupt_payload)
                 response = {
                     **base_response,
                     "answer": (
@@ -166,7 +165,14 @@ class GraphRuntimeAdapter:
                     "checkpoint_id": checkpoint_id,
                     "graph_interrupt": True,
                 }
+                state["execution_result"] = response
                 state["response"] = response
+                self._checkpoint_store.mark_pending_interrupt(
+                    checkpoint_id,
+                    approval.approval_id,
+                    interrupt_payload,
+                    graph_state=dict(state),
+                )
                 self._audit("graph_interrupt_approval_created", task_id=task_id, approval_id=approval.approval_id, tool_name=tool_name, checkpoint_id=checkpoint_id)
                 return response
 

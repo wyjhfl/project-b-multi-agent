@@ -99,6 +99,33 @@ def test_sqlite_mark_pending_interrupt(tmp_path):
     assert updated["consumed"] is False
 
 
+def test_sqlite_mark_pending_interrupt_can_update_graph_state(tmp_path):
+    store = _make_sqlite_store(tmp_path)
+    store.create_checkpoint(checkpoint_id="cp-1", task_id="task-1", graph_state={"stage": "execute"})
+    final_state = {
+        "stage": "execute",
+        "response": {"approval_id": "apr-1", "checkpoint_id": "cp-1", "graph_interrupt": True},
+        "execution_result": {"approval_id": "apr-1"},
+    }
+
+    updated = store.mark_pending_interrupt("cp-1", "apr-1", {"reason": "high risk"}, graph_state=final_state)
+
+    assert updated is not None
+    assert updated["graph_state"] == final_state
+    assert updated["graph_state"]["response"]["approval_id"] == "apr-1"
+
+
+def test_sqlite_mark_pending_interrupt_without_graph_state_keeps_existing_graph_state(tmp_path):
+    store = _make_sqlite_store(tmp_path)
+    original_state = {"stage": "execute", "response": None}
+    store.create_checkpoint(checkpoint_id="cp-1", task_id="task-1", graph_state=original_state)
+
+    updated = store.mark_pending_interrupt("cp-1", "apr-1", {"reason": "high risk"})
+
+    assert updated is not None
+    assert updated["graph_state"] == original_state
+
+
 def test_sqlite_claim_for_resume_first_success(tmp_path):
     store = _make_sqlite_store(tmp_path)
     store.create_checkpoint(checkpoint_id="cp-1", task_id="task-1", graph_state={})

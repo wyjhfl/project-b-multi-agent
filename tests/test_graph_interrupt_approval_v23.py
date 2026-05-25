@@ -120,6 +120,10 @@ def test_graph_high_risk_keyword_creates_approval_and_pending_checkpoint(tmp_pat
     assert checkpoint["status"] in ("interrupted", "blocked")
     assert checkpoint["approval_id"] == result.result["approval_id"]
     assert checkpoint["pending_interrupt"] == payload["interrupt_payload"]
+    assert checkpoint["graph_state"]["response"]["approval_id"] == result.result["approval_id"]
+    assert checkpoint["graph_state"]["response"]["checkpoint_id"] == result.result["checkpoint_id"]
+    assert checkpoint["graph_state"]["response"]["graph_interrupt"] is True
+    assert checkpoint["graph_state"]["execution_result"]["approval_id"] == result.result["approval_id"]
 
 
 def test_interrupt_payload_contains_required_fields(tmp_path, monkeypatch):

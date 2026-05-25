@@ -85,7 +85,13 @@ class PostgresGraphCheckpointStore:
             )
         return self._row_to_dict(row) if row is not None else None
 
-    def mark_pending_interrupt(self, checkpoint_id: str, approval_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    def mark_pending_interrupt(
+        self,
+        checkpoint_id: str,
+        approval_id: str,
+        payload: dict[str, Any],
+        graph_state: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         now = datetime.now()
         with self._session_factory() as session:
             row = session.query(GraphRunStateRow).filter_by(checkpoint_id=checkpoint_id).first()
@@ -93,6 +99,8 @@ class PostgresGraphCheckpointStore:
                 return None
             row.approval_id = approval_id
             row.pending_interrupt = payload
+            if graph_state is not None:
+                row.graph_state = graph_state
             row.status = "interrupted"
             row.updated_at = now
             session.commit()
