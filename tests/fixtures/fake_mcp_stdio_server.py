@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from typing import Any
@@ -126,6 +127,7 @@ def _handle_request(mode: str, req: dict[str, Any]) -> bool:
 
 def main() -> int:
     mode = sys.argv[1] if len(sys.argv) > 1 else "normal"
+    state_file = sys.argv[2] if len(sys.argv) > 2 else ""
     if mode == "crash":
         return 2
 
@@ -140,6 +142,19 @@ def main() -> int:
             continue
 
         try:
+            if mode == "stderr-crash":
+                sys.stderr.write("fatal stderr crash marker\n")
+                sys.stderr.flush()
+                return 2
+            if mode == "once-crash-then-normal" and state_file and not os.path.exists(state_file):
+                with open(state_file, "w", encoding="utf-8") as f:
+                    f.write("crashed_once")
+                return 2
+            if mode == "timeout-once-then-normal" and state_file and not os.path.exists(state_file):
+                with open(state_file, "w", encoding="utf-8") as f:
+                    f.write("timed_out_once")
+                time.sleep(2.0)
+                continue
             keep_running = _handle_request(mode, req)
         except Exception:
             return 2

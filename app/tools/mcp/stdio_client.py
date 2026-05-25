@@ -14,6 +14,8 @@ from app.tools.mcp.client import MCPToolInfo
 
 logger = logging.getLogger(__name__)
 
+MCP_STDERR_MAX_CHARS = 4000
+
 
 class MCPConfigError(RuntimeError):
     pass
@@ -54,6 +56,17 @@ class StdioMCPClient:
         self._started = False
         self._initialized = False
         self._request_id = 0
+        self._lock = threading.RLock()
+
+        self._last_error = ""
+        self._request_count = 0
+        self._failure_count = 0
+        self._restart_count = 0
+        self._last_restart_reason = ""
+
+        self._stderr_buffer = ""
+        self._stderr_thread: threading.Thread | None = None
+        self._stderr_stop_event = threading.Event()
 
     @staticmethod
     def _parse_csv(value: str) -> list[str]:
@@ -74,17 +87,42 @@ class StdioMCPClient:
     def _ensure_configured(self) -> None:
         if not self._command:
             raise MCPConfigError(
-                f"MCP Server '{self._server_name}' 未配置 command，请设置 MCP_SERVER_COMMAND"
+                f"MCP server '{self._server_name}' missing command. Set MCP_SERVER_COMMAND."
             )
         allow = self._parse_csv(self._command_allowlist)
         if allow and self._command not in allow:
             raise MCPConfigError(
-                f"MCP Server '{self._server_name}' command '{self._command}' 不在 allowlist 中"
+                f"MCP server '{self._server_name}' command '{self._command}' is not in allowlist."
             )
 
     def _build_cmdline(self) -> list[str]:
         parts = shlex.split(self._args, posix=True) if self._args else []
         return [self._command, *parts]
+
+    def _append_stderr(self, chunk: str) -> None:
+        if not chunk:
+            return
+        self._stderr_buffer = (self._stderr_buffer + chunk)[-MCP_STDERR_MAX_CHARS:]
+
+    def _start_stderr_reader(self, process: subprocess.Popen[str]) -> None:
+        stderr = process.stderr
+        if stderr is None:
+            return
+        self._stderr_stop_event = threading.Event()
+
+        def _reader() -> None:
+            while not self._stderr_stop_event.is_set():
+                try:
+                    line = stderr.readline()
+                except Exception:
+                    break
+                if not line:
+                    break
+                with self._lock:
+                    self._append_stderr(line)
+
+        self._stderr_thread = threading.Thread(target=_reader, daemon=True)
+        self._stderr_thread.start()
 
     def _start_process(self) -> None:
         if self._process is not None and self._process.poll() is None:
@@ -101,6 +139,7 @@ class StdioMCPClient:
             cwd=self._workdir or None,
             env=self._build_env(),
         )
+        self._start_stderr_reader(self._process)
         self._started = True
         self._initialized = False
 
@@ -119,23 +158,24 @@ class StdioMCPClient:
         try:
             line = q.get(timeout=timeout_seconds)
         except Empty as exc:
-            raise MCPTimeoutError(f"MCP Server '{self._server_name}' 响应超时") from exc
+            raise MCPTimeoutError(f"MCP server '{self._server_name}' response timeout.") from exc
         if line is None:
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' 无法读取响应")
+            raise MCPProtocolError(f"MCP server '{self._server_name}' cannot read response.")
         return line
 
     def _request(self, method: str, params: dict[str, Any]) -> Any:
         if self._process is None:
-            raise MCPProcessCrashedError(f"MCP Server '{self._server_name}' 未启动")
+            raise MCPProcessCrashedError(f"MCP server '{self._server_name}' is not started.")
         if self._process.poll() is not None:
             raise MCPProcessCrashedError(
-                f"MCP Server '{self._server_name}' 进程已退出(exit={self._process.poll()})"
+                f"MCP server '{self._server_name}' exited (exit={self._process.poll()})."
             )
         if self._process.stdin is None or self._process.stdout is None:
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' stdin/stdout 不可用")
+            raise MCPProtocolError(f"MCP server '{self._server_name}' stdin/stdout is unavailable.")
 
         self._request_id += 1
         req_id = self._request_id
+        self._request_count += 1
         payload = {
             "jsonrpc": "2.0",
             "id": req_id,
@@ -147,34 +187,31 @@ class StdioMCPClient:
             self._process.stdin.flush()
         except OSError as exc:
             raise MCPProcessCrashedError(
-                f"MCP Server '{self._server_name}' 写入失败，进程可能已崩溃"
+                f"MCP server '{self._server_name}' write failed."
             ) from exc
 
         line = self._readline_with_timeout(self._process.stdout, self._timeout_seconds).strip()
         if not line:
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' 返回空响应")
+            raise MCPProtocolError(f"MCP server '{self._server_name}' returned empty response.")
         try:
             resp = json.loads(line)
         except json.JSONDecodeError as exc:
             raise MCPProtocolError(
-                f"MCP Server '{self._server_name}' 返回非法 JSON: {line}"
+                f"MCP server '{self._server_name}' returned invalid JSON: {line}"
             ) from exc
 
         if resp.get("jsonrpc") != "2.0":
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' JSON-RPC 版本非法")
+            raise MCPProtocolError(f"MCP server '{self._server_name}' invalid jsonrpc version.")
         if resp.get("id") != req_id:
             raise MCPProtocolError(
-                f"MCP Server '{self._server_name}' 响应 id 不匹配 expect={req_id} got={resp.get('id')}"
+                f"MCP server '{self._server_name}' response id mismatch: expect={req_id}, got={resp.get('id')}."
             )
         if "error" in resp and resp["error"] is not None:
             err = resp["error"]
-            if isinstance(err, dict):
-                msg = err.get("message", str(err))
-            else:
-                msg = str(err)
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' 返回错误: {msg}")
+            msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+            raise MCPProtocolError(f"MCP server '{self._server_name}' returned error: {msg}")
         if "result" not in resp:
-            raise MCPProtocolError(f"MCP Server '{self._server_name}' 响应缺少 result")
+            raise MCPProtocolError(f"MCP server '{self._server_name}' response missing result.")
         return resp["result"]
 
     def _initialize(self) -> None:
@@ -186,8 +223,68 @@ class StdioMCPClient:
             },
         )
         if not isinstance(result, dict):
-            raise MCPProtocolError("initialize result 类型非法")
+            raise MCPProtocolError("Initialize result must be an object.")
         self._initialized = True
+
+    def _cleanup_process(self, reason: str = "", terminate: bool = False) -> None:
+        process = self._process
+        self._stderr_stop_event.set()
+        if process is not None:
+            try:
+                if terminate and process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=min(1.0, max(0.2, self._timeout_seconds)))
+                    except Exception:
+                        process.kill()
+                        process.wait(timeout=1.0)
+            except Exception:
+                pass
+            finally:
+                for stream_name in ("stdin", "stdout", "stderr"):
+                    stream = getattr(process, stream_name, None)
+                    if stream is not None:
+                        try:
+                            stream.close()
+                        except Exception:
+                            pass
+
+        self._process = None
+        self._started = False
+        self._initialized = False
+        if reason:
+            self._last_restart_reason = reason
+
+    def _format_error_with_stderr(self, message: str) -> str:
+        if not self._stderr_buffer:
+            return message
+        stderr_tail = self._stderr_buffer[-MCP_STDERR_MAX_CHARS:].strip()
+        if not stderr_tail:
+            return message
+        return f"{message} | stderr_tail={stderr_tail}"
+
+    def _collect_stderr_if_available(self) -> None:
+        process = self._process
+        if process is None or process.stderr is None:
+            return
+        if process.poll() is None:
+            return
+        try:
+            chunk = process.stderr.read()
+        except Exception:
+            chunk = ""
+        if chunk:
+            self._append_stderr(chunk)
+
+    def _record_failure(self, exc: Exception, restart_reason: str = "") -> str:
+        self._failure_count += 1
+        self._collect_stderr_if_available()
+        error_message = self._format_error_with_stderr(str(exc))
+        self._last_error = error_message
+        if restart_reason:
+            self._restart_count += 1
+            self._cleanup_process(reason=restart_reason, terminate=True)
+        return error_message
 
     def _ensure_started(self) -> None:
         self._ensure_configured()
@@ -214,11 +311,11 @@ class StdioMCPClient:
 
     def _map_tool_item(self, item: Any) -> MCPToolInfo | None:
         if not isinstance(item, dict):
-            logger.warning("MCP tool item 非法，已跳过: %r", item)
+            logger.warning("MCP tool item invalid, skipped: %r", item)
             return None
         name = item.get("name")
         if not isinstance(name, str) or not name.strip():
-            logger.warning("MCP tool item 缺少有效 name，已跳过: %r", item)
+            logger.warning("MCP tool item missing valid name, skipped: %r", item)
             return None
         description = item.get("description", "")
         input_schema = item.get("inputSchema")
@@ -243,73 +340,88 @@ class StdioMCPClient:
         )
 
     def list_tools(self) -> list[MCPToolInfo]:
-        try:
-            self._ensure_started()
-            result = self._request("tools/list", {})
-        except (MCPConfigError, MCPProtocolError, MCPTimeoutError, MCPProcessCrashedError) as exc:
-            logger.warning("StdioMCPClient.list_tools 失败: %s", exc)
-            return []
+        with self._lock:
+            for attempt in range(2):
+                try:
+                    self._ensure_started()
+                    result = self._request("tools/list", {})
+                    break
+                except MCPConfigError as exc:
+                    self._record_failure(exc)
+                    logger.warning("StdioMCPClient.list_tools failed: %s", exc)
+                    return []
+                except (MCPProtocolError, MCPTimeoutError, MCPProcessCrashedError) as exc:
+                    error_message = self._record_failure(exc, restart_reason=type(exc).__name__)
+                    logger.warning("StdioMCPClient.list_tools failed: %s", error_message)
+                    if attempt == 0:
+                        continue
+                    return []
+            else:
+                return []
 
-        if isinstance(result, dict):
-            raw_tools = result.get("tools", [])
-        elif isinstance(result, list):
-            raw_tools = result
-        else:
-            logger.warning("StdioMCPClient.list_tools result 非法: %r", result)
-            return []
+            if isinstance(result, dict):
+                raw_tools = result.get("tools", [])
+            elif isinstance(result, list):
+                raw_tools = result
+            else:
+                self._last_error = f"Invalid tools/list result type: {type(result).__name__}"
+                logger.warning("StdioMCPClient.list_tools result invalid: %r", result)
+                return []
 
-        if not isinstance(raw_tools, list):
-            logger.warning("StdioMCPClient.list_tools tools 字段不是 list: %r", raw_tools)
-            return []
+            if not isinstance(raw_tools, list):
+                self._last_error = "Invalid tools/list payload: tools is not a list."
+                logger.warning("StdioMCPClient.list_tools tools is not list: %r", raw_tools)
+                return []
 
-        tools: list[MCPToolInfo] = []
-        for item in raw_tools:
-            mapped = self._map_tool_item(item)
-            if mapped is not None:
-                tools.append(mapped)
-        return tools
+            tools: list[MCPToolInfo] = []
+            for item in raw_tools:
+                mapped = self._map_tool_item(item)
+                if mapped is not None:
+                    tools.append(mapped)
+            return tools
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        try:
-            self._ensure_started()
-            result = self._request(
-                "tools/call",
-                {
-                    "name": name,
-                    "arguments": arguments or {},
-                },
-            )
-        except (MCPConfigError, MCPProtocolError, MCPTimeoutError, MCPProcessCrashedError) as exc:
-            return {"error": str(exc)}
+        with self._lock:
+            try:
+                self._ensure_started()
+                result = self._request(
+                    "tools/call",
+                    {
+                        "name": name,
+                        "arguments": arguments or {},
+                    },
+                )
+            except MCPConfigError as exc:
+                error_message = self._record_failure(exc)
+                return {"error": error_message}
+            except (MCPProtocolError, MCPTimeoutError, MCPProcessCrashedError) as exc:
+                error_message = self._record_failure(exc, restart_reason=type(exc).__name__)
+                return {"error": error_message}
 
-        if isinstance(result, dict):
-            return result
-        return {"content": result}
+            if isinstance(result, dict):
+                return result
+            return {"content": result}
+
+    def get_health(self) -> dict[str, Any]:
+        with self._lock:
+            process_alive = self._process is not None and self._process.poll() is None
+            pid = self._process.pid if self._process is not None else None
+            return {
+                "server_name": self._server_name,
+                "started": self._started,
+                "initialized": self._initialized,
+                "process_alive": process_alive,
+                "pid": pid,
+                "last_error": self._last_error,
+                "request_count": self._request_count,
+                "failure_count": self._failure_count,
+                "restart_count": self._restart_count,
+                "last_restart_reason": self._last_restart_reason,
+            }
+
+    def health(self) -> dict[str, Any]:
+        return self.get_health()
 
     def close(self) -> None:
-        if self._process is None:
-            self._started = False
-            self._initialized = False
-            return
-        proc = self._process
-        try:
-            if proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=min(1.0, max(0.2, self._timeout_seconds)))
-                except Exception:
-                    proc.kill()
-                    proc.wait(timeout=1.0)
-        except Exception:
-            pass
-        finally:
-            for stream_name in ("stdin", "stdout", "stderr"):
-                stream = getattr(proc, stream_name, None)
-                if stream is not None:
-                    try:
-                        stream.close()
-                    except Exception:
-                        pass
-            self._process = None
-            self._started = False
-            self._initialized = False
+        with self._lock:
+            self._cleanup_process(reason="manual_close", terminate=True)

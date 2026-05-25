@@ -283,7 +283,14 @@
 
 ### Phase 3.4 lifecycle / timeout / crash recovery
 
-- 加入超时、重启、健康状态、并发队列
+状态：已完成 Phase 3.4（基于 fake stdio server 的 lifecycle hardening 验收）。
+
+- 已加入 lifecycle health 状态（started/initialized/process_alive/last_error/request_count/failure_count/restart_count）
+- 已加入请求串行化（线程锁，串行化 `_ensure_started + _request`）
+- 已加入保守 restart recovery（超时/崩溃/协议错误后清理句柄，下一次请求可重启）
+- 已加入 bounded stderr capture（用于错误摘要与诊断）
+- 未做自动重放高风险工具调用
+- 未完成并发请求队列与更完整 lifecycle manager（留在后续收敛）
 
 ### Phase 3.5 security hardening + docs + release cleanup
 
@@ -299,6 +306,7 @@
 3. 不实现多 MCP server 管理平台
 4. 不改变 graph runtime
 5. 不让 MCP tool 绕过 ToolGateway / PolicyEngine / Audit / Metrics
+6. 不宣称为 production-ready MCP runtime
 
 ---
 

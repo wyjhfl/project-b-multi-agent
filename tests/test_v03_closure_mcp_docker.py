@@ -92,7 +92,7 @@ def test_stdio_mcp_client_empty_command_error():
 
     result = client_instance.call_tool("any_tool", {})
     assert "error" in result
-    assert "未配置 command" in result["error"]
+    assert "missing command" in result["error"]
 
 
 def test_docker_compose_file_exists():
