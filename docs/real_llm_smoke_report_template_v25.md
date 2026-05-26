@@ -52,6 +52,7 @@
 - guard_allowed：
 - generator_used：
 - provider_used：
+- 是否真实命中 LLM（是/否）：
 - fallback_used：
 - fallback_reason：
 - warnings：

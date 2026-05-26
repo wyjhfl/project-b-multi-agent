@@ -328,6 +328,7 @@ def test_create_provider_litellm_base_url_passed(monkeypatch):
 def test_create_provider_litellm_empty_base_url_compatible(monkeypatch):
     monkeypatch.setattr(settings, "llm_api_key", "demo-key")
     monkeypatch.setattr(settings, "llm_model", "gpt-4o-mini")
+    monkeypatch.setattr(settings, "llm_base_url", "")
     provider = create_provider("litellm")
     assert isinstance(provider, LiteLLMProvider)
     assert getattr(provider, "_base_url", "") == ""

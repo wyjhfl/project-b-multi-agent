@@ -207,6 +207,7 @@ class LiteLLMProvider(LLMProvider):
     ) -> None:
         self._api_key = settings.llm_api_key if api_key is None else api_key
         self._model = model or settings.llm_model or "gpt-3.5-turbo"
+        self._base_url = (settings.llm_base_url if base_url is None else (base_url or "")).strip()
         self._timeout_seconds = max(1.0, float(settings.llm_timeout_seconds if timeout_seconds is None else timeout_seconds))
         self._max_retries = max(0, int(settings.llm_max_retries if max_retries is None else max_retries))
         self._retry_backoff_seconds = max(
@@ -214,7 +215,6 @@ class LiteLLMProvider(LLMProvider):
             float(settings.llm_retry_backoff_seconds if retry_backoff_seconds is None else retry_backoff_seconds),
         )
         self._temperature = float(settings.llm_temperature if temperature is None else temperature)
-        self._base_url = (base_url or "").strip()
 
         if not self._api_key:
             raise ProviderConfigError("LiteLLMProvider 需要 LLM_API_KEY 配置，当前为空。")

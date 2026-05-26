@@ -81,6 +81,8 @@
 - 默认 `python -m pytest -q` 不自动触发真实 LLM（需显式环境开关）；
 - 新增脚本：`scripts/real_llm_smoke.ps1`；
 - 新增报告模板：`docs/real_llm_smoke_report_template_v25.md`。
+- 已补齐 `REAL_LLM_*` 与 NL2SQL 运行时 `LLM_*` 的对齐策略（测试中运行时映射，默认配置不改变）。
+- 已收紧 NL2SQL smoke 断言：明确判断“真实命中 LLM”或“fallback 且有明确 fallback_reason”。
 
 策略：
 
