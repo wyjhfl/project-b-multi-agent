@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     log_include_client_ip: bool = True
     log_include_user_agent: bool = True
     log_redaction_enabled: bool = True
+    audit_retention_enabled: bool = True
+    audit_retention_days: int = 90
+    audit_export_enabled: bool = True
+    audit_export_max_rows: int = 1000
+    audit_export_format: str = "jsonl"
+    audit_export_redaction_enabled: bool = True
     ops_db_path: str = "data/db/ops_demo.sqlite"
     runtime_db_path: str = "data/db/runtime.sqlite"
     metrics_db_path: str = "data/db/runtime_metrics.sqlite"

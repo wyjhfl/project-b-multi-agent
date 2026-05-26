@@ -35,6 +35,12 @@ def _set_production_secure_defaults(monkeypatch):
     monkeypatch.setattr(settings, "structured_logging_enabled", True)
     monkeypatch.setattr(settings, "log_redaction_enabled", True)
     monkeypatch.setattr(settings, "log_level", "INFO")
+    monkeypatch.setattr(settings, "audit_retention_enabled", True)
+    monkeypatch.setattr(settings, "audit_retention_days", 90)
+    monkeypatch.setattr(settings, "audit_export_enabled", True)
+    monkeypatch.setattr(settings, "audit_export_max_rows", 1000)
+    monkeypatch.setattr(settings, "audit_export_format", "jsonl")
+    monkeypatch.setattr(settings, "audit_export_redaction_enabled", True)
 
 
 def test_development_mode_warn_only(monkeypatch):
@@ -71,6 +77,10 @@ def test_production_mode_required_fields(monkeypatch):
     monkeypatch.setattr(settings, "structured_logging_enabled", False)
     monkeypatch.setattr(settings, "log_redaction_enabled", False)
     monkeypatch.setattr(settings, "log_level", "DEBUG")
+    monkeypatch.setattr(settings, "audit_retention_enabled", False)
+    monkeypatch.setattr(settings, "audit_retention_days", 0)
+    monkeypatch.setattr(settings, "audit_export_max_rows", 20000)
+    monkeypatch.setattr(settings, "audit_export_redaction_enabled", False)
     monkeypatch.delenv("MISSING_REAL_LLM_KEY_ENV", raising=False)
 
     result = run_deployment_checks()
@@ -94,6 +104,10 @@ def test_production_mode_required_fields(monkeypatch):
     assert any("structured_logging_enabled" in item for item in result.errors)
     assert any("log_redaction_enabled" in item for item in result.errors)
     assert any("log_level_production" in item for item in result.errors)
+    assert any("audit_retention_enabled" in item for item in result.errors)
+    assert any("audit_retention_days" in item for item in result.errors)
+    assert any("audit_export_max_rows" in item for item in result.errors)
+    assert any("audit_export_redaction_enabled" in item for item in result.errors)
 
 
 def test_production_mode_pass_without_secret_leak(monkeypatch):
@@ -239,3 +253,30 @@ def test_production_rejects_debug_log_level(monkeypatch):
     result = run_deployment_checks()
     assert result.ok is False
     assert any("log_level_production" in item for item in result.errors)
+
+
+def test_production_rejects_audit_retention_disabled(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "audit_retention_enabled", False)
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("audit_retention_enabled" in item for item in result.errors)
+
+
+def test_production_rejects_audit_export_max_rows_out_of_range(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "audit_export_max_rows", 10001)
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("audit_export_max_rows" in item for item in result.errors)
+
+
+def test_production_rejects_audit_export_redaction_disabled(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "audit_export_redaction_enabled", False)
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("audit_export_redaction_enabled" in item for item in result.errors)

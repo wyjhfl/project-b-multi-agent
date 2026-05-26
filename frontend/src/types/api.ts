@@ -209,6 +209,15 @@ export interface AuditFilters {
   limit?: number;
 }
 
+export interface AuditExportFilters {
+  event_type?: string;
+  task_id?: string;
+  severity?: string;
+  outcome?: string;
+  limit?: number;
+  format?: "jsonl";
+}
+
 export interface ToolSpec {
   tool_name: string;
   description: string;

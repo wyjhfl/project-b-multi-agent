@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import Settings, settings
 from app.core.security_headers import parse_csv_config
+from app.harness.audit.retention import validate_audit_retention_settings
 
 _DISALLOWED_JWT_SECRETS = {
     "",
@@ -192,6 +193,43 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
         passed=current_log_level != "DEBUG",
         level="error",
         detail="production 环境不允许 LOG_LEVEL=DEBUG。",
+    )
+    _add_check(
+        result,
+        name="audit_retention_enabled",
+        passed=bool(current.audit_retention_enabled),
+        level="error",
+        detail="production 环境要求 AUDIT_RETENTION_ENABLED=true。",
+    )
+    _add_check(
+        result,
+        name="audit_retention_days",
+        passed=int(current.audit_retention_days or 0) > 0,
+        level="error",
+        detail="AUDIT_RETENTION_DAYS 必须大于 0。",
+    )
+    export_rows = int(current.audit_export_max_rows or 0)
+    _add_check(
+        result,
+        name="audit_export_max_rows",
+        passed=0 < export_rows <= 10000,
+        level="error",
+        detail="AUDIT_EXPORT_MAX_ROWS 必须在 1 到 10000 范围内。",
+    )
+    _add_check(
+        result,
+        name="audit_export_redaction_enabled",
+        passed=bool(current.audit_export_redaction_enabled),
+        level="error",
+        detail="production 环境要求 AUDIT_EXPORT_REDACTION_ENABLED=true。",
+    )
+    retention_errors = validate_audit_retention_settings(current)
+    _add_check(
+        result,
+        name="audit_retention_settings",
+        passed=not retention_errors,
+        level="error",
+        detail="; ".join(retention_errors) if retention_errors else "审计留存与导出配置合法。",
     )
 
     _add_check(

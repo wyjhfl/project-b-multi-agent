@@ -62,13 +62,22 @@ v2.7 的目标是补齐“企业内网试点准生产可投入使用”的安全
 
 - 当前日志输出为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
 
-## 6. Phase 7.4：审计留存策略与导出边界（规划中）
+## 6. Phase 7.4：审计留存策略与导出边界（已完成）
 
-规划方向：
+已完成内容：
 
-- 明确审计事件留存范围、时长、轮转策略。
-- 定义导出字段白名单和脱敏边界。
-- 明确导出能力的权限边界与操作审计要求。
+- 新增审计留存配置：`audit_retention_enabled`、`audit_retention_days`。
+- 新增导出配置：`audit_export_enabled`、`audit_export_max_rows`、`audit_export_format=jsonl`、`audit_export_redaction_enabled`。
+- 新增策略函数：留存截止时间计算、配置校验、导出事件字段白名单转换。
+- 新增导出 API：`GET /audit/events/export`，默认输出 JSONL（`application/x-ndjson`）。
+- 导出字段采用白名单，仅保留：`event_id/event_type/task_id/actor/action/severity/outcome/created_at/request_id/summary/detail_redacted`。
+- `detail` 仅通过脱敏后进入 `detail_redacted`，不导出 prompt 原文、密钥原文和连接串密码原文。
+- 默认 auth/rbac 关闭时保持本地演示可用；启用 RBAC 后导出权限限制为 auditor/admin。
+
+范围边界：
+
+- 当前实现是试点级留存策略与 JSONL 导出，不是完整合规归档系统。
+- 本阶段不包含常驻调度器、自动清理任务和复杂归档流水线。
 
 ## 7. Phase 7.5：OIDC/SSO 规划或最小接入方案（规划中）
 

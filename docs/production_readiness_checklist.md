@@ -16,6 +16,9 @@
 - [ ] `STRUCTURED_LOGGING_ENABLED=true`
 - [ ] `LOG_REDACTION_ENABLED=true`
 - [ ] `LOG_LEVEL` 为 `INFO/WARNING/ERROR/CRITICAL`（production 不允许 `DEBUG`）
+- [ ] `AUDIT_RETENTION_ENABLED=true` 且 `AUDIT_RETENTION_DAYS>0`
+- [ ] `AUDIT_EXPORT_MAX_ROWS` 在合理范围（1~10000）
+- [ ] `AUDIT_EXPORT_REDACTION_ENABLED=true`
 
 ## 2. 鉴权与 RBAC
 
@@ -49,6 +52,7 @@
 - [ ] 配置错误返回 `ok=false` 且 HTTP 200，不抛 500
 - [ ] Runtime metrics 与 audit/trace 基础能力可访问
 - [ ] 响应头包含 `X-Request-ID`，可用于链路排查
+- [ ] `/audit/events/export` 可导出 JSONL，且仅输出白名单字段 + 脱敏 detail
 
 ## 7. 前端页面可用性
 
@@ -78,5 +82,5 @@
 - [ ] 复杂 BI
 - [ ] 真实外部 MCP Server 生产验收
 - [ ] 真实 LLM 生产验收完成声明（禁止）
-- [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2/7.3：CORS、安全响应头、request size limit、rate limit、basic abuse guard、结构化日志与脱敏）
+- [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2/7.3/7.4：CORS、安全响应头、request size limit、rate limit、basic abuse guard、结构化日志脱敏、审计留存与导出边界）
 - [ ] 多实例一致性限流（当前仅进程内内存限流）

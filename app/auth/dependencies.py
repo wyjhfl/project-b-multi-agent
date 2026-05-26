@@ -25,6 +25,7 @@ ENDPOINT_PERMISSIONS: dict[str, set[str]] = {
     "approvals:decide": {"admin", "operator"},
     "approvals:read": {"admin", "operator", "viewer", "auditor"},
     "audit:read": {"admin", "auditor"},
+    "audit:export": {"admin", "auditor"},
     "metrics:read": {"admin", "operator", "viewer", "auditor"},
     "tools:call": {"admin", "operator"},
     "tools:read": {"admin", "operator", "viewer", "auditor"},

@@ -54,8 +54,8 @@ class PostgresAuditStore:
     ) -> list[dict[str, Any]]:
         if limit <= 0:
             limit = 100
-        if limit > 500:
-            limit = 500
+        if limit > 10000:
+            limit = 10000
         with self._session_factory() as session:
             q = session.query(AuditEventRow)
             if event_type is not None:

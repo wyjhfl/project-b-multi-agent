@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
-import type { AuditEvent, AuditFilters } from "@/types/api";
+import type { AuditEvent, AuditExportFilters, AuditFilters } from "@/types/api";
 
 export async function listAuditEvents(filters: AuditFilters = {}): Promise<AuditEvent[]> {
   const query = new URLSearchParams();
@@ -33,4 +33,31 @@ export async function listAuditEvents(filters: AuditFilters = {}): Promise<Audit
 
 export async function getAuditEvent(eventId: string): Promise<AuditEvent> {
   return apiFetch<AuditEvent>(`/audit/events/${eventId}`);
+}
+
+export async function exportAuditEventsJsonl(filters: AuditExportFilters = {}): Promise<string> {
+  const query = new URLSearchParams();
+  if (filters.event_type) {
+    query.set("event_type", filters.event_type);
+  }
+  if (filters.task_id) {
+    query.set("task_id", filters.task_id);
+  }
+  if (filters.severity) {
+    query.set("severity", filters.severity);
+  }
+  if (filters.outcome) {
+    query.set("outcome", filters.outcome);
+  }
+  query.set("limit", String(filters.limit ?? 200));
+  query.set("format", filters.format ?? "jsonl");
+
+  const response = await fetch(`/api/audit/events/export?${query.toString()}`, {
+    cache: "no-store",
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(text || `导出失败：${response.status}`);
+  }
+  return text;
 }

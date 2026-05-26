@@ -22,9 +22,29 @@ function pickFilters(params: Record<string, string | string[] | undefined>) {
   return { eventType, taskId, severity, outcome };
 }
 
+function buildAuditExportUrl(eventType: string, taskId: string, severity: string, outcome: string): string {
+  const query = new URLSearchParams();
+  if (eventType) {
+    query.set("event_type", eventType);
+  }
+  if (taskId) {
+    query.set("task_id", taskId);
+  }
+  if (severity) {
+    query.set("severity", severity);
+  }
+  if (outcome) {
+    query.set("outcome", outcome);
+  }
+  query.set("limit", "200");
+  query.set("format", "jsonl");
+  return `/api/audit/events/export?${query.toString()}`;
+}
+
 export default async function AuditPage({ searchParams }: AuditPageProps) {
   const params = (await searchParams) ?? {};
   const { eventType, taskId, severity, outcome } = pickFilters(params);
+  const exportUrl = buildAuditExportUrl(eventType, taskId, severity, outcome);
 
   let events: AuditEvent[] = [];
   let errorText = "";
@@ -78,6 +98,9 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
             <button type="submit" className="button">
               查询审计
             </button>
+            <Link className="button secondary" href={exportUrl}>
+              导出 JSONL
+            </Link>
             <Link href="/audit" className="button secondary">
               重置
             </Link>

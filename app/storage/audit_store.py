@@ -93,8 +93,8 @@ class SQLiteAuditStore:
     ) -> list[dict[str, Any]]:
         if limit <= 0:
             limit = 100
-        if limit > 500:
-            limit = 500
+        if limit > 10000:
+            limit = 10000
 
         conditions: list[str] = []
         params: list[Any] = []

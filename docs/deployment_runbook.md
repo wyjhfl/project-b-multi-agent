@@ -79,6 +79,15 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `LOG_REDACTION_ENABLED=true`
 - 脱敏策略覆盖精确敏感键与常见组合敏感键（如 `x_api_key`、`openai_api_key`、`client_secret`、`jwt_token`）。
 
+新增审计留存与导出配置（Phase 7.4）：
+
+- `AUDIT_RETENTION_ENABLED=true`
+- `AUDIT_RETENTION_DAYS=90`
+- `AUDIT_EXPORT_ENABLED=true`
+- `AUDIT_EXPORT_MAX_ROWS=1000`（建议不超过 10000）
+- `AUDIT_EXPORT_FORMAT=jsonl`（当前仅支持 jsonl）
+- `AUDIT_EXPORT_REDACTION_ENABLED=true`
+
 ## 5. 配置检查脚本
 
 ```powershell
@@ -120,6 +129,7 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_smoke.ps1
 - `http://localhost:3000/metrics`
 - `http://localhost:3000/observability`
 - `http://localhost:8000/deployment/check`
+- `http://localhost:8000/audit/events/export?limit=50&format=jsonl`
 
 ## 7. 常见失败与处理
 
@@ -127,6 +137,7 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_smoke.ps1
 - `JWT_SECRET` 报错：检查是否仍使用占位值或长度不足。
 - `DATABASE_URL/REDIS_URL` 报错：检查开关是否启用且 URL 非空，且未使用占位密码。
 - 前端页面 5xx：先检查 `http://localhost:3000/api/health` 与 `http://localhost:8000/health`。
+- 审计导出 403：检查 `AUDIT_EXPORT_ENABLED`、`AUDIT_EXPORT_REDACTION_ENABLED` 与 RBAC 角色（生产建议仅 auditor/admin）。
 
 ## 8. 停止与回滚
 
@@ -151,3 +162,4 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 当前已完成安全基线前三步（Phase 7.1 CORS/安全响应头 + Phase 7.2 请求防护 + Phase 7.3 结构化日志与脱敏），但仍不等于完整公网生产安全基线完成。
 - 当前限流为进程内内存版，适用于单实例内网试点；多实例生产应升级为 Redis 或网关级限流。
 - 当前日志为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
+- 审计导出默认使用字段白名单与脱敏边界，不导出 prompt 原文及密钥原文。
