@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     judge_provider: str = "fake"
     judge_fallback_to_fake: bool = True
     judge_model: str = ""
+    judge_base_url: str = ""
     judge_timeout_seconds: float = 15.0
     judge_max_retries: int = 0
     judge_retry_backoff_seconds: float = 0.5

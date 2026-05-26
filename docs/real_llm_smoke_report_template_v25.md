@@ -69,7 +69,23 @@
 - 初步归因（配置/网络/模型/响应结构）：
 - 修复建议：
 
-## 7. 结论
+## 7. LLMJudge 结果（Opt-in）
+
+- judge_provider：
+- score：
+- passed：
+- confidence：
+- fallback_used：
+- fallback_reason：
+- provider_metadata.request_id：
+- provider_metadata.latency_ms：
+- provider_metadata.prompt_tokens：
+- provider_metadata.completion_tokens：
+- provider_metadata.total_tokens：
+- provider_metadata.cost：
+- provider_metadata.error_type：
+
+## 8. 结论
 
 - 本次 smoke 结论：通过 / 未通过 / 部分通过
 - 是否建议进入下一阶段（Phase 5.3）：

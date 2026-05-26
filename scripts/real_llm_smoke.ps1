@@ -63,4 +63,8 @@ if ($missingFlags.Count -gt 0) {
 
 Write-Host "[real_llm_smoke] running pytest real_llm marker..." -ForegroundColor Cyan
 python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q
+Write-Host "[real_llm_smoke] running judge smoke..." -ForegroundColor Cyan
+python -m pytest tests/test_real_llm_judge_smoke_v54.py -m real_llm -q
+Write-Host "[real_llm_smoke] hint: you can run judge smoke only by:" -ForegroundColor Yellow
+Write-Host "python -m pytest tests/test_real_llm_judge_smoke_v54.py -m real_llm -q" -ForegroundColor Yellow
 Write-Host "[real_llm_smoke] done." -ForegroundColor Green

@@ -141,12 +141,21 @@ python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q
 
 目标：验证 LLMJudge 真实 provider 路径的可用性与可回退性。
 
+当前状态：**已完成 opt-in smoke 用例与离线回退覆盖**。
+
 验收点：
 
 - `judge_provider=litellm` 时可生成结构化评分结果；
 - JSON 非法/provider 不可用时，按配置执行 fallback_to_fake；
 - `judge_fallback_to_fake=false` 时返回可控不可用状态，不抛 500；
 - judge token/cost 可被 metrics 记录。
+
+本阶段补充：
+
+- LLMJudgeProvider 支持 `base_url` 透传，优先使用 judge 专属配置（`judge_base_url`），未配置时回落到 `llm_base_url`；
+- 新增 `tests/test_real_llm_judge_smoke_v54.py`，默认 `real_llm` marker + opt-in gate，未开启时 skip；
+- BadCase API 离线覆盖 `judge_provider` / `judge_fallback_to_fake` 请求覆盖语义；
+- smoke 脚本支持同时执行 judge smoke。
 
 交付物：
 
@@ -173,6 +182,11 @@ python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q
 - 不接真实外部 MCP 作为本阶段验收依赖；
 - 不宣称真实 LLM 生产验收完成；
 - 不宣称生产级 SSO、多租户、复杂 BI 已完成。
+
+补充说明：
+
+- LLMJudge 的 opt-in smoke 仅用于可选环境连通与最小能力验证，不等于生产验收完成；
+- 报告只记录摘要字段（score/confidence/token/cost/error_type 等），不记录 prompt 原文与密钥信息。
 
 ## 10. 建议执行顺序
 

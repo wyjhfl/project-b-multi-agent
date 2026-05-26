@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.agent.nl2sql.provider import create_provider
 from app.core.config import settings
+from app.harness.llm.acceptance import summarize_llm_acceptance
 from app.harness.llm.budget import get_llm_budget_manager
 from app.harness.llm.cache import build_judge_cache_key, get_llm_result_cache
 
@@ -90,6 +91,7 @@ class LLMJudgeProvider(BaseJudge):
         fallback_to_fake: bool | None = None,
         fallback_judge: BaseJudge | None = None,
         model: str | None = None,
+        base_url: str | None = None,
         timeout_seconds: float | None = None,
         max_retries: int | None = None,
         retry_backoff_seconds: float | None = None,
@@ -98,6 +100,8 @@ class LLMJudgeProvider(BaseJudge):
         self._fallback_to_fake = settings.judge_fallback_to_fake if fallback_to_fake is None else fallback_to_fake
         self._fallback_judge = fallback_judge or FakeJudge()
         self._model = settings.judge_model if model is None else model
+        default_judge_base_url = settings.judge_base_url or settings.llm_base_url
+        self._base_url = default_judge_base_url if base_url is None else base_url
         self._timeout_seconds = settings.judge_timeout_seconds if timeout_seconds is None else timeout_seconds
         self._max_retries = settings.judge_max_retries if max_retries is None else max_retries
         self._retry_backoff_seconds = (
@@ -107,6 +111,11 @@ class LLMJudgeProvider(BaseJudge):
         )
         self._budget_manager = get_llm_budget_manager()
         self._cache = get_llm_result_cache()
+        self._last_acceptance_summary: dict[str, Any] | None = None
+
+    @property
+    def last_acceptance_summary(self) -> dict[str, Any] | None:
+        return self._last_acceptance_summary
 
     @staticmethod
     def _clamp_01(value: float) -> float:
@@ -152,21 +161,47 @@ class LLMJudgeProvider(BaseJudge):
         self,
         judge_input: JudgeInput,
         reason: str,
+        budget_status: dict[str, Any] | None = None,
+        error_type: str | None = None,
     ) -> JudgeResult:
         if self._fallback_to_fake:
             fake_result = self._fallback_judge.evaluate(judge_input)
+            acceptance = summarize_llm_acceptance(
+                mode="judge",
+                provider=self._provider,
+                model=self._model or "",
+                fallback_used=True,
+                fallback_reason=reason,
+                budget_status=budget_status,
+                error_type=error_type or "fallback_fake",
+                warnings=[reason],
+                real_call_attempted=not str(reason).startswith("budget_blocked"),
+            )
+            self._last_acceptance_summary = acceptance.to_dict()
             return fake_result.model_copy(
                 update={
                     "judge_provider": "fallback_fake",
                     "fallback_used": True,
                     "fallback_reason": reason,
-                    "provider_metadata": None,
+                    "provider_metadata": {"acceptance_summary": self._last_acceptance_summary},
                     "prompt_tokens": 0,
                     "completion_tokens": 0,
                     "cost": 0.0,
                     "confidence": self._clamp_01(fake_result.score),
                 }
             )
+        acceptance = summarize_llm_acceptance(
+            mode="judge",
+            provider=self._provider,
+            model=self._model or "",
+            fallback_used=False,
+            fallback_reason=reason,
+            budget_status=budget_status,
+            error_type=error_type or "llm_unavailable",
+            warnings=[reason],
+            real_call_attempted=not str(reason).startswith("budget_blocked"),
+        )
+        self._last_acceptance_summary = acceptance.to_dict()
         return JudgeResult(
             score=0.0,
             passed=False,
@@ -174,7 +209,7 @@ class LLMJudgeProvider(BaseJudge):
             judge_provider="llm_unavailable",
             fallback_used=False,
             fallback_reason=reason,
-            provider_metadata=None,
+            provider_metadata={"acceptance_summary": self._last_acceptance_summary},
             prompt_tokens=0,
             completion_tokens=0,
             cost=0.0,
@@ -194,6 +229,7 @@ class LLMJudgeProvider(BaseJudge):
         raise ValueError("judge_passed_not_bool")
 
     def evaluate(self, judge_input: JudgeInput) -> JudgeResult:
+        self._last_acceptance_summary = None
         if self._provider == "fake":
             return self._fallback_judge.evaluate(judge_input)
 
@@ -207,6 +243,8 @@ class LLMJudgeProvider(BaseJudge):
             return self._fallback_or_unavailable(
                 judge_input=judge_input,
                 reason=str(budget_status.get("reason", "budget_blocked")),
+                budget_status=budget_status,
+                error_type="budget_blocked",
             )
 
         cache_key = build_judge_cache_key(
@@ -237,7 +275,20 @@ class LLMJudgeProvider(BaseJudge):
                 judge_provider=str(cached.get("judge_provider", self._provider)),
                 fallback_used=bool(cached.get("fallback_used", False)),
                 fallback_reason=str(cached.get("fallback_reason", "")),
-                provider_metadata=provider_metadata,
+                provider_metadata=provider_metadata | {
+                    "acceptance_summary": summarize_llm_acceptance(
+                        mode="judge",
+                        provider=self._provider,
+                        model=self._model or "",
+                        provider_metadata=provider_metadata,
+                        fallback_used=bool(cached.get("fallback_used", False)),
+                        fallback_reason=str(cached.get("fallback_reason", "")),
+                        budget_status=budget_status,
+                        warnings=[],
+                        error_type="",
+                        real_call_attempted=False,
+                    ).to_dict()
+                },
                 prompt_tokens=0,
                 completion_tokens=0,
                 cost=0.0,
@@ -248,6 +299,7 @@ class LLMJudgeProvider(BaseJudge):
             provider = create_provider(
                 self._provider,
                 model=self._model or None,
+                base_url=self._base_url or None,
                 timeout_seconds=self._timeout_seconds,
                 max_retries=self._max_retries,
                 retry_backoff_seconds=self._retry_backoff_seconds,
@@ -266,6 +318,19 @@ class LLMJudgeProvider(BaseJudge):
             reasoning = str(payload.get("reasoning", "")).strip() or "LLM judge returned empty reasoning"
 
             provider_metadata = metadata.to_dict()
+            acceptance = summarize_llm_acceptance(
+                mode="judge",
+                provider=self._provider,
+                model=self._model or provider_metadata.get("model", ""),
+                provider_metadata=provider_metadata,
+                fallback_used=False,
+                fallback_reason="",
+                budget_status=budget_status,
+                warnings=[],
+                error_type="",
+                real_call_attempted=True,
+            )
+            self._last_acceptance_summary = acceptance.to_dict()
             result = JudgeResult(
                 score=score,
                 passed=passed,
@@ -273,7 +338,7 @@ class LLMJudgeProvider(BaseJudge):
                 judge_provider=self._provider,
                 fallback_used=False,
                 fallback_reason="",
-                provider_metadata=provider_metadata,
+                provider_metadata=provider_metadata | {"acceptance_summary": self._last_acceptance_summary},
                 prompt_tokens=metadata.prompt_tokens,
                 completion_tokens=metadata.completion_tokens,
                 cost=metadata.cost,
@@ -290,4 +355,9 @@ class LLMJudgeProvider(BaseJudge):
             self._cache.set(cache_key, result.model_dump())
             return result
         except Exception as exc:
-            return self._fallback_or_unavailable(judge_input=judge_input, reason=str(exc))
+            return self._fallback_or_unavailable(
+                judge_input=judge_input,
+                reason=str(exc),
+                budget_status=budget_status,
+                error_type=type(exc).__name__,
+            )

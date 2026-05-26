@@ -306,6 +306,58 @@ def test_bad_cases_run_api_request_override_litellm_unavailable_not_500(monkeypa
     reset_runtime_for_test()
 
 
+def test_bad_cases_run_api_litellm_unavailable_fallback_fake(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "")
+    monkeypatch.setattr("app.harness.eval.bad_case_runner.BadCaseRunner._check_passed", lambda *_args, **_kwargs: False)
+    reset_runtime_for_test()
+    resp = client.post(
+        "/eval/bad-cases/run",
+        json={
+            "use_judge": True,
+            "suite": "security",
+            "limit": 1,
+            "judge_provider": "litellm",
+            "judge_fallback_to_fake": True,
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    results = data.get("failures", []) or []
+    assert len(results) >= 1
+    item = results[0]
+    assert item.get("judge_provider") == "fallback_fake"
+    assert item.get("judge_fallback_used") is True
+    assert isinstance(item.get("judge_fallback_reason"), str)
+    assert item.get("judge_fallback_reason", "").strip() != ""
+    reset_runtime_for_test()
+
+
+def test_bad_cases_run_api_litellm_unavailable_no_fallback(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "")
+    monkeypatch.setattr("app.harness.eval.bad_case_runner.BadCaseRunner._check_passed", lambda *_args, **_kwargs: False)
+    reset_runtime_for_test()
+    resp = client.post(
+        "/eval/bad-cases/run",
+        json={
+            "use_judge": True,
+            "suite": "security",
+            "limit": 1,
+            "judge_provider": "litellm",
+            "judge_fallback_to_fake": False,
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    results = data.get("failures", []) or []
+    assert len(results) >= 1
+    item = results[0]
+    assert item.get("judge_provider") == "llm_unavailable"
+    assert item.get("judge_fallback_used") is False
+    assert isinstance(item.get("judge_fallback_reason"), str)
+    assert item.get("judge_fallback_reason", "").strip() != ""
+    reset_runtime_for_test()
+
+
 def test_bad_cases_run_api_default_use_judge_false_still_works():
     reset_runtime_for_test()
     resp = client.post("/eval/bad-cases/run", json={})

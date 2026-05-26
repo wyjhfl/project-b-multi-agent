@@ -151,6 +151,7 @@ def test_llm_judge_provider_uses_judge_specific_overrides(monkeypatch):
         return DummyProvider()
 
     monkeypatch.setattr(settings, "judge_model", "judge-special-model")
+    monkeypatch.setattr(settings, "judge_base_url", "https://judge.example/v1")
     monkeypatch.setattr(settings, "judge_timeout_seconds", 21.5)
     monkeypatch.setattr(settings, "judge_max_retries", 3)
     monkeypatch.setattr(settings, "judge_retry_backoff_seconds", 1.25)
@@ -162,6 +163,7 @@ def test_llm_judge_provider_uses_judge_specific_overrides(monkeypatch):
     assert result.judge_provider == "litellm"
     assert captured["provider_name"] == "litellm"
     assert captured["model"] == "judge-special-model"
+    assert captured["base_url"] == "https://judge.example/v1"
     assert captured["timeout_seconds"] == 21.5
     assert captured["max_retries"] == 3
     assert captured["retry_backoff_seconds"] == 1.25
@@ -172,3 +174,34 @@ def test_llm_judge_provider_fake_mode_still_uses_fake_judge():
     result = judge.evaluate(_build_input())
     assert result.judge_provider == "fake"
     assert result.passed is True
+
+
+def test_llm_judge_acceptance_summary_fields(monkeypatch):
+    provider = _ProviderWithContent(
+        json.dumps(
+            {
+                "score": 1.0,
+                "passed": True,
+                "reasoning": "ok",
+                "confidence": 1.0,
+            },
+            ensure_ascii=False,
+        )
+    )
+    monkeypatch.setattr("app.harness.eval.judge.create_provider", lambda *_args, **_kwargs: provider)
+    judge = LLMJudgeProvider(provider="litellm", fallback_to_fake=False)
+    result = judge.evaluate(_build_input())
+    summary = (result.provider_metadata or {}).get("acceptance_summary") or {}
+    assert summary.get("mode") == "judge"
+    assert "real_call_attempted" in summary
+    assert "real_call_succeeded" in summary
+    assert "fallback_used" in summary
+    assert "fallback_reason" in summary
+    assert "prompt_tokens" in summary
+    assert "completion_tokens" in summary
+    assert "total_tokens" in summary
+    assert "cost" in summary
+    assert "latency_ms" in summary
+    assert "cache_hit" in summary
+    assert "budget_action" in summary
+    assert "error_type" in summary
