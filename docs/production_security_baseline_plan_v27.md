@@ -1,104 +1,83 @@
 # v2.7 Production Security Baseline 规划
 
-## 1. v2.6 工程化基础盘点
+## 1. 当前基础盘点（承接 v2.6）
 
-v2.6.0 已形成以下可复用基础：
+v2.6.0 已具备以下工程化基础，可直接承接 v2.7 安全基线工作：
 
-- 部署门禁：`deployment_guard` + `/deployment/check` 结构化校验
-- 生产模板：`docker-compose.prod.yml` + `.env.production.example`
-- 运维脚本：`prod_config_check/prod_up/prod_smoke/prod_down`
-- 默认离线路径稳定：fake/offline、默认 pytest 不调用真实 LLM
-- 运营台试点能力已具备：Tasks/Approvals/Audit/Metrics/Tools/NL2SQL
+- 部署门禁：`deployment_guard` 与 `/deployment/check` 结构化检查。
+- 生产模板：`docker-compose.prod.yml` + `.env.production.example`。
+- 运维脚本：`prod_config_check.ps1`、`prod_up.ps1`、`prod_smoke.ps1`、`prod_down.ps1`。
+- 默认离线路径稳定：`fake/offline`，默认 `pytest` 不调用真实 LLM。
+- 运营台能力已闭环：Tasks / Approvals / Audit / Metrics / Tools / NL2SQL。
 
-这些能力可作为 v2.7 安全基线建设的起点，减少重复改造。
+## 2. v2.7 总目标
 
-## 2. v2.7 目标：Production Security Baseline
+在不破坏默认离线开发路径的前提下，分阶段补齐“企业内网试点准生产可投入使用”的安全基线能力，提升配置安全、请求防护、日志可观测与审计边界清晰度。
 
-在不破坏默认离线路径与现有试点能力的前提下，补齐“安全基线必需项”，让企业内网试点具备更清晰的安全控制面与审计可追溯性。
+## 3. Phase 7.1：CORS 与安全响应头（已完成）
 
-## 3. Phase 7.1：CORS 与安全响应头
+已完成内容：
 
-目标：最小化跨域暴露与浏览器层风险。
+- 引入可配置 CORS 策略（development 默认允许 `http://localhost:3000`）。
+- 生产环境限制 CORS，禁止 wildcard（`*`）作为允许来源。
+- 全局安全响应头中间件生效，覆盖核心 API（如 `/health`、`/deployment/check` 等）。
+- 已有测试覆盖 CORS preflight 与安全响应头返回行为。
 
-- 引入可配置 CORS allowlist（默认开发宽松、生产收敛）
-- 增加安全响应头基线（如 X-Content-Type-Options、X-Frame-Options、Referrer-Policy）
-- 保持默认开发体验不受阻断，生产策略通过配置收紧
-- 增加对应测试与文档说明
+## 4. Phase 7.2：请求防护（已完成）
 
-## 4. Phase 7.2：Rate limit / request size limit / basic abuse guard
+已完成内容：
 
-目标：降低滥用与资源耗尽风险。
+- `RequestSizeLimitMiddleware`：请求体大小限制，超限返回 `413 request_too_large`。
+- `RateLimitMiddleware`：基础限流，超限返回 `429 rate_limited`。
+- `BasicAbuseGuardMiddleware`：基础滥用防护（异常 path/header）返回 `400/414`。
+- guard 拦截响应（`429/413/400/414`）同样覆盖安全响应头。
+- 对允许来源（如 `http://localhost:3000`）的 guard 拦截响应同样返回 CORS 头。
 
-- API 速率限制（按 IP/用户维度的轻量策略）
-- 请求体大小限制与关键接口保护
-- 基础 abuse guard（突发请求、异常 payload、重复重放）
-- 失败返回结构化错误，不泄漏内部细节
-- guard 拦截响应（429/413/400/414）同样覆盖安全响应头与允许来源的 CORS 响应头
+约束说明：
 
-## 5. Phase 7.3：结构化日志与日志脱敏
+- 当前 rate limit 为**进程内内存版**，适合单实例内网试点。
+- 多实例生产需升级为 Redis 或网关级限流方案（如 API Gateway / Ingress 限流）。
+- 本阶段不等于完整 WAF 能力，不替代专业边界防护系统。
 
-目标：提升可观测性并避免日志泄漏敏感信息。
+## 5. Phase 7.3：结构化日志与日志脱敏（规划中）
 
-- 统一结构化日志字段（request_id、task_id、actor、action、result）
-- 对 token、api_key、authorization、数据库密码等做脱敏
-- 明确日志级别与默认输出策略
-- 补充离线与生产配置差异说明
+目标：
 
-## 6. Phase 7.4：审计留存策略与导出边界
+- 统一结构化日志字段（如 `request_id`、`task_id`、`actor`、`action`、`result`）。
+- 对敏感信息（`token`、`api_key`、`authorization`、数据库密码等）做统一脱敏。
+- 明确默认日志级别与开发/试点环境差异配置。
 
-目标：明确“记录什么、保留多久、如何导出”。
+## 6. Phase 7.4：审计留存策略与导出边界（规划中）
 
-- 定义审计留存周期与滚动策略（试点级）
-- 审计导出字段白名单与脱敏边界
-- 导出接口/脚本的权限边界与使用说明
-- 补充合规说明（仅试点级，不替代正式合规体系）
+目标：
 
-## 7. Phase 7.5：OIDC/SSO 规划或最小接入方案
+- 明确审计数据记录范围、留存周期、滚动策略。
+- 定义审计导出字段白名单与脱敏边界。
+- 明确导出接口/脚本权限边界与操作说明。
 
-目标：给出可执行路径，但不在 v2.7 宣称生产级完工。
+## 7. Phase 7.5：OIDC/SSO 规划或最小接入方案（规划中）
 
-- 输出 OIDC/SSO 最小接入设计（身份源、回调、角色映射）
-- 明确与现有 JWT/RBAC 的兼容策略
-- 给出试点接入 checklist 与风险清单
-- 保持默认 auth/rbac 关闭的演示路径可用
+目标：
 
-## 8. Phase 7.6：v2.7 release prep
+- 输出最小 OIDC/SSO 接入设计（身份源、回调、角色映射）。
+- 说明与现有 JWT/RBAC 的兼容策略。
+- 给出试点接入 checklist 与风险清单。
 
-目标：形成可审阅、可交接的发布材料。
+说明：本阶段仅做规划与最小接入方案评估，不宣称生产级 SSO/OIDC 已完成。
 
-- 同步版本口径与测试口径
-- 收口安全边界声明与 runbook
-- 完成 release notes + release review
-- 产出 tag 前检查清单
+## 8. Phase 7.6：v2.7 release prep（规划中）
 
-## 9. 明确不做（v2.7 阶段）
+目标：
 
-- 不做多租户
-- 不做复杂 BI
-- 不做真实外部 MCP 生产验收
-- 不承诺完整公网生产 SLA
+- 收口版本口径、验证口径与边界声明。
+- 整理 runbook、release notes、release review 与交接材料。
+- 形成可审阅、可交接的发版前检查清单。
 
-## 10. 验收原则
+## 9. 当前边界与不做项
 
-- 默认离线路径不变
-- 默认 pytest 不调用真实 LLM
-- 不提交 API key、token、账号凭据
-- 不宣称公网生产可直接上线
-- 不宣称真实 LLM 与真实外部 MCP 生产验收完成
-
-
-## 11. Phase 7.1 ???????
-
-- ?????? CORS middleware ??????????
-- development ???? `http://localhost:3000`??????????
-- production ??????? wildcard CORS??????????????
-- ?????????????????????????????
-
-
-## 12. Phase 7.2 ???????
-
-- ???????????RequestSizeLimitMiddleware?????? `413 request_too_large`?
-- ???????????RateLimitMiddleware?????? `429 rate_limited`?
-- ??????????BasicAbuseGuardMiddleware??????????? header ??/???
-- ??????????????????????????????? Redis ???????
-- ???????? WAF ??????????????????
+- 默认离线路径不变，默认 `pytest` 不调用真实 LLM。
+- 不提交 API key、token、账号凭据到仓库。
+- 不将真实外部 MCP 作为默认依赖。
+- 不宣称公网生产可直接上线，不承诺完整公网生产 SLA。
+- 不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
+- 不宣称真实 LLM、真实外部 MCP 已完成生产验收。

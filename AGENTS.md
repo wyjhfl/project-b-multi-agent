@@ -106,3 +106,11 @@
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
 - 当前 v2.6.0 回归基线：671 passed, 4 skipped（默认 real_llm 用例 skip）。
+
+## v2.7 安全基线推进口径（当前阶段）
+
+- Phase 7.1（CORS + 安全响应头）已完成。
+- Phase 7.2（request size limit + rate limit + basic abuse guard）已完成。
+- guard 拦截响应（429/413/400/414）同样需覆盖安全响应头与允许来源 CORS 头。
+- 当前限流为进程内内存版，适用于单实例内网试点；多实例生产需 Redis 或网关级限流。
+- 当前阶段仍不等于完整公网生产安全基线，不宣称公网生产可直接上线。

@@ -74,5 +74,5 @@
 - [ ] 复杂 BI
 - [ ] 真实外部 MCP Server 生产验收
 - [ ] 真实 LLM 生产验收完成声明（禁止）
-- [ ] 完整公网生产安全基线（当前仅完成 CORS 与安全响应头第一步）
+- [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2：CORS、安全响应头、request size limit、rate limit、basic abuse guard）
 - [ ] 多实例一致性限流（当前仅进程内内存限流）

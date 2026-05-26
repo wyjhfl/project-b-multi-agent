@@ -139,5 +139,5 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 默认路径仍为离线演示，不依赖真实 LLM 与真实外部 MCP。
 - 真实 LLM smoke 为 opt-in，不进入默认 CI。
 - 本手册不包含生产级 SSO/OIDC、多租户、复杂 BI 方案。
-- 当前仅完成安全基线第一步（CORS 与安全响应头），不等于完整公网生产安全基线完成。
+- 当前已完成安全基线前两步（Phase 7.1 CORS/安全响应头 + Phase 7.2 请求防护），但仍不等于完整公网生产安全基线完成。
 - 当前限流为进程内内存版，适用于单实例内网试点；多实例生产应升级为 Redis 或网关级限流。
