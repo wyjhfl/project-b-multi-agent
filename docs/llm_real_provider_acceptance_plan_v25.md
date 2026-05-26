@@ -72,6 +72,16 @@
 
 目标：建立最小真实 LLM 烟雾测试，不影响默认 CI。
 
+当前状态：**已完成 opt-in 机制与最小 smoke 用例框架**。
+
+已落地内容：
+
+- 新增 `pytest` marker：`real_llm`；
+- 新增测试文件：`tests/test_real_llm_smoke_v52.py`；
+- 默认 `python -m pytest -q` 不自动触发真实 LLM（需显式环境开关）；
+- 新增脚本：`scripts/real_llm_smoke.ps1`；
+- 新增报告模板：`docs/real_llm_smoke_report_template_v25.md`。
+
 策略：
 
 - 仅在显式开关启用时执行（例如本地手动命令或专用 CI job）；
@@ -85,6 +95,19 @@
 - 成功时记录 request_id、latency、token、cost；
 - 失败时记录 error_type（auth/timeout/rate_limit/model/response）；
 - 产出 smoke 报告，不改默认测试基线。
+
+手动执行示例：
+
+```bash
+python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q
+```
+
+环境变量门禁（全部为 true 才执行真实链路）：
+
+- `REAL_LLM_SMOKE_ENABLED`
+- `REAL_LLM_ACCEPTANCE_ENABLED`
+- `REAL_LLM_PREFLIGHT_ENABLED`
+- `REAL_LLM_PREFLIGHT_NETWORK_CHECK`
 
 ## 6. Phase 5.3：Token/Cost/Budget/Cache/Fallback 验收
 

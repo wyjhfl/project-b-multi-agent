@@ -440,6 +440,10 @@ curl http://localhost:8000/auth/me \
 python -m pytest -q
 ```
 
+> 真实 LLM smoke 测试为 **opt-in**，默认不随 `python -m pytest -q` 执行。  
+> 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
+> 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
+
 共 **638+ 个测试**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
