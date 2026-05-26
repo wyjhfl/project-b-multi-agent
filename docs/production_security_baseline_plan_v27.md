@@ -43,15 +43,23 @@ v2.7 的目标是补齐“企业内网试点准生产可投入使用”的安全
 - 多实例生产需升级为 Redis 或网关级限流。
 - 本阶段不等于完整 WAF。
 
-## 5. Phase 7.3：结构化日志与日志脱敏（下一阶段）
+## 5. Phase 7.3：结构化日志与日志脱敏（已完成）
 
-计划项：
+已完成内容：
 
-- 统一关键字段：`request_id`、`task_id`、`actor`、`action`、`result`、`latency_ms`、`status_code`。
-- 对敏感字段统一脱敏：`token`、`api_key`、`authorization`、`cookie`、`database password`。
-- 统一日志等级与输出规则，区分 development/production 口径。
-- 默认不记录 prompt 原文，不记录密钥原文。
-- 为日志脱敏策略补充自动化测试覆盖。
+- 新增请求级结构化日志中间件，统一输出 JSON 单行日志。
+- 统一关键字段：`event_type`、`request_id`、`method`、`path`、`status_code`、`latency_ms`、`actor`。
+- 可选扩展字段：`client_ip`、`user_agent`、`error_type`、`result`（如 `rate_limited` / `request_too_large` / `request_rejected`）。
+- 所有请求生成或透传 `X-Request-ID`，并在响应头返回，便于链路排查。
+- 对 guard 拦截响应（`429/413/400/414`）同样记录结构化日志并返回 `X-Request-ID`。
+- 默认不记录 request body，不记录 prompt 原文，不记录密钥原文。
+- 敏感信息脱敏覆盖：`authorization`、`cookie`、`set-cookie`、`token`、`access_token`、`refresh_token`、`api_key`、`password`、`secret`、`jwt`、`database_url`、`redis_url`。
+- DSN 脱敏支持 PostgreSQL/Redis，保留定位上下文但不暴露密码明文。
+- 新增测试覆盖日志脱敏、JSON 可解析、`X-Request-ID` 透传与 guard 响应链路。
+
+范围边界：
+
+- 当前日志输出为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
 
 ## 6. Phase 7.4：审计留存策略与导出边界（规划中）
 

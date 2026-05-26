@@ -163,6 +163,36 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
         level="error",
         detail="production 环境要求 SECURITY_HEADERS_ENABLED=true。",
     )
+    _add_check(
+        result,
+        name="structured_logging_enabled",
+        passed=bool(current.structured_logging_enabled),
+        level="error",
+        detail="production 环境要求 STRUCTURED_LOGGING_ENABLED=true。",
+    )
+    _add_check(
+        result,
+        name="log_redaction_enabled",
+        passed=bool(current.log_redaction_enabled),
+        level="error",
+        detail="production 环境要求 LOG_REDACTION_ENABLED=true。",
+    )
+    allowed_log_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+    current_log_level = (current.log_level or "").strip().upper()
+    _add_check(
+        result,
+        name="log_level_valid",
+        passed=current_log_level in allowed_log_levels,
+        level="error",
+        detail="LOG_LEVEL 必须为 DEBUG/INFO/WARNING/ERROR/CRITICAL 之一。",
+    )
+    _add_check(
+        result,
+        name="log_level_production",
+        passed=current_log_level != "DEBUG",
+        level="error",
+        detail="production 环境不允许 LOG_LEVEL=DEBUG。",
+    )
 
     _add_check(
         result,

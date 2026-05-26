@@ -70,6 +70,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `ABUSE_GUARD_ENABLED=true`
 - request guard 拦截响应（429/413/400/414）默认也会附带安全响应头，并在允许来源时返回对应 CORS 响应头。
 
+新增结构化日志配置（Phase 7.3）：
+
+- `STRUCTURED_LOGGING_ENABLED=true`
+- `LOG_LEVEL=INFO`（production 不允许 `DEBUG`）
+- `LOG_INCLUDE_CLIENT_IP=true`
+- `LOG_INCLUDE_USER_AGENT=true`
+- `LOG_REDACTION_ENABLED=true`
+
 ## 5. 配置检查脚本
 
 ```powershell
@@ -139,5 +147,6 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 默认路径仍为离线演示，不依赖真实 LLM 与真实外部 MCP。
 - 真实 LLM smoke 为 opt-in，不进入默认 CI。
 - 本手册不包含生产级 SSO/OIDC、多租户、复杂 BI 方案。
-- 当前已完成安全基线前两步（Phase 7.1 CORS/安全响应头 + Phase 7.2 请求防护），但仍不等于完整公网生产安全基线完成。
+- 当前已完成安全基线前三步（Phase 7.1 CORS/安全响应头 + Phase 7.2 请求防护 + Phase 7.3 结构化日志与脱敏），但仍不等于完整公网生产安全基线完成。
 - 当前限流为进程内内存版，适用于单实例内网试点；多实例生产应升级为 Redis 或网关级限流。
+- 当前日志为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。

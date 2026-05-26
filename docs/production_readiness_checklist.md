@@ -13,6 +13,9 @@
 - [ ] `REQUEST_SIZE_LIMIT_ENABLED=true` 且 `REQUEST_SIZE_LIMIT_BYTES` 在合理范围（<=10MB）
 - [ ] `RATE_LIMIT_ENABLED=true` 且限流参数有效（`RATE_LIMIT_REQUESTS_PER_MINUTE` > 0，`RATE_LIMIT_BURST` >= 0）
 - [ ] `ABUSE_GUARD_ENABLED=true`
+- [ ] `STRUCTURED_LOGGING_ENABLED=true`
+- [ ] `LOG_REDACTION_ENABLED=true`
+- [ ] `LOG_LEVEL` 为 `INFO/WARNING/ERROR/CRITICAL`（production 不允许 `DEBUG`）
 
 ## 2. 鉴权与 RBAC
 
@@ -45,6 +48,7 @@
 - [ ] `/deployment/check` 可返回结构化门禁结果
 - [ ] 配置错误返回 `ok=false` 且 HTTP 200，不抛 500
 - [ ] Runtime metrics 与 audit/trace 基础能力可访问
+- [ ] 响应头包含 `X-Request-ID`，可用于链路排查
 
 ## 7. 前端页面可用性
 
@@ -74,5 +78,5 @@
 - [ ] 复杂 BI
 - [ ] 真实外部 MCP Server 生产验收
 - [ ] 真实 LLM 生产验收完成声明（禁止）
-- [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2：CORS、安全响应头、request size limit、rate limit、basic abuse guard）
+- [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2/7.3：CORS、安全响应头、request size limit、rate limit、basic abuse guard、结构化日志与脱敏）
 - [ ] 多实例一致性限流（当前仅进程内内存限流）

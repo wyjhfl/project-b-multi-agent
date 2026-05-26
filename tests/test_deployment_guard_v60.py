@@ -32,6 +32,9 @@ def _set_production_secure_defaults(monkeypatch):
     monkeypatch.setattr(settings, "rate_limit_enabled", True)
     monkeypatch.setattr(settings, "rate_limit_requests_per_minute", 120)
     monkeypatch.setattr(settings, "rate_limit_burst", 60)
+    monkeypatch.setattr(settings, "structured_logging_enabled", True)
+    monkeypatch.setattr(settings, "log_redaction_enabled", True)
+    monkeypatch.setattr(settings, "log_level", "INFO")
 
 
 def test_development_mode_warn_only(monkeypatch):
@@ -65,6 +68,9 @@ def test_production_mode_required_fields(monkeypatch):
     monkeypatch.setattr(settings, "rate_limit_enabled", False)
     monkeypatch.setattr(settings, "rate_limit_requests_per_minute", 0)
     monkeypatch.setattr(settings, "rate_limit_burst", -1)
+    monkeypatch.setattr(settings, "structured_logging_enabled", False)
+    monkeypatch.setattr(settings, "log_redaction_enabled", False)
+    monkeypatch.setattr(settings, "log_level", "DEBUG")
     monkeypatch.delenv("MISSING_REAL_LLM_KEY_ENV", raising=False)
 
     result = run_deployment_checks()
@@ -85,6 +91,9 @@ def test_production_mode_required_fields(monkeypatch):
     assert any("rate_limit_enabled" in item for item in result.errors)
     assert any("rate_limit_requests_per_minute" in item for item in result.errors)
     assert any("rate_limit_burst" in item for item in result.errors)
+    assert any("structured_logging_enabled" in item for item in result.errors)
+    assert any("log_redaction_enabled" in item for item in result.errors)
+    assert any("log_level_production" in item for item in result.errors)
 
 
 def test_production_mode_pass_without_secret_leak(monkeypatch):
@@ -203,3 +212,30 @@ def test_production_rejects_rate_limit_disabled(monkeypatch):
     result = run_deployment_checks()
     assert result.ok is False
     assert any("rate_limit_enabled" in item for item in result.errors)
+
+
+def test_production_rejects_structured_logging_disabled(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "structured_logging_enabled", False)
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("structured_logging_enabled" in item for item in result.errors)
+
+
+def test_production_rejects_log_redaction_disabled(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "log_redaction_enabled", False)
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("log_redaction_enabled" in item for item in result.errors)
+
+
+def test_production_rejects_debug_log_level(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "log_level", "DEBUG")
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("log_level_production" in item for item in result.errors)

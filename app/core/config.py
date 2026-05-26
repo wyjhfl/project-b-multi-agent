@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     request_size_limit_enabled: bool = True
     request_size_limit_bytes: int = 1048576
     abuse_guard_enabled: bool = True
+    structured_logging_enabled: bool = True
+    log_level: str = "INFO"
+    log_include_client_ip: bool = True
+    log_include_user_agent: bool = True
+    log_redaction_enabled: bool = True
     ops_db_path: str = "data/db/ops_demo.sqlite"
     runtime_db_path: str = "data/db/runtime.sqlite"
     metrics_db_path: str = "data/db/runtime_metrics.sqlite"
