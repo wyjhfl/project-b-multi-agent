@@ -166,11 +166,14 @@ python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q
 
 目标：形成可发布但不夸大能力的文档收口。
 
-内容建议：
+当前状态：**已完成文档收口与 v2.5.0 release prep 资料**（本轮不打 tag，不创建 GitHub Release）。
 
-- 新增“真实 LLM 可选验收报告”文档；
-- README/AGENTS 只更新已完成事实，不宣称生产验收完成；
-- release notes 增加“opt-in 验收已覆盖范围”与“仍未完成边界”。
+已完成内容：
+
+- README / AGENTS 已同步 v2.5.0 口径；
+- 新增 `RELEASE_NOTES_v2.5.0.md` 与 `docs/release_review_v2.5_llm_acceptance.md`；
+- 明确默认 fake/offline、默认测试不调用真实 LLM；
+- 明确真实 LLM smoke 是 opt-in 验收，不等于生产验收完成。
 
 ## 9. 安全边界与执行原则
 

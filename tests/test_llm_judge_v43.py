@@ -5,6 +5,17 @@ import json
 from app.agent.nl2sql.provider import LLMGenerateMetadata, LLMProvider, ProviderConfigError
 from app.core.config import settings
 from app.harness.eval.judge import JudgeInput, LLMJudgeProvider
+from app.harness.llm.cache import reset_llm_result_cache_for_test
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _reset_llm_judge_cache(monkeypatch):
+    """避免测试间缓存串扰，保证每个用例独立。"""
+    monkeypatch.setattr(settings, "llm_cache_enabled", False)
+    reset_llm_result_cache_for_test()
+    yield
+    reset_llm_result_cache_for_test()
 
 
 def _build_input() -> JudgeInput:

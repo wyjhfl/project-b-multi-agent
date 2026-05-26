@@ -27,14 +27,15 @@
 | **v2.2.0** | MCP Stdio Runtime Hardening | Phase 3.1 stdio protocol skeleton / Phase 3.2 tools/list mapping / Phase 3.3 tools/call integration / Phase 3.4 lifecycle hardening / Phase 3.5 release cleanup; default MCP_MODE=fake unchanged; real mode requires explicit command + allowlist; 582+ tests |
 | **v2.3.0** | LLM Provider + Guardrails Runtime | Phase 4.1 LiteLLMProvider 硬化 / Phase 4.2 NL2SQL 真实 LLM 生成链路 + 结构化校验 + fallback / Phase 4.3 可选 LLMJudgeProvider + 评测元数据 / Phase 4.4 Guardrails 编排 + PII 脱敏防泄漏 / Phase 4.5 预算+缓存+降级闭环；默认 fake/offline，默认测试不调用真实 LLM；636+ tests |
 | **v2.4.0** | Operator Console Pilot | 试点级运营台闭环（Dashboard/Tasks/Approvals/Trace/Audit/Metrics/RBAC/Tools/NL2SQL + Docker 演示脚本）；默认离线可跑；638+ tests |
+| **v2.5.0** | Real LLM Optional Acceptance Pack | Phase 5.1 provider preflight / Phase 5.2 opt-in real LLM smoke / Phase 5.3 token/cost/budget/cache/fallback 验收 / Phase 5.4 LLMJudge opt-in smoke / Phase 5.5 文档收口与 release prep；默认 fake/offline，默认测试不调用真实 LLM |
 
 ## Known Pitfalls
 
-- **Multi-Agent 是规则型多角色编排**：Coordinator / Analyst / Executor / Reviewer 当前是规则驱动边界划分，不是完全自治多 Agent。不要在文档或代码中包装为"自治多 Agent"。
+- **Multi-Agent 是规则型多角色编排**：Coordinator / Analyst / Executor / Reviewer 当前是规则驱动边界划分，不是完全自治多 Agent。不要在文档或代码中包装为“自治多 Agent”。
 - **StdioMCPClient 已有 real protocol path**：支持 subprocess stdio + JSON-RPC initialize/tools/list/tools/call + lifecycle hardening；默认仍 `MCP_MODE=fake`，real 模式需显式配置 command/allowlist，且当前验收基于 fake stdio server fixture。
 - **LLMJudgeProvider 已支持可选真实 provider 路径**：默认仍 fake/offline，默认测试不调用真实 LLM。不要在文档中宣称真实 LLM 生产验收已完成。
 - **LangGraph runtime 边界**：v1.1 只有最小 StateGraph smoke；Phase 2 已实现默认关闭的 graph checkpoint / interrupt / resume adapter 最小闭环，仅支持 graph_runtime_enabled=true 下 graph_keyword 单工具 approval resume。不要声称已实现完整 LangGraph native Command resume。
-- **不要在文档中夸大为"生产环境即插即用"**：本项目是 production-grade engineering prototype，不可直接用于生产部署。
+- **不要在文档中夸大为“生产环境即插即用”**：本项目是 production-grade engineering prototype，不可直接用于生产部署。
 - **auth_enabled 默认 false**：JWT / RBAC 默认不启用，旧 API 不需要 token。不要在默认配置下要求 token。
 - **rbac_enabled 默认 false**：即使关键 API 已接入 require_permission，RBAC 角色检查默认仍不启用。企业试点时设置 AUTH_ENABLED=true + RBAC_ENABLED=true。
 - **storage_backend 默认 sqlite**：PostgreSQL Store 已实现但默认不启用。不要在默认配置下要求 PostgreSQL 可用。
@@ -79,3 +80,11 @@
 - 前端 Tools 调用必须经过后端 ToolGateway / PolicyEngine / 审批链路，不能绕过。
 - NL2SQL 默认 mock/fake，真实 LLM 仅可选配置，不进入默认验收。
 - 不宣称生产级 SSO、多租户、复杂 BI、真实外部系统生产验收已完成。
+
+## v2.5.0 release prep 口径
+
+- v2.5.0 已完成真实 LLM 可选验收包（preflight / opt-in smoke / token/cost/budget/cache/fallback 验收 / LLMJudge opt-in smoke / 报告模板）。
+- 默认路径仍为 fake/offline，默认测试不调用真实 LLM。
+- 真实 LLM smoke 仅为 opt-in 验收，不等于生产验收完成。
+- 不宣称真实外部 MCP Server、生产级 SSO、多租户、复杂 BI、完整 LangGraph native Command resume 已完成。
+- 不宣称生产可直接上线。
