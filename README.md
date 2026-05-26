@@ -720,3 +720,11 @@ project-b-multi-agent/
 - 不接真实外部 MCP / 真实 LLM 作为默认演示依赖。
 - 前端工具调用不会绕过后端 ToolGateway / PolicyEngine / 审批链路。
 - NL2SQL 默认 mock/fake；真实 LLM 仅可选配置，不进入默认验收。
+
+## v2.7 Phase 7.5：OIDC/SSO 最小接入骨架
+
+- 已新增 OIDC 配置骨架与 `/auth/oidc/status` 状态接口（仅返回配置状态，不返回 client_secret 原文）。
+- 默认 `OIDC_ENABLED=false`，不依赖真实外部 IdP，不影响默认离线演示路径。
+- 生产启用 OIDC 时需配置 issuer/client_id/redirect_uri/client_secret env，且要求 https。
+- 角色映射仅允许 `admin/operator/viewer/auditor`，未命中回退 `viewer`。
+- 当前仅为最小接入骨架与配置预检，不宣称生产级 SSO/OIDC 已完成。

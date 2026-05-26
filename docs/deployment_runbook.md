@@ -88,6 +88,18 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `AUDIT_EXPORT_FORMAT=jsonl`（当前仅支持 jsonl）
 - `AUDIT_EXPORT_REDACTION_ENABLED=true`
 
+新增 OIDC/SSO 最小接入骨架配置（Phase 7.5）：
+
+- `OIDC_ENABLED=false`（默认关闭，不影响离线演示）
+- `OIDC_ISSUER_URL`、`OIDC_CLIENT_ID`、`OIDC_REDIRECT_URI`
+- `OIDC_CLIENT_SECRET_ENV=OIDC_CLIENT_SECRET`（仅通过环境变量名引用密钥）
+- `OIDC_SCOPES=openid,email,profile`
+- `OIDC_ROLE_CLAIM=roles`
+- `OIDC_DEFAULT_ROLE=viewer`
+- `OIDC_ALLOWED_ROLES=admin,operator,viewer,auditor`
+- `OIDC_REQUIRE_HTTPS=true`
+- 可通过 `GET /auth/oidc/status` 查看配置状态（仅返回 `client_secret_present` 布尔值，不返回密钥原文）
+
 ## 5. 配置检查脚本
 
 ```powershell

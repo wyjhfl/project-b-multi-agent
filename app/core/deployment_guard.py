@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
 
+from app.auth.oidc_config import get_oidc_client_secret
 from app.core.config import Settings, settings
 from app.core.security_headers import parse_csv_config
 from app.harness.audit.retention import validate_audit_retention_settings
@@ -32,6 +33,7 @@ _WEAK_PASSWORD_VALUES = {
     "123456",
     "admin",
 }
+_ALLOWED_OIDC_ROLES = {"admin", "operator", "viewer", "auditor"}
 
 
 class DeploymentCheckResult(BaseModel):
@@ -96,6 +98,23 @@ def _is_obvious_placeholder_password(password: str) -> bool:
     if normalized in _WEAK_PASSWORD_VALUES:
         return True
     return _contains_placeholder_token(normalized)
+
+
+def _normalize_role_list(raw_roles: str) -> list[str]:
+    normalized: list[str] = []
+    for role in parse_csv_config(raw_roles):
+        lowered = role.lower()
+        if lowered not in normalized:
+            normalized.append(lowered)
+    return normalized
+
+
+def _is_https_url(url: str) -> bool:
+    try:
+        parsed = urlsplit((url or "").strip())
+    except Exception:
+        return False
+    return parsed.scheme.lower() == "https" and bool(parsed.netloc)
 
 
 def _is_cors_origin_policy_valid(current: Settings) -> tuple[bool, str]:
@@ -358,5 +377,98 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
             level="error",
             detail="REAL_LLM_API_KEY_ENV 指向的环境变量必须存在且非空。",
         )
+
+    oidc_enabled = bool(current.oidc_enabled)
+    allowed_roles = _normalize_role_list(current.oidc_allowed_roles)
+    default_role = (current.oidc_default_role or "").strip().lower()
+    unknown_roles = [role for role in allowed_roles if role not in _ALLOWED_OIDC_ROLES]
+    role_checks_level = "error" if oidc_enabled else "warning"
+    _add_check(
+        result,
+        name="oidc_allowed_roles_valid",
+        passed=bool(allowed_roles) and not unknown_roles,
+        level=role_checks_level,
+        detail="OIDC_ALLOWED_ROLES 必须是 admin/operator/viewer/auditor 的子集，且不能为空。",
+    )
+    _add_check(
+        result,
+        name="oidc_default_role_valid",
+        passed=default_role in _ALLOWED_OIDC_ROLES and default_role in allowed_roles,
+        level=role_checks_level,
+        detail="OIDC_DEFAULT_ROLE 必须在 OIDC_ALLOWED_ROLES 内，且仅允许 admin/operator/viewer/auditor。",
+    )
+
+    if not oidc_enabled:
+        _add_check(
+            result,
+            name="oidc_enabled",
+            passed=False,
+            level="warning",
+            detail="OIDC/SSO 当前未启用；生产接入前需完成企业 IdP 对接与安全评审。",
+        )
+    else:
+        issuer_url = (current.oidc_issuer_url or "").strip()
+        client_id = (current.oidc_client_id or "").strip()
+        redirect_uri = (current.oidc_redirect_uri or "").strip()
+        secret_env = (current.oidc_client_secret_env or "").strip()
+        secret_present = bool(secret_env and get_oidc_client_secret(current))
+
+        _add_check(
+            result,
+            name="oidc_issuer_url",
+            passed=bool(issuer_url),
+            level="error",
+            detail="OIDC_ENABLED=true 时 OIDC_ISSUER_URL 必须非空。",
+        )
+        _add_check(
+            result,
+            name="oidc_client_id",
+            passed=bool(client_id),
+            level="error",
+            detail="OIDC_ENABLED=true 时 OIDC_CLIENT_ID 必须非空。",
+        )
+        _add_check(
+            result,
+            name="oidc_redirect_uri",
+            passed=bool(redirect_uri),
+            level="error",
+            detail="OIDC_ENABLED=true 时 OIDC_REDIRECT_URI 必须非空。",
+        )
+        _add_check(
+            result,
+            name="oidc_client_secret_env",
+            passed=bool(secret_env),
+            level="error",
+            detail="OIDC_ENABLED=true 时 OIDC_CLIENT_SECRET_ENV 必须非空。",
+        )
+        _add_check(
+            result,
+            name="oidc_client_secret_present",
+            passed=secret_present,
+            level="error",
+            detail="OIDC_CLIENT_SECRET_ENV 指向的环境变量必须存在且非空。",
+        )
+        _add_check(
+            result,
+            name="oidc_require_https",
+            passed=bool(current.oidc_require_https),
+            level="error",
+            detail="production + OIDC_ENABLED=true 要求 OIDC_REQUIRE_HTTPS=true。",
+        )
+        if bool(current.oidc_require_https):
+            _add_check(
+                result,
+                name="oidc_issuer_url_https",
+                passed=not issuer_url or _is_https_url(issuer_url),
+                level="error",
+                detail="production 要求 OIDC_ISSUER_URL 使用 https。",
+            )
+            _add_check(
+                result,
+                name="oidc_redirect_uri_https",
+                passed=not redirect_uri or _is_https_url(redirect_uri),
+                level="error",
+                detail="production 要求 OIDC_REDIRECT_URI 使用 https。",
+            )
 
     return result

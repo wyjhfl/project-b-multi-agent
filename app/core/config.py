@@ -29,6 +29,16 @@ class Settings(BaseSettings):
     audit_export_max_rows: int = 1000
     audit_export_format: str = "jsonl"
     audit_export_redaction_enabled: bool = True
+    oidc_enabled: bool = False
+    oidc_issuer_url: str = ""
+    oidc_client_id: str = ""
+    oidc_client_secret_env: str = "OIDC_CLIENT_SECRET"
+    oidc_redirect_uri: str = ""
+    oidc_scopes: str = "openid,email,profile"
+    oidc_role_claim: str = "roles"
+    oidc_default_role: str = "viewer"
+    oidc_allowed_roles: str = "admin,operator,viewer,auditor"
+    oidc_require_https: bool = True
     ops_db_path: str = "data/db/ops_demo.sqlite"
     runtime_db_path: str = "data/db/runtime.sqlite"
     metrics_db_path: str = "data/db/runtime_metrics.sqlite"

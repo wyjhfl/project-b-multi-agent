@@ -1,12 +1,14 @@
-import { getHealthStatus } from "@/lib/api/system";
+import { getHealthStatus, getOidcStatus } from "@/lib/api/system";
 
 export default async function RbacPage() {
   let errorText = "";
   let authEnabled = false;
   let rbacEnabled: boolean | null = null;
+  let oidcStatus = null;
 
   try {
     const health = await getHealthStatus();
+    oidcStatus = await getOidcStatus();
     authEnabled = Boolean(health.auth_enabled);
     rbacEnabled = typeof health.rbac_enabled === "boolean" ? health.rbac_enabled : null;
   } catch (error) {
@@ -86,6 +88,37 @@ export default async function RbacPage() {
           <li>如需启用权限控制，请设置环境变量：`AUTH_ENABLED=true` 与 `RBAC_ENABLED=true`。</li>
           <li>当前不实现生产登录系统，不提供 SSO、多租户能力。</li>
         </ul>
+      </section>
+
+      <section className="section card">
+        <h2 className="card-title">OIDC / SSO 最小接入骨架（Phase 7.5）</h2>
+        {errorText ? (
+          <div className="empty">状态加载失败：{errorText}</div>
+        ) : (
+          <div className="stack">
+            <div className="metric-grid">
+              <div className="metric-card">
+                <div className="metric-label">OIDC_ENABLED</div>
+                <div className="metric-value">{oidcStatus?.enabled ? "true" : "false"}</div>
+              </div>
+              <div className="metric-card">
+                <div className="metric-label">OIDC_CLIENT_SECRET</div>
+                <div className="metric-value">{oidcStatus?.client_secret_present ? "已注入" : "未注入"}</div>
+              </div>
+              <div className="metric-card">
+                <div className="metric-label">角色映射</div>
+                <div className="metric-value">admin/operator/viewer/auditor</div>
+              </div>
+            </div>
+
+            <ul className="stack" style={{ margin: 0, paddingLeft: 18 }}>
+              <li>当前默认 auth/rbac 关闭，OIDC 默认关闭，不依赖真实外部 IdP。</li>
+              <li>生产启用 OIDC 时，需配置 issuer/client_id/redirect_uri 与 client_secret 环境变量。</li>
+              <li>client_secret 仅通过环境变量读取，不在 API 或页面中输出原文。</li>
+              <li>当前仅提供配置预检与角色映射骨架，不宣称生产级 SSO/OIDC 已完成。</li>
+            </ul>
+          </div>
+        )}
       </section>
     </div>
   );

@@ -19,6 +19,10 @@
 - [ ] `AUDIT_RETENTION_ENABLED=true` 且 `AUDIT_RETENTION_DAYS>0`
 - [ ] `AUDIT_EXPORT_MAX_ROWS` 在合理范围（1~10000）
 - [ ] `AUDIT_EXPORT_REDACTION_ENABLED=true`
+- [ ] 如启用 OIDC：`OIDC_ISSUER_URL` / `OIDC_CLIENT_ID` / `OIDC_REDIRECT_URI` 已配置
+- [ ] 如启用 OIDC：`OIDC_CLIENT_SECRET_ENV` 指向的环境变量已注入（不提交明文）
+- [ ] production + OIDC 启用时：`OIDC_REQUIRE_HTTPS=true` 且 issuer/redirect 使用 https
+- [ ] `OIDC_DEFAULT_ROLE` 在 `OIDC_ALLOWED_ROLES` 内，且角色仅限 admin/operator/viewer/auditor
 
 ## 2. 鉴权与 RBAC
 

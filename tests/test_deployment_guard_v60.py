@@ -41,6 +41,16 @@ def _set_production_secure_defaults(monkeypatch):
     monkeypatch.setattr(settings, "audit_export_max_rows", 1000)
     monkeypatch.setattr(settings, "audit_export_format", "jsonl")
     monkeypatch.setattr(settings, "audit_export_redaction_enabled", True)
+    monkeypatch.setattr(settings, "oidc_enabled", False)
+    monkeypatch.setattr(settings, "oidc_issuer_url", "")
+    monkeypatch.setattr(settings, "oidc_client_id", "")
+    monkeypatch.setattr(settings, "oidc_client_secret_env", "OIDC_CLIENT_SECRET")
+    monkeypatch.setattr(settings, "oidc_redirect_uri", "")
+    monkeypatch.setattr(settings, "oidc_scopes", "openid,email,profile")
+    monkeypatch.setattr(settings, "oidc_role_claim", "roles")
+    monkeypatch.setattr(settings, "oidc_default_role", "viewer")
+    monkeypatch.setattr(settings, "oidc_allowed_roles", "admin,operator,viewer,auditor")
+    monkeypatch.setattr(settings, "oidc_require_https", True)
 
 
 def test_development_mode_warn_only(monkeypatch):
@@ -280,3 +290,76 @@ def test_production_rejects_audit_export_redaction_disabled(monkeypatch):
     result = run_deployment_checks()
     assert result.ok is False
     assert any("audit_export_redaction_enabled" in item for item in result.errors)
+
+
+def test_production_oidc_disabled_warning_only(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_enabled", False)
+
+    result = run_deployment_checks()
+    assert result.ok is True
+    assert any("oidc_enabled" in item for item in result.warnings)
+
+
+def test_production_oidc_enabled_requires_required_settings(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_enabled", True)
+    monkeypatch.setattr(settings, "oidc_issuer_url", "")
+    monkeypatch.setattr(settings, "oidc_client_id", "")
+    monkeypatch.setattr(settings, "oidc_redirect_uri", "")
+    monkeypatch.setattr(settings, "oidc_client_secret_env", "MISSING_OIDC_SECRET")
+    monkeypatch.delenv("MISSING_OIDC_SECRET", raising=False)
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("oidc_issuer_url" in item for item in result.errors)
+    assert any("oidc_client_id" in item for item in result.errors)
+    assert any("oidc_redirect_uri" in item for item in result.errors)
+    assert any("oidc_client_secret_present" in item for item in result.errors)
+
+
+def test_production_oidc_enabled_rejects_http_urls(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_enabled", True)
+    monkeypatch.setattr(settings, "oidc_issuer_url", "http://idp.example.com/realms/demo")
+    monkeypatch.setattr(settings, "oidc_client_id", "project-b-console")
+    monkeypatch.setattr(settings, "oidc_redirect_uri", "http://console.example.com/callback")
+    monkeypatch.setattr(settings, "oidc_client_secret_env", "OIDC_CLIENT_SECRET_TEST")
+    monkeypatch.setenv("OIDC_CLIENT_SECRET_TEST", "oidc-secret-value")
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("oidc_issuer_url_https" in item for item in result.errors)
+    assert any("oidc_redirect_uri_https" in item for item in result.errors)
+    assert "oidc-secret-value" not in result.model_dump_json()
+
+
+def test_production_oidc_enabled_valid_https_passes(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_enabled", True)
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://idp.example.com/realms/demo")
+    monkeypatch.setattr(settings, "oidc_client_id", "project-b-console")
+    monkeypatch.setattr(settings, "oidc_redirect_uri", "https://console.example.com/auth/callback")
+    monkeypatch.setattr(settings, "oidc_client_secret_env", "OIDC_CLIENT_SECRET_TEST_OK")
+    monkeypatch.setenv("OIDC_CLIENT_SECRET_TEST_OK", "oidc-secret-value")
+
+    result = run_deployment_checks()
+    assert result.ok is True
+    assert "oidc-secret-value" not in result.model_dump_json()
+
+
+def test_production_rejects_invalid_oidc_roles(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "oidc_enabled", True)
+    monkeypatch.setattr(settings, "oidc_issuer_url", "https://idp.example.com/realms/demo")
+    monkeypatch.setattr(settings, "oidc_client_id", "project-b-console")
+    monkeypatch.setattr(settings, "oidc_redirect_uri", "https://console.example.com/auth/callback")
+    monkeypatch.setattr(settings, "oidc_client_secret_env", "OIDC_ROLE_TEST_SECRET")
+    monkeypatch.setenv("OIDC_ROLE_TEST_SECRET", "oidc-secret-value")
+    monkeypatch.setattr(settings, "oidc_allowed_roles", "admin,viewer,guest")
+    monkeypatch.setattr(settings, "oidc_default_role", "guest")
+
+    result = run_deployment_checks()
+    assert result.ok is False
+    assert any("oidc_allowed_roles_valid" in item for item in result.errors)
+    assert any("oidc_default_role_valid" in item for item in result.errors)

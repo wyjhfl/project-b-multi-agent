@@ -415,6 +415,7 @@ from app.api.skills_api import router as skills_router
 from app.api.reflection_api import router as reflection_router
 from app.api.runtime_snapshot import router as runtime_snapshot_router
 from app.api.auth import router as auth_router
+from app.api.oidc import router as oidc_router
 from app.api.llm_acceptance import router as llm_acceptance_router
 from app.api.deployment import router as deployment_router
 
@@ -434,6 +435,7 @@ app.include_router(skills_router)
 app.include_router(reflection_router)
 app.include_router(runtime_snapshot_router)
 app.include_router(auth_router)
+app.include_router(oidc_router)
 app.include_router(llm_acceptance_router)
 app.include_router(deployment_router)
 

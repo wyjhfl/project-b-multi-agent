@@ -79,15 +79,21 @@ v2.7 的目标是补齐“企业内网试点准生产可投入使用”的安全
 - 当前实现是试点级留存策略与 JSONL 导出，不是完整合规归档系统。
 - 本阶段不包含常驻调度器、自动清理任务和复杂归档流水线。
 
-## 7. Phase 7.5：OIDC/SSO 规划或最小接入方案（规划中）
+## 7. Phase 7.5：OIDC/SSO 最小接入骨架与配置预检（已完成）
 
-规划方向：
+已完成内容：
 
-- 输出最小可落地的 OIDC/SSO 接入方案（身份源、回调、角色映射）。
-- 评估与现有 JWT/RBAC 的兼容方式。
-- 形成试点接入 checklist 与风险清单。
+- 新增 OIDC 配置骨架（默认 `OIDC_ENABLED=false`），保持默认离线路径不变。
+- 新增 OIDC 配置预检函数，覆盖 issuer/client_id/redirect_uri/client_secret env/https 要求。
+- 新增角色映射骨架：仅允许 `admin/operator/viewer/auditor`，未命中回退 `viewer`。
+- 新增状态接口 `GET /auth/oidc/status`，仅返回配置状态与布尔标志，不返回密钥原文。
+- production 部署门禁新增 OIDC 校验：启用 OIDC 时强制关键配置完整且满足 https 约束。
 
-边界声明：本阶段仅做规划或最小接入方案，不宣称生产级 SSO/OIDC 已完成。
+范围边界：
+
+- 当前实现仅为“最小接入骨架 + 配置预检”，不进行真实 OIDC token exchange。
+- 默认不依赖真实外部 IdP，不访问外网 discovery endpoint。
+- 不宣称生产级 SSO/OIDC 已完成；生产接入仍需企业 IdP、证书、密钥轮换与安全评审。
 
 ## 8. Phase 7.6：v2.7 release prep（规划中）
 
