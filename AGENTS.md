@@ -105,3 +105,4 @@
 - v3.0 采用分阶段推进，当前处于第一阶段：v2.6 / Phase 6.0 工程化落地。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
+- 当前 v2.6.0 回归基线：671 passed, 4 skipped（默认 real_llm 用例 skip）。

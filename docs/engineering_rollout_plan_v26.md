@@ -3,7 +3,7 @@
 ## 1. 目标与定位
 
 - 对齐 v3.0 生产路线第一阶段：将 v2.5.0 既有能力收敛为“企业内网试点准生产可投入使用”形态。
-- 保持默认离线开发路径不变：默认 fake/offline、默认 pytest 不调用真实 LLM。
+- 保持默认离线开发路径不变：默认 fake/offline，默认 pytest 不调用真实 LLM。
 - 本阶段不是公网生产级 SaaS，不宣称可直接公网上线。
 
 ## 2. 分阶段关系（v3.0 视角）
@@ -28,14 +28,14 @@
 
 ### 4.2 production 环境
 
-- `JWT_SECRET` 不能为空，且不能是开发占位值。
+- `JWT_SECRET` 不能为空、不能为占位值、长度不少于 32。
 - `AUTH_ENABLED=true` 且 `RBAC_ENABLED=true`。
-- `STORAGE_BACKEND=postgres` 时 `DATABASE_URL` 必须非空。
-- `REDIS_ENABLED=true` 时 `REDIS_URL` 必须非空。
+- `STORAGE_BACKEND=postgres` 时 `DATABASE_URL` 必须非空且不能含占位密码。
+- `REDIS_ENABLED=true` 时 `REDIS_URL` 必须非空且不能含占位值。
 - `MCP_MODE=real` 时 `MCP_SERVER_COMMAND_ALLOWLIST` 必须非空。
 - `REAL_LLM_ACCEPTANCE_ENABLED=true` 时：
   - `REAL_LLM_MODEL` 必须非空；
-  - `REAL_LLM_API_KEY_ENV` 必须配置，且对应环境变量存在。
+  - `REAL_LLM_API_KEY_ENV` 必须配置且对应环境变量存在。
 
 ### 4.3 安全约束
 
@@ -44,19 +44,19 @@
 
 ## 5. 配置模板与部署形态
 
-## 5.1 默认开发模板
+### 5.1 默认开发模板
 
 - `docker-compose.yml`
 - 特点：离线友好、演示优先、默认 auth/rbac 关闭。
 
-## 5.2 生产试点 override 模板
+### 5.2 生产试点 override 模板
 
 - `docker-compose.yml + docker-compose.prod.yml`
 - 特点：显式 production 配置、门禁约束可校验、仍不默认启用真实 LLM/MCP。
 
-## 5.3 环境变量模板
+### 5.3 环境变量模板
 
-- `.env.production.example` 只放占位值，不提交真实 `.env.production`。
+- `.env.production.example` 只放占位说明，不提交真实 `.env.production`。
 
 ## 6. CI/CD 收敛
 
@@ -71,6 +71,7 @@
 - 测试：相关 pytest 通过，默认路径不触发真实 LLM。
 - 运行：compose config 可解析，prod 脚本可执行并输出结构化检查结果。
 - 文档：runbook 与 readiness checklist 齐备，边界声明一致。
+- 当前测试口径：**671 passed, 4 skipped**（默认 real_llm 用例 skip）。
 
 ## 8. 明确边界
 

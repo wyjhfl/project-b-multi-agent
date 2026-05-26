@@ -382,7 +382,7 @@ def reset_runtime_for_test() -> None:
 
 app = FastAPI(
     title="Project B: Harness-native 运营中台 Agent",
-    version="2.5.0",
+    version="2.6.0",
 )
 
 from app.api.tasks import router as tasks_router
@@ -431,7 +431,7 @@ async def health_check():
     return {
         "status": "ok",
         "service": "project-b-multi-agent",
-        "version": "2.5.0",
+        "version": "2.6.0",
         "storage_backend": settings.storage_backend,
         "auth_enabled": settings.auth_enabled,
         "rbac_enabled": settings.rbac_enabled,

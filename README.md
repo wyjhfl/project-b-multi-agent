@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-666%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.5.0-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-671%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.6.0-green)]()
 
 ---
 
@@ -39,7 +39,7 @@
 
 > **⚠️ 边界说明**
 >
-> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）和 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline）。v2.5.0 已完成“真实 LLM 可选验收包”并保持 v2.4 试点级运营台闭环（Dashboard / Tasks / Approvals / Trace / Audit / Metrics / RBAC / Tools / NL2SQL + Docker 演示脚本）；默认 fake/offline，默认测试不调用真实 LLM；真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。
+> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）和 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline）。v2.5.0 已完成“真实 LLM 可选验收包”，v2.6.0 已完成 Phase 6.0 Engineering Readiness（deployment guard、/deployment/check、生产模板与 prod 脚本），并保持 v2.4 试点级运营台闭环（Dashboard / Tasks / Approvals / Trace / Audit / Metrics / RBAC / Tools / NL2SQL + Docker 演示脚本）；默认 fake/offline，默认测试不调用真实 LLM；真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。
 >
 > - Multi-Agent 当前是**确定性多角色编排 / deterministic multi-role orchestration**（Coordinator / Analyst / Executor / Reviewer 规则驱动边界划分），后续可替换为 LLM Planner。
 > - LangGraph 当前 v1.0 以 Harness Runtime 可测试顺序流为主，v1.1 引入最小 LangGraph StateGraph，用于 keyword 主链路验证；Phase 2 已实现 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
@@ -444,7 +444,7 @@ python -m pytest -q
 > 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
 > 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
 
-当前基线：**666 passed, 4 skipped**，覆盖全部模块：
+当前基线：**671 passed, 4 skipped**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -631,7 +631,7 @@ project-b-multi-agent/
 │   ├── init_demo_db.py             #   初始化 demo 数据库
 │   ├── start_dev.py                #   开发启动脚本
 │   └── check_health.py             #   健康检查
-├── tests/                          # 测试（666+ 个）
+├── tests/                          # 测试（671+ 个）
 ├── .github/workflows/ci.yml        # CI 配置
 ├── Dockerfile                      # Docker 镜像
 ├── docker-compose.yml              # Docker Compose
@@ -655,7 +655,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 666 passed, 4 skipped（默认 real_llm 用例 skip） |
+| **测试** | pytest + httpx | 671 passed, 4 skipped（默认 real_llm 用例 skip） |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -685,7 +685,7 @@ project-b-multi-agent/
 - **v2.4.4**：完成 RBAC 试点说明页与 Docker 本地演示脚本（`scripts/demo_up.ps1`、`scripts/demo_smoke.ps1`、`scripts/demo_down.ps1`）。
 - **v2.4.5**：完成 Tools + NL2SQL 试点页（工具筛选与最小调用验证、NL2SQL preview/execute 页面）。
 - **v2.5.0**：完成真实 LLM 可选验收包收口（Provider preflight、opt-in real LLM smoke、token/cost/budget/cache/fallback 验收、LLMJudge opt-in smoke、报告模板与 release prep 文档）。
-- **v2.6.0**：完成 Phase 6.0 工程化落地（deployment guard、/deployment/check、生产模板 compose override、prod 脚本、CI 工程化增强）。
+- **v2.6.0**：完成 Phase 6.0 工程化落地（deployment guard、/deployment/check、生产模板 compose override、prod 脚本、CI 工程化增强），当前基线 671 passed, 4 skipped。
 
 ### RBAC 试点口径
 

@@ -35,7 +35,7 @@ def _resolve_client_version() -> str:
     try:
         return metadata.version("project-b-multi-agent")
     except Exception:
-        return "2.5.0"
+        return "2.6.0"
 
 
 class MCPConfigError(RuntimeError):
