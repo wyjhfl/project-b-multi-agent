@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     cors_allow_methods: str = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
     cors_allow_headers: str = "Authorization,Content-Type"
     security_headers_enabled: bool = True
+    rate_limit_enabled: bool = False
+    rate_limit_requests_per_minute: int = 120
+    rate_limit_burst: int = 60
+    rate_limit_exempt_paths: str = "/health"
+    request_size_limit_enabled: bool = True
+    request_size_limit_bytes: int = 1048576
+    abuse_guard_enabled: bool = True
     ops_db_path: str = "data/db/ops_demo.sqlite"
     runtime_db_path: str = "data/db/runtime.sqlite"
     metrics_db_path: str = "data/db/runtime_metrics.sqlite"

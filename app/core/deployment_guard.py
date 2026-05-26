@@ -164,6 +164,60 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
         detail="production 环境要求 SECURITY_HEADERS_ENABLED=true。",
     )
 
+    _add_check(
+        result,
+        name="request_size_limit_enabled",
+        passed=bool(current.request_size_limit_enabled),
+        level="error",
+        detail="production 环境要求 REQUEST_SIZE_LIMIT_ENABLED=true。",
+    )
+
+    request_limit = int(current.request_size_limit_bytes or 0)
+    _add_check(
+        result,
+        name="request_size_limit_bytes",
+        passed=0 < request_limit <= 10 * 1024 * 1024,
+        level="error",
+        detail="REQUEST_SIZE_LIMIT_BYTES 必须在 1 到 10485760（10MB）范围内。",
+    )
+
+    _add_check(
+        result,
+        name="rate_limit_enabled",
+        passed=bool(current.rate_limit_enabled),
+        level="error",
+        detail="production 环境要求 RATE_LIMIT_ENABLED=true。",
+    )
+
+    _add_check(
+        result,
+        name="rate_limit_requests_per_minute",
+        passed=int(current.rate_limit_requests_per_minute or 0) > 0,
+        level="error",
+        detail="RATE_LIMIT_REQUESTS_PER_MINUTE 必须大于 0。",
+    )
+
+    _add_check(
+        result,
+        name="rate_limit_burst",
+        passed=int(current.rate_limit_burst or -1) >= 0,
+        level="error",
+        detail="RATE_LIMIT_BURST 必须大于或等于 0。",
+    )
+
+    try:
+        _ = parse_csv_config(current.rate_limit_exempt_paths)
+        exempt_ok = True
+    except Exception:
+        exempt_ok = False
+    _add_check(
+        result,
+        name="rate_limit_exempt_paths",
+        passed=exempt_ok,
+        level="error",
+        detail="RATE_LIMIT_EXEMPT_PATHS 必须可解析为逗号分隔路径列表。",
+    )
+
     if (current.storage_backend or "").strip().lower() == "postgres":
         database_url = (current.database_url or "").strip()
         _add_check(

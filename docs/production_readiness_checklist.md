@@ -10,6 +10,9 @@
 - [ ] 未在日志/脚本输出中暴露密钥原文
 - [ ] `CORS_ENABLED=true` 且 `CORS_ALLOW_ORIGINS` 为明确来源（非 `*`）
 - [ ] `SECURITY_HEADERS_ENABLED=true`
+- [ ] `REQUEST_SIZE_LIMIT_ENABLED=true` 且 `REQUEST_SIZE_LIMIT_BYTES` 在合理范围（<=10MB）
+- [ ] `RATE_LIMIT_ENABLED=true` 且限流参数有效（`RATE_LIMIT_REQUESTS_PER_MINUTE` > 0，`RATE_LIMIT_BURST` >= 0）
+- [ ] `ABUSE_GUARD_ENABLED=true`
 
 ## 2. 鉴权与 RBAC
 
@@ -72,3 +75,4 @@
 - [ ] 真实外部 MCP Server 生产验收
 - [ ] 真实 LLM 生产验收完成声明（禁止）
 - [ ] 完整公网生产安全基线（当前仅完成 CORS 与安全响应头第一步）
+- [ ] 多实例一致性限流（当前仅进程内内存限流）

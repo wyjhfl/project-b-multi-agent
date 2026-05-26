@@ -699,6 +699,7 @@ project-b-multi-agent/
 - 默认开发/演示路径保持不变，仍可离线运行。
 - 生产形态通过 `docker-compose.prod.yml` override 与 `scripts/prod_*.ps1` 执行。
 - v2.7 Phase 7.1 已实现 CORS 与安全响应头基线：development 默认允许 `http://localhost:3000`，production 需显式配置允许来源且禁止 `*`。
+- v2.7 Phase 7.2 已实现请求防护基线：rate limit、request size limit、basic abuse guard（当前限流为进程内内存版，适合单实例内网试点）。
 
 ### v3.0 生产路线（当前处于第一阶段）
 

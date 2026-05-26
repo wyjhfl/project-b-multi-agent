@@ -60,6 +60,15 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `CORS_ALLOW_ORIGINS` 必须配置明确来源，production 禁止使用 `*`
 - `SECURITY_HEADERS_ENABLED=true`
 
+新增请求防护配置（Phase 7.2）：
+
+- `REQUEST_SIZE_LIMIT_ENABLED=true`
+- `REQUEST_SIZE_LIMIT_BYTES=1048576`（可按业务调优，production 建议不超过 10MB）
+- `RATE_LIMIT_ENABLED=true`（production 建议开启）
+- `RATE_LIMIT_REQUESTS_PER_MINUTE`、`RATE_LIMIT_BURST` 按流量基线配置
+- `RATE_LIMIT_EXEMPT_PATHS=/health`（可扩展）
+- `ABUSE_GUARD_ENABLED=true`
+
 ## 5. 配置检查脚本
 
 ```powershell
@@ -130,3 +139,4 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 真实 LLM smoke 为 opt-in，不进入默认 CI。
 - 本手册不包含生产级 SSO/OIDC、多租户、复杂 BI 方案。
 - 当前仅完成安全基线第一步（CORS 与安全响应头），不等于完整公网生产安全基线完成。
+- 当前限流为进程内内存版，适用于单实例内网试点；多实例生产应升级为 Redis 或网关级限流。
