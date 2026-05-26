@@ -68,6 +68,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `RATE_LIMIT_REQUESTS_PER_MINUTE`、`RATE_LIMIT_BURST` 按流量基线配置
 - `RATE_LIMIT_EXEMPT_PATHS=/health`（可扩展）
 - `ABUSE_GUARD_ENABLED=true`
+- request guard 拦截响应（429/413/400/414）默认也会附带安全响应头，并在允许来源时返回对应 CORS 响应头。
 
 ## 5. 配置检查脚本
 

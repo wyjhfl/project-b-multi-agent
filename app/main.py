@@ -388,13 +388,13 @@ app = FastAPI(
     version="2.6.0",
 )
 
-if settings.cors_enabled:
-    app.add_middleware(CORSMiddleware, **build_cors_options(settings))
-
-app.add_middleware(SecurityHeadersMiddleware, enabled=settings.security_headers_enabled)
 app.add_middleware(BasicAbuseGuardMiddleware)
 app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(SecurityHeadersMiddleware, enabled=settings.security_headers_enabled)
+
+if settings.cors_enabled:
+    app.add_middleware(CORSMiddleware, **build_cors_options(settings))
 
 from app.api.tasks import router as tasks_router
 from app.api.nl2sql import router as nl2sql_router
