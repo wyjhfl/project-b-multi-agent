@@ -40,6 +40,20 @@
 
 目标：在调用真实 LLM 前，先验证配置与环境完整性。
 
+当前状态：**已完成最小实现**（v2.5 Phase 5.1）。
+
+已实现能力：
+
+- 新增 `/llm/preflight` API；
+- 默认执行离线配置检查，不访问网络；
+- 仅在显式满足以下条件时才允许网络检查：
+  - `real_llm_acceptance_enabled=true`
+  - `real_llm_preflight_enabled=true`
+  - `real_llm_preflight_network_check=true`
+  - `real_llm_model` 与 API key 环境变量完整；
+- 配置缺失返回结构化结果，不返回 500；
+- 返回与日志不暴露 API key 原文。
+
 建议项：
 
 - 校验必需配置：provider、model、base_url（如需要）、api_key（环境变量）；

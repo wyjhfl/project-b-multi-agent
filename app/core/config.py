@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     llm_budget_scope: str = "daily"
     llm_cache_enabled: bool = False
     llm_cache_ttl_seconds: int = 3600
+    real_llm_acceptance_enabled: bool = False
+    real_llm_preflight_enabled: bool = False
+    real_llm_provider: str = "litellm"
+    real_llm_model: str = ""
+    real_llm_base_url: str = ""
+    real_llm_api_key_env: str = "OPENAI_API_KEY"
+    real_llm_preflight_timeout_seconds: float = 10.0
+    real_llm_preflight_network_check: bool = False
 
     mcp_mode: str = "fake"
     mcp_server_name: str = "fake_ops_mcp"
