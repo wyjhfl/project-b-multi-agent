@@ -1,14 +1,12 @@
-Param()
+Param(
+  [switch]$UseApi
+)
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "[prod-config-check] start" -ForegroundColor Cyan
 
-$response = $null
-try {
-  $response = Invoke-RestMethod -Uri "http://localhost:8000/deployment/check" -Method Get -TimeoutSec 10
-} catch {
-  Write-Host "[prod-config-check] api unavailable, fallback to local python" -ForegroundColor Yellow
+function Get-LocalDeploymentCheckResult {
   $pythonScript = @'
 import json
 from app.core.deployment_guard import run_deployment_checks
@@ -16,7 +14,20 @@ result = run_deployment_checks()
 print(result.model_dump_json())
 '@
   $json = $pythonScript | python -
-  $response = $json | ConvertFrom-Json
+  return $json | ConvertFrom-Json
+}
+
+function Get-ApiDeploymentCheckResult {
+  return Invoke-RestMethod -Uri "http://localhost:8000/deployment/check" -Method Get -TimeoutSec 10
+}
+
+$response = $null
+if ($UseApi) {
+  Write-Host "[prod-config-check] mode=api" -ForegroundColor Yellow
+  $response = Get-ApiDeploymentCheckResult
+} else {
+  Write-Host "[prod-config-check] mode=local_python" -ForegroundColor White
+  $response = Get-LocalDeploymentCheckResult
 }
 
 if ($null -eq $response) {

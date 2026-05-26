@@ -4,12 +4,12 @@ services:
       APP_ENV: production
       DEBUG: "false"
       STORAGE_BACKEND: ${STORAGE_BACKEND:-postgres}
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://agent:change-me@postgres:5432/project_b}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       REDIS_ENABLED: ${REDIS_ENABLED:-true}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       AUTH_ENABLED: ${AUTH_ENABLED:-true}
       RBAC_ENABLED: ${RBAC_ENABLED:-true}
-      JWT_SECRET: ${JWT_SECRET:-change-me-strong-secret}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       MCP_MODE: ${MCP_MODE:-fake}
       REAL_LLM_ACCEPTANCE_ENABLED: ${REAL_LLM_ACCEPTANCE_ENABLED:-false}
       REAL_LLM_PREFLIGHT_ENABLED: ${REAL_LLM_PREFLIGHT_ENABLED:-false}

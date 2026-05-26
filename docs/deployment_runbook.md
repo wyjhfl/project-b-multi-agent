@@ -12,22 +12,22 @@ docker compose up -d app frontend
 ```
 
 - 使用 `docker-compose.yml`。
-- 默认 `AUTH_ENABLED=false`、`RBAC_ENABLED=false`，便于本地演示。
+- 默认 `AUTH_ENABLED=false`、`RBAC_ENABLED=false`，便于本地离线演示。
 
 ## 3. 生产模板启动方式（试点）
 
 ### 3.1 准备环境变量
 
 1. 复制 `.env.production.example` 为本地私有文件（例如 `.env.production`）。
-2. 按试点环境填充真实值（不要提交到仓库）。
+2. 在部署环境注入真实安全变量，不要提交真实凭据文件。
 
-### 3.2 执行部署
+### 3.2 执行部署脚本
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/prod_up.ps1
 ```
 
-- 脚本会先执行 `prod_config_check.ps1`，再执行 compose up。
+- `prod_up.ps1` 会先执行 `prod_config_check.ps1`（默认本地 Python 检查），再执行 compose 启动。
 
 ### 3.3 手动命令等价
 
@@ -35,26 +35,46 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_up.ps1
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build app frontend
 ```
 
-## 4. 必需环境变量（production）
+## 4. 生产必填变量策略（docker-compose.prod.yml）
+
+`docker-compose.prod.yml` 对以下敏感变量使用必填校验：
+
+- `JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}`
+- `DATABASE_URL=${DATABASE_URL:?DATABASE_URL is required}`
+- `REDIS_URL=${REDIS_URL:?REDIS_URL is required}`
+
+缺失时 `docker compose -f docker-compose.yml -f docker-compose.prod.yml config` 会直接失败。
+
+非敏感默认值保留：
 
 - `APP_ENV=production`
+- `DEBUG=false`
 - `AUTH_ENABLED=true`
 - `RBAC_ENABLED=true`
-- `JWT_SECRET`（必须替换默认占位值）
-- `STORAGE_BACKEND=postgres` 时 `DATABASE_URL`
-- `REDIS_ENABLED=true` 时 `REDIS_URL`
-- `MCP_MODE=real` 时 `MCP_SERVER_COMMAND_ALLOWLIST`
-- `REAL_LLM_ACCEPTANCE_ENABLED=true` 时 `REAL_LLM_MODEL` 与 `REAL_LLM_API_KEY_ENV` 指向的环境变量
+- `MCP_MODE=fake`
+- `REAL_LLM_ACCEPTANCE_ENABLED=false`
 
-## 5. 配置检查
+## 5. 配置检查脚本
 
 ```powershell
+# 默认：本地 Python 检查（读取当前 shell 环境变量）
 powershell -ExecutionPolicy Bypass -File scripts/prod_config_check.ps1
+
+# 可选：显式改用本地 API 检查
+powershell -ExecutionPolicy Bypass -File scripts/prod_config_check.ps1 -UseApi
 ```
 
-- 检查通过：退出码 0。
-- 检查失败：退出码 1，并输出结构化错误摘要。
-- 不输出密钥原文。
+输出包含：
+
+- `environment`
+- `ok`
+- `warnings`
+- `errors`
+
+约束：
+
+- 检查失败时退出码为 1。
+- 不输出密钥、token、完整连接串密码。
 
 ## 6. Smoke 检查
 
@@ -62,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_config_check.ps1
 powershell -ExecutionPolicy Bypass -File scripts/prod_smoke.ps1
 ```
 
-检查以下端点：
+覆盖端点：
 
 - `http://localhost:3000/api/health`
 - `http://localhost:3000/`
@@ -78,14 +98,10 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_smoke.ps1
 
 ## 7. 常见失败与处理
 
-- `deployment/check` 返回 `ok=false`：
-  - 按 `errors` 项逐条修正配置后重试。
-- `JWT_SECRET` 报错：
-  - 检查是否仍使用开发占位值。
-- `DATABASE_URL/REDIS_URL` 报错：
-  - 确认对应开关已启用且 URL 非空。
-- 前端页面 5xx：
-  - 先检查 `http://localhost:3000/api/health` 与 `http://localhost:8000/health`。
+- `deployment/check` 返回 `ok=false`：按 `errors` 逐条修复配置后重试。
+- `JWT_SECRET` 报错：检查是否仍使用占位值或长度不足。
+- `DATABASE_URL/REDIS_URL` 报错：检查开关是否启用且 URL 非空，且未使用占位密码。
+- 前端页面 5xx：先检查 `http://localhost:3000/api/health` 与 `http://localhost:8000/health`。
 
 ## 8. 停止与回滚
 
@@ -98,12 +114,12 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 ### 8.2 回滚建议
 
 - 保留上一版 compose 镜像与环境变量文件。
-- 回滚到上一稳定提交后，重新执行：
+- 回滚后重新执行：
   - `prod_config_check.ps1`
   - `prod_up.ps1`
 
 ## 9. 边界声明
 
 - 默认路径仍为离线演示，不依赖真实 LLM 与真实外部 MCP。
-- 真实 LLM smoke 仅 opt-in，不进入默认 CI。
+- 真实 LLM smoke 为 opt-in，不进入默认 CI。
 - 本手册不包含生产级 SSO/OIDC、多租户、复杂 BI 方案。

@@ -2,12 +2,34 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
 
 from app.core.config import Settings, settings
 
-_DEV_JWT_SECRET = "dev-only-change-me-please-32-bytes"
+_DISALLOWED_JWT_SECRETS = {
+    "",
+    "dev-only-change-me-please-32-bytes",
+    "change-me-strong-secret",
+    "change-me",
+    "replace-me",
+}
+_PLACEHOLDER_TOKENS = {
+    "change-me",
+    "changeme",
+    "replace-me",
+    "replace_me",
+    "example",
+}
+_WEAK_PASSWORD_VALUES = {
+    "password",
+    "password123",
+    "secret",
+    "token",
+    "123456",
+    "admin",
+}
 
 
 class DeploymentCheckResult(BaseModel):
@@ -43,6 +65,37 @@ def _add_check(
         result.warnings.append(f"{name}: {detail}")
 
 
+def _contains_placeholder_token(value: str) -> bool:
+    lowered = (value or "").lower()
+    return any(token in lowered for token in _PLACEHOLDER_TOKENS)
+
+
+def _extract_url_password(url: str) -> str:
+    if not url:
+        return ""
+    try:
+        parsed = urlsplit(url)
+    except Exception:
+        return ""
+    return parsed.password or ""
+
+
+def _is_weak_jwt_secret(secret: str) -> bool:
+    normalized = (secret or "").strip()
+    if normalized in _DISALLOWED_JWT_SECRETS:
+        return True
+    return len(normalized) < 32
+
+
+def _is_obvious_placeholder_password(password: str) -> bool:
+    normalized = (password or "").strip().lower()
+    if not normalized:
+        return False
+    if normalized in _WEAK_PASSWORD_VALUES:
+        return True
+    return _contains_placeholder_token(normalized)
+
+
 def run_deployment_checks(runtime_settings: Settings | None = None) -> DeploymentCheckResult:
     current = runtime_settings or settings
     env = (current.app_env or "development").strip().lower()
@@ -60,13 +113,12 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
         return result
 
     jwt_secret = (current.jwt_secret or "").strip()
-    jwt_ok = bool(jwt_secret) and jwt_secret != _DEV_JWT_SECRET
     _add_check(
         result,
         name="jwt_secret",
-        passed=jwt_ok,
+        passed=not _is_weak_jwt_secret(jwt_secret),
         level="error",
-        detail="JWT_SECRET 不能为空且不能使用默认开发占位值。",
+        detail="JWT_SECRET 不能为空、不能使用占位值，且长度必须不少于 32 字符。",
     )
 
     _add_check(
@@ -85,22 +137,43 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
     )
 
     if (current.storage_backend or "").strip().lower() == "postgres":
+        database_url = (current.database_url or "").strip()
         _add_check(
             result,
-            name="database_url",
-            passed=bool((current.database_url or "").strip()),
+            name="database_url_required",
+            passed=bool(database_url),
             level="error",
             detail="STORAGE_BACKEND=postgres 时 DATABASE_URL 必须非空。",
         )
+        if database_url:
+            has_disallowed_token = "replace-me" in database_url.lower() or ":change-me@" in database_url.lower()
+            password = _extract_url_password(database_url)
+            has_placeholder_password = _is_obvious_placeholder_password(password)
+            _add_check(
+                result,
+                name="database_url_secret_strength",
+                passed=not has_disallowed_token and not has_placeholder_password,
+                level="error",
+                detail="DATABASE_URL 不可使用占位密码或弱口令占位标识。",
+            )
 
     if bool(current.redis_enabled):
+        redis_url = (current.redis_url or "").strip()
         _add_check(
             result,
-            name="redis_url",
-            passed=bool((current.redis_url or "").strip()),
+            name="redis_url_required",
+            passed=bool(redis_url),
             level="error",
             detail="REDIS_ENABLED=true 时 REDIS_URL 必须非空。",
         )
+        if redis_url:
+            _add_check(
+                result,
+                name="redis_url_secret_strength",
+                passed=not _contains_placeholder_token(redis_url),
+                level="error",
+                detail="REDIS_URL 不可包含占位密钥标识。",
+            )
 
     if (current.mcp_mode or "").strip().lower() == "real":
         _add_check(
