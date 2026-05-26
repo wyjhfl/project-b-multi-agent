@@ -56,6 +56,8 @@ async def export_audit_events(
 ):
     if not settings.audit_export_enabled:
         return JSONResponse(status_code=403, content={"error": "audit_export_disabled"})
+    if not settings.audit_export_redaction_enabled:
+        return JSONResponse(status_code=403, content={"error": "audit_export_redaction_required"})
 
     export_format = (format or "").strip().lower()
     configured_format = (settings.audit_export_format or "jsonl").strip().lower()
@@ -73,10 +75,7 @@ async def export_audit_events(
     )
     lines = []
     for event in events:
-        sanitized = sanitize_audit_event_for_export(
-            event,
-            redaction_enabled=bool(settings.audit_export_redaction_enabled),
-        )
+        sanitized = sanitize_audit_event_for_export(event, redaction_enabled=True)
         lines.append(json.dumps(sanitized, ensure_ascii=False))
     payload = "\n".join(lines)
     return PlainTextResponse(content=payload, media_type="application/x-ndjson")

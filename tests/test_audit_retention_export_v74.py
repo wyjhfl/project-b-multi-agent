@@ -70,6 +70,60 @@ def test_sanitize_export_keeps_whitelist_and_masks_sensitive():
     assert "[REDACTED_PROMPT]" in payload
 
 
+def test_export_never_leaks_sensitive_detail_fields(monkeypatch):
+    reset_runtime_for_test()
+    monkeypatch.setattr(settings, "audit_export_enabled", True)
+    monkeypatch.setattr(settings, "audit_export_redaction_enabled", True)
+    monkeypatch.setattr(settings, "audit_export_max_rows", 10)
+
+    store = get_audit_store()
+    store.append(
+        AuditEvent(
+            event_type="export_sensitive_test",
+            actor="tester",
+            action="export_sensitive_action",
+            detail={
+                "token": "token-plain",
+                "api_key": "api-key-plain",
+                "authorization": "Bearer auth-plain",
+                "cookie": "session=cookie-plain",
+                "password": "pwd-plain",
+                "secret": "secret-plain",
+                "database_url": "postgresql+psycopg://agent:db-password@db:5432/project_b",
+                "redis_url": "redis://:redis-password@redis:6379/0",
+                "prompt": "原始 prompt 文本",
+                "query": "原始 query 文本",
+                "user_query": "原始 user_query 文本",
+                "raw_prompt": "原始 raw_prompt 文本",
+                "sql_prompt": "原始 sql_prompt 文本",
+            },
+        )
+    )
+
+    resp = client.get("/audit/events/export", params={"event_type": "export_sensitive_test"})
+    assert resp.status_code == 200
+    text = resp.text
+    for raw in (
+        "token-plain",
+        "api-key-plain",
+        "auth-plain",
+        "cookie-plain",
+        "pwd-plain",
+        "secret-plain",
+        "db-password",
+        "redis-password",
+        "原始 prompt 文本",
+        "原始 query 文本",
+        "原始 user_query 文本",
+        "原始 raw_prompt 文本",
+        "原始 sql_prompt 文本",
+    ):
+        assert raw not in text
+    assert "[REDACTED_PROMPT]" in text
+
+    reset_runtime_for_test()
+
+
 def test_export_jsonl_and_limit_cap(monkeypatch):
     reset_runtime_for_test()
     monkeypatch.setattr(settings, "audit_export_enabled", True)
@@ -104,6 +158,14 @@ def test_export_disabled_returns_403(monkeypatch):
     resp = client.get("/audit/events/export")
     assert resp.status_code == 403
     assert resp.json()["error"] == "audit_export_disabled"
+
+
+def test_export_redaction_disabled_returns_403(monkeypatch):
+    monkeypatch.setattr(settings, "audit_export_enabled", True)
+    monkeypatch.setattr(settings, "audit_export_redaction_enabled", False)
+    resp = client.get("/audit/events/export")
+    assert resp.status_code == 403
+    assert resp.json()["error"] == "audit_export_redaction_required"
 
 
 def test_export_access_when_auth_rbac_disabled(monkeypatch):
