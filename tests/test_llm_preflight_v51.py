@@ -18,6 +18,7 @@ def _set_default_real_llm_flags(monkeypatch):
     monkeypatch.setattr(settings, "real_llm_preflight_enabled", False)
     monkeypatch.setattr(settings, "real_llm_provider", "litellm")
     monkeypatch.setattr(settings, "real_llm_model", "")
+    monkeypatch.setattr(settings, "real_llm_base_url", "")
     monkeypatch.setattr(settings, "real_llm_api_key_env", "OPENAI_API_KEY")
     monkeypatch.setattr(settings, "real_llm_preflight_network_check", False)
     monkeypatch.setattr(settings, "real_llm_preflight_timeout_seconds", 10.0)
@@ -132,3 +133,46 @@ def test_preflight_api_network_check_without_permission_no_network(monkeypatch):
     response = client.get("/llm/preflight", params={"network_check": "true"})
     assert response.status_code == 200
     assert called["count"] == 0
+
+
+def test_preflight_network_check_passes_base_url_to_create_provider(monkeypatch):
+    _set_default_real_llm_flags(monkeypatch)
+    monkeypatch.setattr(settings, "real_llm_acceptance_enabled", True)
+    monkeypatch.setattr(settings, "real_llm_preflight_enabled", True)
+    monkeypatch.setattr(settings, "real_llm_preflight_network_check", True)
+    monkeypatch.setattr(settings, "real_llm_model", "gpt-4o-mini")
+    monkeypatch.setattr(settings, "real_llm_base_url", "https://mock-llm.local/v1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-demo")
+    captured: dict[str, str] = {}
+
+    class _Provider:
+        def generate_with_metadata(self, prompt: str):
+            class _Meta:
+                content = "ok"
+            return _Meta()
+
+    def _fake_create_provider(**kwargs):
+        captured["base_url"] = kwargs.get("base_url", "")
+        return _Provider()
+
+    monkeypatch.setattr(preflight_mod, "create_provider", _fake_create_provider)
+    result = run_llm_provider_preflight(perform_network_check=True)
+    assert result.status == "passed"
+    assert captured.get("base_url") == "https://mock-llm.local/v1"
+
+
+def test_preflight_latency_not_double_count_network_latency(monkeypatch):
+    _set_default_real_llm_flags(monkeypatch)
+    monkeypatch.setattr(settings, "real_llm_acceptance_enabled", True)
+    monkeypatch.setattr(settings, "real_llm_preflight_enabled", True)
+    monkeypatch.setattr(settings, "real_llm_preflight_network_check", True)
+    monkeypatch.setattr(settings, "real_llm_model", "gpt-4o-mini")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-demo")
+
+    def _fake_network(*args, **kwargs):
+        return True, "network_check_ok", 500.0
+
+    monkeypatch.setattr(preflight_mod, "_perform_network_check", _fake_network)
+    result = run_llm_provider_preflight(perform_network_check=True)
+    # 不应将网络单项耗时再次叠加到总耗时，避免明显放大
+    assert result.latency_ms < 500.0

@@ -53,6 +53,8 @@
   - `real_llm_model` 与 API key 环境变量完整；
 - 配置缺失返回结构化结果，不返回 500；
 - 返回与日志不暴露 API key 原文。
+- 已补齐 `real_llm_base_url -> preflight -> create_provider -> LiteLLMProvider -> litellm.completion(api_base)` 传递闭环。
+- `latency_ms` 统一表示 preflight 总耗时，不重复叠加 network_check 单项耗时。
 
 建议项：
 

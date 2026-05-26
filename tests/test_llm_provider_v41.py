@@ -315,3 +315,19 @@ def test_pipeline_fallback_false_no_execute(monkeypatch):
 def test_create_provider_unknown_provider_message():
     with pytest.raises(Exception, match="unknown provider"):
         create_provider("not-exists")
+
+
+def test_create_provider_litellm_base_url_passed(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "gpt-4o-mini")
+    provider = create_provider("litellm", base_url="https://mock-llm.local/v1")
+    assert isinstance(provider, LiteLLMProvider)
+    assert getattr(provider, "_base_url", "") == "https://mock-llm.local/v1"
+
+
+def test_create_provider_litellm_empty_base_url_compatible(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "gpt-4o-mini")
+    provider = create_provider("litellm")
+    assert isinstance(provider, LiteLLMProvider)
+    assert getattr(provider, "_base_url", "") == ""

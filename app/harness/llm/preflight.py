@@ -89,12 +89,19 @@ def _validate_timeout_and_retry(cfg: Settings, checks: list[dict[str, Any]], war
         warnings.append("llm_retry_backoff_seconds out of recommended range (0~10)")
 
 
-def _perform_network_check(cfg: Settings, provider_name: str, model_name: str, api_key: str) -> tuple[bool, str, float]:
+def _perform_network_check(
+    cfg: Settings,
+    provider_name: str,
+    model_name: str,
+    api_key: str,
+    base_url: str,
+) -> tuple[bool, str, float]:
     started = time.perf_counter()
     provider = create_provider(
         provider_name=provider_name,
         api_key=api_key,
         model=model_name,
+        base_url=base_url,
         timeout_seconds=cfg.real_llm_preflight_timeout_seconds,
         max_retries=min(max(int(cfg.llm_max_retries), 0), 1),
         retry_backoff_seconds=max(float(cfg.llm_retry_backoff_seconds), 0.0),
@@ -184,11 +191,17 @@ def run_llm_provider_preflight(
         and network_allowed
         and allowed
     )
-    network_latency_ms = 0.0
     if should_run_network:
         try:
-            ok, detail, network_latency_ms = _perform_network_check(cfg, provider_name, model_name, api_key_value or "")
+            ok, detail, network_latency_ms = _perform_network_check(
+                cfg,
+                provider_name,
+                model_name,
+                api_key_value or "",
+                base_url_text,
+            )
             _append_check(checks, "network_check", ok, detail)
+            _append_check(checks, "network_check_latency_ms", True, f"{network_latency_ms:.2f}")
             if not ok:
                 errors.append(detail)
         except (
@@ -211,7 +224,7 @@ def run_llm_provider_preflight(
     elif should_run_network:
         status = "passed"
 
-    total_latency = ((time.perf_counter() - started) * 1000.0) + network_latency_ms
+    total_latency = (time.perf_counter() - started) * 1000.0
     return LLMPreflightResult(
         allowed=allowed and not errors,
         status=status,

@@ -199,6 +199,7 @@ class LiteLLMProvider(LLMProvider):
         *,
         api_key: str | None = None,
         model: str | None = None,
+        base_url: str | None = None,
         timeout_seconds: float | None = None,
         max_retries: int | None = None,
         retry_backoff_seconds: float | None = None,
@@ -213,6 +214,7 @@ class LiteLLMProvider(LLMProvider):
             float(settings.llm_retry_backoff_seconds if retry_backoff_seconds is None else retry_backoff_seconds),
         )
         self._temperature = float(settings.llm_temperature if temperature is None else temperature)
+        self._base_url = (base_url or "").strip()
 
         if not self._api_key:
             raise ProviderConfigError("LiteLLMProvider 需要 LLM_API_KEY 配置，当前为空。")
@@ -227,13 +229,16 @@ class LiteLLMProvider(LLMProvider):
         last_error: Exception | None = None
         while attempt <= self._max_retries:
             try:
-                response = litellm.completion(
-                    model=self._model,
-                    messages=[{"role": "user", "content": prompt}],
-                    api_key=self._api_key,
-                    timeout=self._timeout_seconds,
-                    temperature=self._temperature,
-                )
+                payload: dict[str, Any] = {
+                    "model": self._model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "api_key": self._api_key,
+                    "timeout": self._timeout_seconds,
+                    "temperature": self._temperature,
+                }
+                if self._base_url:
+                    payload["api_base"] = self._base_url
+                response = litellm.completion(**payload)
                 return self._normalize_response(response, started)
             except Exception as exc:
                 mapped = self._map_exception(exc)
@@ -307,6 +312,7 @@ def create_provider(
     *,
     api_key: str | None = None,
     model: str | None = None,
+    base_url: str | None = None,
     timeout_seconds: float | None = None,
     max_retries: int | None = None,
     retry_backoff_seconds: float | None = None,
@@ -320,6 +326,7 @@ def create_provider(
         return LiteLLMProvider(
             api_key=api_key,
             model=model,
+            base_url=base_url,
             timeout_seconds=timeout_seconds,
             max_retries=max_retries,
             retry_backoff_seconds=retry_backoff_seconds,
