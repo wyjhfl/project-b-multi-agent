@@ -26,6 +26,7 @@
 | **v2.1.0** | Graph Runtime Adapter | Phase 2.1 GraphCheckpointStore / Phase 2.2 GraphRuntimeAdapter feature flag / Phase 2.3 graph interrupt -> approval mapping / Phase 2.4 GraphResumeAdapter / Phase 2.5 release cleanup + failure-path hardening; default graph_runtime_enabled=false; legacy behavior unchanged; 553+ tests |
 | **v2.2.0** | MCP Stdio Runtime Hardening | Phase 3.1 stdio protocol skeleton / Phase 3.2 tools/list mapping / Phase 3.3 tools/call integration / Phase 3.4 lifecycle hardening / Phase 3.5 release cleanup; default MCP_MODE=fake unchanged; real mode requires explicit command + allowlist; 582+ tests |
 | **v2.3.0** | LLM Provider + Guardrails Runtime | Phase 4.1 LiteLLMProvider 硬化 / Phase 4.2 NL2SQL 真实 LLM 生成链路 + 结构化校验 + fallback / Phase 4.3 可选 LLMJudgeProvider + 评测元数据 / Phase 4.4 Guardrails 编排 + PII 脱敏防泄漏 / Phase 4.5 预算+缓存+降级闭环；默认 fake/offline，默认测试不调用真实 LLM；636+ tests |
+| **v2.4.0** | Operator Console Pilot | 试点级运营台闭环（Dashboard/Tasks/Approvals/Trace/Audit/Metrics/RBAC/Tools/NL2SQL + Docker 演示脚本）；默认离线可跑；638+ tests |
 
 ## Known Pitfalls
 
@@ -70,3 +71,11 @@
 - RBAC 页面当前只做试点说明与状态展示，不实现生产登录系统，不实现 SSO。
 - 默认演示路径仍保持 `AUTH_ENABLED=false`、`RBAC_ENABLED=false`，不得破坏离线演示能力。
 - Docker 本地演示脚本仅用于本地试点验证，不作为生产部署方案。
+
+## v2.4.0 release prep 口径
+
+- v2.4.0 已完成试点级运营台闭环，不再使用“前端未实现”口径。
+- 默认仍为离线演示路径，不依赖真实 LLM、真实外部 MCP。
+- 前端 Tools 调用必须经过后端 ToolGateway / PolicyEngine / 审批链路，不能绕过。
+- NL2SQL 默认 mock/fake，真实 LLM 仅可选配置，不进入默认验收。
+- 不宣称生产级 SSO、多租户、复杂 BI、真实外部系统生产验收已完成。

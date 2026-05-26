@@ -288,3 +288,11 @@ Vite React 可作为轻量备选，但 v2.4 目标是“可试点交付”，优
 - 默认仍为离线演示路径，不接真实 LLM。
 - 默认不接真实外部 MCP Server。
 - 当前仍不做生产级 SSO、多租户、复杂 BI。
+
+## 17. v2.4.0 release prep 统一口径
+
+- v2.4.0 已完成试点级运营台闭环（Dashboard / Tasks / Approvals / Trace / Audit / Metrics / RBAC / Tools / NL2SQL + Docker demo scripts）。
+- 默认仍为离线演示路径，不依赖真实 LLM，不依赖真实外部 MCP Server。
+- Tools 页面仅作为试点验证入口，前端调用不会绕过后端 ToolGateway / PolicyEngine / 审批链路。
+- NL2SQL 页面默认 mock/fake；真实 LLM 仅可选配置，不进入默认验收。
+- 当前仍不做生产级 SSO、多租户、复杂 BI，不宣称生产可直接上线。

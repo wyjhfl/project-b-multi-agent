@@ -331,5 +331,5 @@ def test_initialize_client_version_is_230(tmp_path):
     assert capture_file.exists()
     payload = json.loads(capture_file.read_text(encoding="utf-8"))
     assert payload["clientInfo"]["name"] == "project-b"
-    assert payload["clientInfo"]["version"] == "2.3.0"
+    assert payload["clientInfo"]["version"] == "2.4.0"
     client.close()

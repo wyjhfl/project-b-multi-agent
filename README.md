@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-636+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.3.0-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-636+-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.4.0-green)]()
 
 ---
 
@@ -39,7 +39,7 @@
 
 > **⚠️ 边界说明**
 >
-> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）和 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline）；v2.4 已进入试点级运营台/审批台规划阶段，但前端尚未完成正式实现。真实外部 MCP Server 与真实 LLM 生产验收、完全自治的 LLM 多 Agent 规划仍属于后续扩展。
+> 本项目是生产级 Agent Harness 工程原型，重点展示 Runtime 治理、工具控制、审计追踪、HITL 和评测闭环。当前已具备 real MCP stdio 协议链路（基于 fake stdio fixture 验收）和 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline）。v2.4.0 已完成试点级运营台闭环（Dashboard / Tasks / Approvals / Trace / Audit / Metrics / RBAC / Tools / NL2SQL + Docker 演示脚本）；真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。
 >
 > - Multi-Agent 当前是**确定性多角色编排 / deterministic multi-role orchestration**（Coordinator / Analyst / Executor / Reviewer 规则驱动边界划分），后续可替换为 LLM Planner。
 > - LangGraph 当前 v1.0 以 Harness Runtime 可测试顺序流为主，v1.1 引入最小 LangGraph StateGraph，用于 keyword 主链路验证；Phase 2 已实现 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
@@ -484,6 +484,7 @@ python -m pytest -q
 | **v2.1.0** | Graph Runtime Adapter | Phase 2.1 GraphCheckpointStore / Phase 2.2 GraphRuntimeAdapter feature flag / Phase 2.3 graph interrupt -> approval mapping / Phase 2.4 GraphResumeAdapter / Phase 2.5 release cleanup + failure-path hardening; default graph_runtime_enabled=false; legacy behavior unchanged; 553+ tests |
 | **v2.2.0** | MCP Stdio Runtime Hardening | Phase 3.1 stdio protocol skeleton / Phase 3.2 tools/list mapping / Phase 3.3 tools/call integration / Phase 3.4 lifecycle hardening / Phase 3.5 release cleanup; default MCP_MODE=fake unchanged; real mode requires explicit command + allowlist; verified with 582 passed tests |
 | **v2.3.0** | LLM Provider + Guardrails Runtime | Phase 4.1 LiteLLMProvider 硬化 / Phase 4.2 NL2SQL 真实 LLM 生成链路 + 结构化校验 + fallback / Phase 4.3 可选 LLMJudgeProvider + 评测元数据 / Phase 4.4 Guardrails 编排 + PII 脱敏防泄漏 / Phase 4.5 预算+缓存+降级闭环；默认 fake/offline，默认测试不调用真实 LLM；verified with 636 passed tests |
+| **v2.4.0** | Operator Console Pilot | 试点级运营台闭环（Dashboard / Tasks / Approvals / Trace / Audit / Metrics / RBAC / Tools / NL2SQL）+ Docker demo scripts；默认离线可跑；前端工具调用仍受后端策略与审批约束；verified with 638 passed tests |
 
 ---
 
@@ -660,7 +661,7 @@ project-b-multi-agent/
 | **真实外部 MCP Server 验收** | 当前 real MCP stdio 协议链路已完成（基于 fake fixture 验收）；真实外部 MCP Server 生产验收与更完整 sandbox 仍在后续阶段 |
 | **完整 LangGraph native checkpoint / Command resume** | 当前已有 graph checkpoint / interrupt / resume adapter 最小闭环；完整 LangGraph native checkpoint、Command interrupt、Command resume 仍在 Roadmap |
 | **真实 LLM provider eval** | LiteLLMProvider 接入真实 LLM API，运行完整 NL2SQL / Multi-Agent eval |
-| **试点级运营台/审批台前端** | v2.4 已进入规划与分阶段实施（v2.4.1 起步）；当前尚未完成正式前端交付 |
+| **试点级运营台/审批台前端** | 已完成 v2.4.0 试点级交付（非生产级交付） |
 | **LLM-as-Judge 生产验收** | LLMJudgeProvider 真实 provider 路径在真实环境完成稳定性与成本验收，并补齐评测治理策略 |
 | **LLM 自主多 Agent 规划** | 从确定性多角色编排升级为 LLM 自主决策的多 Agent 协作 |
 | **长期记忆 / 向量库** | 从 ShortTermMemory 升级为持久化 + 向量检索的长期记忆 |
@@ -676,6 +677,7 @@ project-b-multi-agent/
 - **v2.4.2**：完成审批台闭环（审批列表、审批详情、approve/reject/resume）。
 - **v2.4.3**：完成 Trace / Audit / Metrics 聚合展示。
 - **v2.4.4**：完成 RBAC 试点说明页与 Docker 本地演示脚本（`scripts/demo_up.ps1`、`scripts/demo_smoke.ps1`、`scripts/demo_down.ps1`）。
+- **v2.4.5**：完成 Tools + NL2SQL 试点页（工具筛选与最小调用验证、NL2SQL preview/execute 页面）。
 
 ### RBAC 试点口径
 
@@ -689,3 +691,5 @@ project-b-multi-agent/
 - 不宣称多租户已完成。
 - 不宣称复杂 BI 已完成。
 - 不接真实外部 MCP / 真实 LLM 作为默认演示依赖。
+- 前端工具调用不会绕过后端 ToolGateway / PolicyEngine / 审批链路。
+- NL2SQL 默认 mock/fake；真实 LLM 仅可选配置，不进入默认验收。
