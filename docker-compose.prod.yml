@@ -1,0 +1,25 @@
+services:
+  app:
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-postgres}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://agent:change-me@postgres:5432/project_b}
+      REDIS_ENABLED: ${REDIS_ENABLED:-true}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      RBAC_ENABLED: ${RBAC_ENABLED:-true}
+      JWT_SECRET: ${JWT_SECRET:-change-me-strong-secret}
+      MCP_MODE: ${MCP_MODE:-fake}
+      REAL_LLM_ACCEPTANCE_ENABLED: ${REAL_LLM_ACCEPTANCE_ENABLED:-false}
+      REAL_LLM_PREFLIGHT_ENABLED: ${REAL_LLM_PREFLIGHT_ENABLED:-false}
+      REAL_LLM_PREFLIGHT_NETWORK_CHECK: ${REAL_LLM_PREFLIGHT_NETWORK_CHECK:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://app:8000}

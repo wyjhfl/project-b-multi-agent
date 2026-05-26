@@ -402,6 +402,7 @@ from app.api.reflection_api import router as reflection_router
 from app.api.runtime_snapshot import router as runtime_snapshot_router
 from app.api.auth import router as auth_router
 from app.api.llm_acceptance import router as llm_acceptance_router
+from app.api.deployment import router as deployment_router
 
 app.include_router(tasks_router)
 app.include_router(nl2sql_router)
@@ -420,6 +421,7 @@ app.include_router(reflection_router)
 app.include_router(runtime_snapshot_router)
 app.include_router(auth_router)
 app.include_router(llm_acceptance_router)
+app.include_router(deployment_router)
 
 
 @app.get("/health")
@@ -432,5 +434,6 @@ async def health_check():
         "version": "2.5.0",
         "storage_backend": settings.storage_backend,
         "auth_enabled": settings.auth_enabled,
+        "rbac_enabled": settings.rbac_enabled,
         "redis": redis_status,
     }

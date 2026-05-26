@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     real_llm_api_key_env: str = "OPENAI_API_KEY"
     real_llm_preflight_timeout_seconds: float = 10.0
     real_llm_preflight_network_check: bool = False
+    real_llm_smoke_enabled: bool = False
 
     mcp_mode: str = "fake"
     mcp_server_name: str = "fake_ops_mcp"
@@ -61,6 +62,5 @@ class Settings(BaseSettings):
     graph_runtime_enabled: bool = False
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
-
 
 settings = Settings()

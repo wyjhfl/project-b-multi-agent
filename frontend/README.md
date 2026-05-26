@@ -40,6 +40,17 @@ curl http://localhost:3000/api/health
 
 预期：返回后端 `/health` 的 JSON 响应，且不是前端 404。
 
+## v2.6 工程化模板与脚本说明
+
+- 默认开发/演示路径保持不变，仍建议优先使用 `docker-compose.yml`。
+- 生产试点形态使用 `docker-compose.yml + docker-compose.prod.yml` override，不替代默认开发模板。
+- 推荐脚本（在仓库根目录执行）：
+  - `powershell -ExecutionPolicy Bypass -File scripts/prod_config_check.ps1`
+  - `powershell -ExecutionPolicy Bypass -File scripts/prod_up.ps1`
+  - `powershell -ExecutionPolicy Bypass -File scripts/prod_smoke.ps1`
+  - `powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1`
+- 本阶段定位是“企业内网试点准生产可投入使用”，不是公网生产可直接上线。
+
 ## 当前页面范围（v2.4.5）
 
 - Dashboard（运行概览）

@@ -57,3 +57,10 @@
 ## 10. Next phase
 
 - 进入 v2.5.0 tag 决策阶段（本轮仅 release prep，不打 tag，不创建 GitHub Release）。
+
+
+## 11. v2.6 / Phase 6.0 衔接说明
+
+- v2.5.0 发布准备完成后，下一阶段进入 v2.6 / Phase 6.0 工程化落地。
+- 目标是把当前能力收敛为“企业内网试点准生产可投入使用”的部署形态，并保持默认离线开发路径不变。
+- 真实 LLM smoke 仍保持 opt-in，不进入默认 CI；真实外部 MCP Server 生产验收仍未完成。

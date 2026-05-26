@@ -12,6 +12,7 @@ jobs:
     env:
       MCP_MODE: fake
       LLM_PROVIDER: fake
+      REAL_LLM_SMOKE_ENABLED: "false"
 
     steps:
       - uses: actions/checkout@v4
@@ -39,3 +40,28 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Docker compose config (dev)
+        run: docker compose config
+
+      - name: Docker compose config (prod override)
+        run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config

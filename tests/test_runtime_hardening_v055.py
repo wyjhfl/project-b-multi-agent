@@ -172,6 +172,17 @@ def test_app_version_updated():
     assert app.version == "2.5.0"
 
 
+def test_health_has_rbac_enabled_field():
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["version"] == "2.5.0"
+    assert "rbac_enabled" in data
+
+
 def test_metrics_tools_summary_no_regression():
     with tempfile.TemporaryDirectory() as tmp:
         db_path = os.path.join(tmp, "tools_reg.sqlite")

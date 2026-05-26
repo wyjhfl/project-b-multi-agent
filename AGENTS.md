@@ -28,6 +28,7 @@
 | **v2.3.0** | LLM Provider + Guardrails Runtime | Phase 4.1 LiteLLMProvider 硬化 / Phase 4.2 NL2SQL 真实 LLM 生成链路 + 结构化校验 + fallback / Phase 4.3 可选 LLMJudgeProvider + 评测元数据 / Phase 4.4 Guardrails 编排 + PII 脱敏防泄漏 / Phase 4.5 预算+缓存+降级闭环；默认 fake/offline，默认测试不调用真实 LLM；636+ tests |
 | **v2.4.0** | Operator Console Pilot | 试点级运营台闭环（Dashboard/Tasks/Approvals/Trace/Audit/Metrics/RBAC/Tools/NL2SQL + Docker 演示脚本）；默认离线可跑；638+ tests |
 | **v2.5.0** | Real LLM Optional Acceptance Pack | Phase 5.1 provider preflight / Phase 5.2 opt-in real LLM smoke / Phase 5.3 token/cost/budget/cache/fallback 验收 / Phase 5.4 LLMJudge opt-in smoke / Phase 5.5 文档收口与 release prep；默认 fake/offline，默认测试不调用真实 LLM |
+| **v2.6.0** | Phase 6.0 Engineering Readiness | 部署门禁（deployment guard）/ 生产模板（.env.production.example + compose override）/ prod 脚本 / CI 工程化增强；定位企业内网试点准生产可投入使用；默认离线路径不变 |
 
 ## Known Pitfalls
 
@@ -88,3 +89,19 @@
 - 真实 LLM smoke 仅为 opt-in 验收，不等于生产验收完成。
 - 不宣称真实外部 MCP Server、生产级 SSO、多租户、复杂 BI、完整 LangGraph native Command resume 已完成。
 - 不宣称生产可直接上线。
+
+
+## v2.6 / Phase 6.0 工程化口径
+
+- 当前阶段定位：企业内网试点准生产可投入使用。
+- 必须保留默认离线开发路径，不得强制依赖真实 LLM 或真实外部 MCP。
+- 生产门禁通过 deployment guard 实现，配置错误返回结构化结果，不抛 500。
+- 生产部署通过 `docker-compose.yml + docker-compose.prod.yml` override 与 `scripts/prod_*.ps1` 执行。
+- 不宣称公网生产可直接上线。
+- 未完成项仍包括：生产级 SSO/OIDC、多租户、复杂 BI、真实外部 MCP 生产验收。
+
+## v3.0 生产路线说明（当前阶段）
+
+- v3.0 采用分阶段推进，当前处于第一阶段：v2.6 / Phase 6.0 工程化落地。
+- 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
+- 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
