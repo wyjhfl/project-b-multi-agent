@@ -1,0 +1,86 @@
+# v2.7 Production Security Baseline 规划
+
+## 1. v2.6 工程化基础盘点
+
+v2.6.0 已形成以下可复用基础：
+
+- 部署门禁：`deployment_guard` + `/deployment/check` 结构化校验
+- 生产模板：`docker-compose.prod.yml` + `.env.production.example`
+- 运维脚本：`prod_config_check/prod_up/prod_smoke/prod_down`
+- 默认离线路径稳定：fake/offline、默认 pytest 不调用真实 LLM
+- 运营台试点能力已具备：Tasks/Approvals/Audit/Metrics/Tools/NL2SQL
+
+这些能力可作为 v2.7 安全基线建设的起点，减少重复改造。
+
+## 2. v2.7 目标：Production Security Baseline
+
+在不破坏默认离线路径与现有试点能力的前提下，补齐“安全基线必需项”，让企业内网试点具备更清晰的安全控制面与审计可追溯性。
+
+## 3. Phase 7.1：CORS 与安全响应头
+
+目标：最小化跨域暴露与浏览器层风险。
+
+- 引入可配置 CORS allowlist（默认开发宽松、生产收敛）
+- 增加安全响应头基线（如 X-Content-Type-Options、X-Frame-Options、Referrer-Policy）
+- 保持默认开发体验不受阻断，生产策略通过配置收紧
+- 增加对应测试与文档说明
+
+## 4. Phase 7.2：Rate limit / request size limit / basic abuse guard
+
+目标：降低滥用与资源耗尽风险。
+
+- API 速率限制（按 IP/用户维度的轻量策略）
+- 请求体大小限制与关键接口保护
+- 基础 abuse guard（突发请求、异常 payload、重复重放）
+- 失败返回结构化错误，不泄漏内部细节
+
+## 5. Phase 7.3：结构化日志与日志脱敏
+
+目标：提升可观测性并避免日志泄漏敏感信息。
+
+- 统一结构化日志字段（request_id、task_id、actor、action、result）
+- 对 token、api_key、authorization、数据库密码等做脱敏
+- 明确日志级别与默认输出策略
+- 补充离线与生产配置差异说明
+
+## 6. Phase 7.4：审计留存策略与导出边界
+
+目标：明确“记录什么、保留多久、如何导出”。
+
+- 定义审计留存周期与滚动策略（试点级）
+- 审计导出字段白名单与脱敏边界
+- 导出接口/脚本的权限边界与使用说明
+- 补充合规说明（仅试点级，不替代正式合规体系）
+
+## 7. Phase 7.5：OIDC/SSO 规划或最小接入方案
+
+目标：给出可执行路径，但不在 v2.7 宣称生产级完工。
+
+- 输出 OIDC/SSO 最小接入设计（身份源、回调、角色映射）
+- 明确与现有 JWT/RBAC 的兼容策略
+- 给出试点接入 checklist 与风险清单
+- 保持默认 auth/rbac 关闭的演示路径可用
+
+## 8. Phase 7.6：v2.7 release prep
+
+目标：形成可审阅、可交接的发布材料。
+
+- 同步版本口径与测试口径
+- 收口安全边界声明与 runbook
+- 完成 release notes + release review
+- 产出 tag 前检查清单
+
+## 9. 明确不做（v2.7 阶段）
+
+- 不做多租户
+- 不做复杂 BI
+- 不做真实外部 MCP 生产验收
+- 不承诺完整公网生产 SLA
+
+## 10. 验收原则
+
+- 默认离线路径不变
+- 默认 pytest 不调用真实 LLM
+- 不提交 API key、token、账号凭据
+- 不宣称公网生产可直接上线
+- 不宣称真实 LLM 与真实外部 MCP 生产验收完成
