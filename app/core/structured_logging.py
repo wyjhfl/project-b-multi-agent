@@ -27,6 +27,19 @@ SENSITIVE_KEYS = {
 
 _DSN_SCHEME_PATTERN = re.compile(r"^(postgresql(?:\+psycopg)?|redis)$", re.IGNORECASE)
 _JSON_LOGGER_NAME = "app.structured"
+SENSITIVE_KEY_PATTERNS = (
+    "token",
+    "key",
+    "api_key",
+    "apikey",
+    "secret",
+    "password",
+    "authorization",
+    "cookie",
+    "jwt",
+    "database_url",
+    "redis_url",
+)
 
 
 def setup_structured_logger() -> logging.Logger:
@@ -92,7 +105,10 @@ def redact_mapping(data: dict[str, Any]) -> dict[str, Any]:
     redacted: dict[str, Any] = {}
     for key, value in data.items():
         key_lower = str(key).lower()
-        if key_lower in SENSITIVE_KEYS:
+        matched_sensitive = key_lower in SENSITIVE_KEYS or any(
+            pattern in key_lower for pattern in SENSITIVE_KEY_PATTERNS
+        )
+        if matched_sensitive:
             redacted[key] = redact_sensitive_value(value)
             continue
         if isinstance(value, dict):

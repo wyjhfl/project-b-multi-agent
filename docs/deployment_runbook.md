@@ -77,6 +77,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `LOG_INCLUDE_CLIENT_IP=true`
 - `LOG_INCLUDE_USER_AGENT=true`
 - `LOG_REDACTION_ENABLED=true`
+- 脱敏策略覆盖精确敏感键与常见组合敏感键（如 `x_api_key`、`openai_api_key`、`client_secret`、`jwt_token`）。
 
 ## 5. 配置检查脚本
 

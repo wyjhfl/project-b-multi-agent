@@ -54,6 +54,7 @@ v2.7 的目标是补齐“企业内网试点准生产可投入使用”的安全
 - 对 guard 拦截响应（`429/413/400/414`）同样记录结构化日志并返回 `X-Request-ID`。
 - 默认不记录 request body，不记录 prompt 原文，不记录密钥原文。
 - 敏感信息脱敏覆盖：`authorization`、`cookie`、`set-cookie`、`token`、`access_token`、`refresh_token`、`api_key`、`password`、`secret`、`jwt`、`database_url`、`redis_url`。
+- 脱敏策略同时覆盖“精确敏感键”和“常见组合敏感键”（如 `openai_api_key`、`client_secret`、`jwt_token`、`authorization_header`）。
 - DSN 脱敏支持 PostgreSQL/Redis，保留定位上下文但不暴露密码明文。
 - 新增测试覆盖日志脱敏、JSON 可解析、`X-Request-ID` 透传与 guard 响应链路。
 

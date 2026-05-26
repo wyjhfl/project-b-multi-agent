@@ -33,6 +33,64 @@ def test_redact_mapping_masks_sensitive_fields():
     assert "redis-password" not in serialized
 
 
+def test_redact_mapping_masks_composite_sensitive_keys():
+    payload = {
+        "x_api_key": "x-key-123",
+        "openai_api_key": "sk-openai-secret",
+        "client_secret": "client-secret-xyz",
+        "jwt_token": "jwt-token-123",
+        "database_password": "db-pass-value",
+        "authorization_header": "Bearer secret-auth",
+        "session_cookie": "session-cookie-value",
+        "database_url": "postgresql://agent:db-pass-2@db:5432/project_b",
+        "redis_url": "redis://:redis-pass-2@redis:6379/0",
+        "cache_key": "cache-key-001",
+        "normal": "ok",
+        "status": "running",
+        "request_id": "req-001",
+        "task_id": "task-001",
+    }
+
+    redacted = redact_mapping(payload)
+    serialized = json.dumps(redacted, ensure_ascii=False)
+    for raw in [
+        "x-key-123",
+        "sk-openai-secret",
+        "client-secret-xyz",
+        "jwt-token-123",
+        "db-pass-value",
+        "secret-auth",
+        "session-cookie-value",
+        "db-pass-2",
+        "redis-pass-2",
+        "cache-key-001",
+    ]:
+        assert raw not in serialized
+    assert redacted["normal"] == "ok"
+    assert redacted["status"] == "running"
+    assert redacted["request_id"] == "req-001"
+    assert redacted["task_id"] == "task-001"
+
+
+def test_redact_mapping_masks_nested_composite_sensitive_keys():
+    payload = {
+        "meta": {
+            "openai_api_key": "nested-openai-key",
+            "items": [
+                {"client_secret": "nested-client-secret"},
+                {"jwt_token": "nested-jwt-token"},
+            ],
+        },
+        "request_id": "req-nested-001",
+    }
+    redacted = redact_mapping(payload)
+    serialized = json.dumps(redacted, ensure_ascii=False)
+    assert "nested-openai-key" not in serialized
+    assert "nested-client-secret" not in serialized
+    assert "nested-jwt-token" not in serialized
+    assert redacted["request_id"] == "req-nested-001"
+
+
 def test_build_log_event_uses_expected_fields():
     event = build_log_event(
         event_type="http_request",
@@ -123,3 +181,25 @@ def test_logs_are_json_and_no_sensitive_plain_text(monkeypatch):
     assert "SECRET-ABC-123" not in payload
     assert "secret-cookie" not in payload
     assert any(item.get("request_id") == "log-check-001" for item in captured_events)
+
+
+def test_log_event_json_no_composite_sensitive_plain_text():
+    event = build_log_event(
+        event_type="http_request",
+        request_id="req-logs-001",
+        method="POST",
+        path="/tools/call",
+        status_code=200,
+        latency_ms=10.1,
+        extras={
+            "openai_api_key": "sk-openai-original",
+            "client_secret": "client-secret-original",
+            "jwt_token": "jwt-token-original",
+            "normal": "ok",
+        },
+    )
+    serialized = json.dumps(event, ensure_ascii=False)
+    assert "sk-openai-original" not in serialized
+    assert "client-secret-original" not in serialized
+    assert "jwt-token-original" not in serialized
+    assert event["normal"] == "ok"
