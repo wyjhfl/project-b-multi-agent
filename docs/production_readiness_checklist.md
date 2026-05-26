@@ -8,6 +8,8 @@
 - [ ] `JWT_SECRET` 已替换默认开发占位值
 - [ ] 未提交真实 `.env.production`
 - [ ] 未在日志/脚本输出中暴露密钥原文
+- [ ] `CORS_ENABLED=true` 且 `CORS_ALLOW_ORIGINS` 为明确来源（非 `*`）
+- [ ] `SECURITY_HEADERS_ENABLED=true`
 
 ## 2. 鉴权与 RBAC
 
@@ -69,3 +71,4 @@
 - [ ] 复杂 BI
 - [ ] 真实外部 MCP Server 生产验收
 - [ ] 真实 LLM 生产验收完成声明（禁止）
+- [ ] 完整公网生产安全基线（当前仅完成 CORS 与安全响应头第一步）

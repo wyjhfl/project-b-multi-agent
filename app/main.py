@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
 
 from app.agent.graph.kernel import AgentKernel
 from app.agent.graph.runtime_adapter import GraphRuntimeAdapter
@@ -31,6 +32,7 @@ from app.tools.local.ops_query import (
 )
 from app.tools.mcp.client import FakeMCPClient
 from app.core.config import settings
+from app.core.security_headers import SecurityHeadersMiddleware, build_cors_options
 
 _kernel: AgentKernel | None = None
 _trace_recorder: TraceRecorder | None = None
@@ -384,6 +386,11 @@ app = FastAPI(
     title="Project B: Harness-native 运营中台 Agent",
     version="2.6.0",
 )
+
+if settings.cors_enabled:
+    app.add_middleware(CORSMiddleware, **build_cors_options(settings))
+
+app.add_middleware(SecurityHeadersMiddleware, enabled=settings.security_headers_enabled)
 
 from app.api.tasks import router as tasks_router
 from app.api.nl2sql import router as nl2sql_router

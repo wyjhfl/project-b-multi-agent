@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field
 
 from app.core.config import Settings, settings
+from app.core.security_headers import parse_csv_config
 
 _DISALLOWED_JWT_SECRETS = {
     "",
@@ -96,6 +97,15 @@ def _is_obvious_placeholder_password(password: str) -> bool:
     return _contains_placeholder_token(normalized)
 
 
+def _is_cors_origin_policy_valid(current: Settings) -> tuple[bool, str]:
+    origins = parse_csv_config(current.cors_allow_origins)
+    if not origins:
+        return False, "CORS 启用时 CORS_ALLOW_ORIGINS 不能为空。"
+    if "*" in origins:
+        return False, "production 环境不允许 CORS_ALLOW_ORIGINS 使用通配符 *。"
+    return True, ""
+
+
 def run_deployment_checks(runtime_settings: Settings | None = None) -> DeploymentCheckResult:
     current = runtime_settings or settings
     env = (current.app_env or "development").strip().lower()
@@ -134,6 +144,24 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
         passed=bool(current.rbac_enabled),
         level="error",
         detail="production 环境要求 RBAC_ENABLED=true。",
+    )
+
+    if bool(current.cors_enabled):
+        cors_ok, cors_error = _is_cors_origin_policy_valid(current)
+        _add_check(
+            result,
+            name="cors_allow_origins",
+            passed=cors_ok,
+            level="error",
+            detail=cors_error or "CORS origin 配置合法。",
+        )
+
+    _add_check(
+        result,
+        name="security_headers_enabled",
+        passed=bool(current.security_headers_enabled),
+        level="error",
+        detail="production 环境要求 SECURITY_HEADERS_ENABLED=true。",
     )
 
     if (current.storage_backend or "").strip().lower() == "postgres":

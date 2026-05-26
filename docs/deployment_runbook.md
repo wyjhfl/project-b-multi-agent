@@ -54,6 +54,12 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `MCP_MODE=fake`
 - `REAL_LLM_ACCEPTANCE_ENABLED=false`
 
+新增安全基线配置（Phase 7.1）：
+
+- `CORS_ENABLED=true`
+- `CORS_ALLOW_ORIGINS` 必须配置明确来源，production 禁止使用 `*`
+- `SECURITY_HEADERS_ENABLED=true`
+
 ## 5. 配置检查脚本
 
 ```powershell
@@ -123,3 +129,4 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 默认路径仍为离线演示，不依赖真实 LLM 与真实外部 MCP。
 - 真实 LLM smoke 为 opt-in，不进入默认 CI。
 - 本手册不包含生产级 SSO/OIDC、多租户、复杂 BI 方案。
+- 当前仅完成安全基线第一步（CORS 与安全响应头），不等于完整公网生产安全基线完成。

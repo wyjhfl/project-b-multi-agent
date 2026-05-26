@@ -5,6 +5,12 @@ class Settings(BaseSettings):
     app_name: str = "project-b-multi-agent"
     app_env: str = "development"
     debug: bool = True
+    cors_enabled: bool = True
+    cors_allow_origins: str = "http://localhost:3000"
+    cors_allow_credentials: bool = True
+    cors_allow_methods: str = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+    cors_allow_headers: str = "Authorization,Content-Type"
+    security_headers_enabled: bool = True
     ops_db_path: str = "data/db/ops_demo.sqlite"
     runtime_db_path: str = "data/db/runtime.sqlite"
     metrics_db_path: str = "data/db/runtime_metrics.sqlite"
