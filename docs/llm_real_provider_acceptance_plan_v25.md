@@ -115,12 +115,21 @@ python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q
 
 目标：验证真实 provider 下的成本控制闭环。
 
+当前状态：**已完成离线路径验收闭环与 opt-in 报告字段收口**。
+
 验收点：
 
 - token/cost 采集准确性（包含 prompt/completion/total/cost）；
 - budget 软硬阈值行为（allow/warn/block/fallback）符合预期；
 - cache 命中与未命中行为可观测，且不缓存高风险执行结果；
 - fallback_to_mock 在预算阻断、调用异常、结构校验失败场景行为稳定。
+
+本阶段补充：
+
+- 新增统一验收结果摘要模型，覆盖 provider / nl2sql / judge / budget / cache / fallback 模式；
+- 默认离线测试覆盖预算阻断、fallback 语义、cache_hit 语义、fallback_reason 非空约束；
+- `/metrics/runtime` 可观测 `llm_budget` 与 `llm_cache` 摘要；
+- opt-in smoke 的 NL2SQL 断言要求明确区分“真实命中 LLM”与“fallback 到 mock”。
 
 交付物：
 

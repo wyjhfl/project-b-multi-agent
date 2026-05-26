@@ -1,3 +1,4 @@
+from app.harness.llm.acceptance import LLMAcceptanceResult, summarize_llm_acceptance
 from app.harness.llm.budget import LLMBudgetManager, get_llm_budget_manager, reset_llm_budget_manager_for_test
 from app.harness.llm.cache import (
     LLMResultCache,
@@ -10,8 +11,10 @@ from app.harness.llm.preflight import LLMPreflightResult, run_llm_provider_prefl
 
 __all__ = [
     "LLMBudgetManager",
+    "LLMAcceptanceResult",
     "LLMResultCache",
     "LLMPreflightResult",
+    "summarize_llm_acceptance",
     "build_nl2sql_cache_key",
     "build_judge_cache_key",
     "get_llm_budget_manager",

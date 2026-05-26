@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 
@@ -69,6 +69,12 @@ def test_real_llm_provider_minimal_call_opt_in_only(monkeypatch: pytest.MonkeyPa
     assert isinstance(metadata.content, str)
     assert len(metadata.content.strip()) > 0
     assert metadata.provider == "litellm"
+    print(
+        "[real_llm_smoke] provider_call "
+        f"provider={metadata.provider} model={metadata.model} latency_ms={metadata.latency_ms} "
+        f"prompt_tokens={metadata.prompt_tokens} completion_tokens={metadata.completion_tokens} "
+        f"total_tokens={metadata.total_tokens} cost={metadata.cost}"
+    )
 
 
 @pytest.mark.real_llm
@@ -89,13 +95,31 @@ def test_real_llm_nl2sql_preview_opt_in_only(monkeypatch: pytest.MonkeyPatch):
     )
     assert response.status_code == 200
     payload = response.json()
-    if payload.get("generator_used") == "llm" or payload.get("provider_used") == "litellm":
-        assert payload.get("generator_used") == "llm"
-        assert payload.get("provider_used") == "litellm"
+    if payload.get("generator_used") == "llm" and payload.get("provider_used") == "litellm":
+        provider_metadata = payload.get("provider_metadata") or {}
+        assert "latency_ms" in provider_metadata
+        assert "prompt_tokens" in provider_metadata
+        assert "completion_tokens" in provider_metadata
+        assert "total_tokens" in provider_metadata
+        assert "cost" in provider_metadata
+        print(
+            "[real_llm_smoke] nl2sql_preview "
+            f"generator_used={payload.get('generator_used')} provider_used={payload.get('provider_used')} "
+            f"fallback_used={payload.get('fallback_used')} fallback_reason={payload.get('fallback_reason', '')} "
+            f"latency_ms={provider_metadata.get('latency_ms')} prompt_tokens={provider_metadata.get('prompt_tokens')} "
+            f"completion_tokens={provider_metadata.get('completion_tokens')} total_tokens={provider_metadata.get('total_tokens')} "
+            f"cost={provider_metadata.get('cost')}"
+        )
     else:
         assert payload.get("fallback_used") is True
         assert isinstance(payload.get("fallback_reason"), str)
         assert payload.get("fallback_reason", "").strip() != ""
+        assert payload.get("generator_used") == "mock_fallback"
+        print(
+            "[real_llm_smoke] nl2sql_preview "
+            f"generator_used={payload.get('generator_used')} provider_used={payload.get('provider_used')} "
+            f"fallback_used={payload.get('fallback_used')} fallback_reason={payload.get('fallback_reason', '')}"
+        )
 
 
 def test_real_llm_smoke_offline_fallback_path_still_available():

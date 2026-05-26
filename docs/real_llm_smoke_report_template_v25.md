@@ -55,6 +55,11 @@
 - 是否真实命中 LLM（是/否）：
 - fallback_used：
 - fallback_reason：
+- provider_metadata.latency_ms：
+- provider_metadata.prompt_tokens：
+- provider_metadata.completion_tokens：
+- provider_metadata.total_tokens：
+- provider_metadata.cost：
 - warnings：
 
 ## 6. 错误与归因

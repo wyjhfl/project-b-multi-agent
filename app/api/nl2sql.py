@@ -42,6 +42,8 @@ class PreviewResponse(BaseModel):
     fallback_reason: str | None = None
     warnings: list[str] = Field(default_factory=list)
     guardrails: dict | None = None
+    provider_metadata: dict | None = None
+    budget_status: dict | None = None
 
 
 @router.post("/preview", response_model=PreviewResponse)
@@ -152,6 +154,8 @@ class ExecuteResponse(BaseModel):
     formatted_result: dict | None = None
     chart_spec: dict | None = None
     guardrails: dict | None = None
+    provider_metadata: dict | None = None
+    budget_status: dict | None = None
 
 
 def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, input_guard: dict | None = None):
@@ -179,6 +183,8 @@ def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, 
         fallback_reason=result["fallback_reason"],
         warnings=result["warnings"],
         guardrails=merged_guardrails,
+        provider_metadata=result.get("provider_metadata"),
+        budget_status=result.get("budget_status"),
     )
 
 
@@ -234,4 +240,6 @@ async def execute_nl2sql(req: ExecuteRequest):
         formatted_result=result["formatted_result"],
         chart_spec=result["chart_spec"],
         guardrails=merged_guardrails,
+        provider_metadata=result.get("provider_metadata"),
+        budget_status=result.get("budget_status"),
     )

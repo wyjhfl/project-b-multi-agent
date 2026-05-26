@@ -72,6 +72,8 @@ class NL2SQLPipeline:
             "fallback_reason": gen_result["fallback_reason"],
             "warnings": gen_result["warnings"],
             "guardrails": guardrails_info,
+            "provider_metadata": gen_result.get("provider_metadata"),
+            "budget_status": gen_result.get("budget_status"),
         }
 
     def run(
@@ -138,6 +140,8 @@ class NL2SQLPipeline:
             "fallback_reason": preview_result["fallback_reason"],
             "warnings": preview_result["warnings"],
             "guardrails": preview_result.get("guardrails"),
+            "provider_metadata": preview_result.get("provider_metadata"),
+            "budget_status": preview_result.get("budget_status"),
         }
 
     def _generate(
