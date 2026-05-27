@@ -185,6 +185,63 @@ def test_json_markdown_should_not_contain_raw_prompt_or_secrets(tmp_path):
         assert REDACTED_PROMPT_PLACEHOLDER in text
 
 
+def test_evidence_fields_should_preserve_original_values_after_sanitize(tmp_path):
+    case = _build_case(
+        api_key_present=False,
+        prompt_tokens=123,
+        completion_tokens=45,
+        total_tokens=168,
+        latency_ms=88.5,
+        cost=0.3456,
+        cache_hit=True,
+        budget_action="fallback",
+        fallback_reason="budget_blocked",
+        error_type="budget_block",
+        outcome="fallback",
+        detail={
+            "prompt": "原始 prompt 不能导出",
+            "openai_api_key": "sk-real-key",
+            "client_secret": "client-secret-value",
+            "database_password": "db-password-value",
+            "authorization_header": "Bearer auth-value",
+            "session_cookie": "sid=abc",
+            "database_url": "postgresql://user:dbpassword@localhost:5432/db",
+            "redis_url": "redis://:redispassword@localhost:6379/0",
+        },
+    )
+    report = build_pilot_report(cases=[case], commit="abc", environment="test")
+    json_path = write_pilot_report_json(report, output_dir=tmp_path)
+    md_path = write_pilot_report_markdown(report, output_dir=tmp_path)
+
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    md_text = md_path.read_text(encoding="utf-8")
+    json_text = json.dumps(payload, ensure_ascii=False)
+
+    assert payload["prompt_tokens"] == 123
+    assert payload["completion_tokens"] == 45
+    assert payload["total_tokens"] == 168
+    assert payload["latency_ms"] == 88.5
+    assert payload["cost"] == 0.3456
+    assert payload["api_key_present"] is False
+    assert payload["cache_hit"] is True
+    assert payload["budget_action"] == "fallback"
+    assert payload["fallback_reason"] == "budget_blocked"
+    assert payload["error_type"] == "budget_block"
+    assert payload["outcome"] == "fallback"
+    assert "tokens(prompt/completion/total): 123/45/168" in md_text
+
+    for text in (json_text, md_text):
+        assert "原始 prompt 不能导出" not in text
+        assert "sk-real-key" not in text
+        assert "client-secret-value" not in text
+        assert "db-password-value" not in text
+        assert "Bearer auth-value" not in text
+        assert "sid=abc" not in text
+        assert "dbpassword" not in text
+        assert "redispassword" not in text
+        assert REDACTED_PROMPT_PLACEHOLDER in text
+
+
 def test_markdown_should_include_controlled_pilot_boundary(tmp_path):
     case = _build_case()
     report = build_pilot_report(cases=[case], commit="abc", environment="test")

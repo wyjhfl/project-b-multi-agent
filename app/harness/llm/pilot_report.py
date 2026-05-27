@@ -48,6 +48,23 @@ PROMPT_FIELD_PATTERNS = (
     "input",
     "messages",
 )
+PILOT_EVIDENCE_SAFE_KEYS = {
+    "prompt_tokens",
+    "completion_tokens",
+    "total_tokens",
+    "api_key_present",
+    "cache_hit",
+    "budget_action",
+    "latency_ms",
+    "cost",
+    "request_id",
+    "provider",
+    "model",
+    "base_url_summary",
+    "fallback_reason",
+    "error_type",
+    "outcome",
+}
 _DSN_SCHEME_PATTERN = re.compile(r"^(postgresql(?:\+psycopg)?|redis)$", re.IGNORECASE)
 
 
@@ -205,11 +222,15 @@ def _redact_dsn_if_needed(value: Any) -> Any:
 
 def _is_sensitive_key(key: str) -> bool:
     key_lower = key.lower()
+    if key_lower in PILOT_EVIDENCE_SAFE_KEYS:
+        return False
     return key_lower in SENSITIVE_KEYS_EXACT or any(pattern in key_lower for pattern in SENSITIVE_KEY_PATTERNS)
 
 
 def _is_prompt_like_key(key: str) -> bool:
     key_lower = key.lower()
+    if key_lower in PILOT_EVIDENCE_SAFE_KEYS:
+        return False
     return any(pattern in key_lower for pattern in PROMPT_FIELD_PATTERNS)
 
 
