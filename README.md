@@ -750,3 +750,5 @@ project-b-multi-agent/
 - v2.8.0 GitHub Release 已由用户手动创建（tag 不移动）。
 - 当前 main 已进入 v2.9.0 release prep，包含 Phase 9.1~9.4 全部交付与 P0 cleanup。
 - v2.9.0 仍保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；本轮未执行真实外网 LLM。
+- v2.9.0 GitHub Release 已由用户手动创建（tag 不移动）。
+- 下一阶段建议进入 v3.0 生产落地最终阶段规划。

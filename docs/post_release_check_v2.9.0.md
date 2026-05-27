@@ -25,14 +25,13 @@ git ls-remote --tags origin v2.9.0
 
 预期：返回 `refs/tags/v2.9.0`。
 
-## 4. GitHub Release 手动创建步骤
+## 4. GitHub Release 完成记录
 
-1. 打开仓库 Releases 页面。  
-2. 选择 **Draft a new release**。  
-3. Tag 选择：`v2.9.0`。  
-4. 标题填写：`Project B v2.9.0 - Real LLM Controlled Pilot Evidence`。  
-5. 描述内容复制自：`RELEASE_NOTES_v2.9.0.md`。  
-6. 检查无密钥/凭据后发布。
+- GitHub Release：**已由用户手动创建**
+- Release title：`Project B v2.9.0 - Real LLM Controlled Pilot Evidence`
+- Release notes 来源：`RELEASE_NOTES_v2.9.0.md`
+- `v2.9.0` tag 未移动（`v2.9.0^{} = eccc9708b493af25d30ac6e5da08cdd92f461d48`）
+- 本轮未执行真实外网 LLM
 
 ## 5. 验证摘要
 
@@ -60,8 +59,7 @@ git ls-remote --tags origin v2.9.0
 
 ## 7. 下一阶段建议
 
-- 推荐先手动创建 v2.9.0 GitHub Release。
-- Release 后补一条文档提交记录“GitHub Release 已创建”。
+- 已完成 v2.9.0 GitHub Release 收口记录。
 - 后续路线建议进入 v3.0 生产落地最终阶段规划：
   - 真实 LLM 受控试点实测报告归档
   - 生产部署演练
