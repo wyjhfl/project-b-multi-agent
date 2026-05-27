@@ -126,3 +126,9 @@
 - [ ] evidence_links 与 metrics snapshot 仅保留脱敏摘要，不包含 prompt 原文与密钥原文
 - [ ] Judge evidence_links 必须可追溯（`llm_judge_acceptance`）或明确标记未记录（非空语义说明）
 - [ ] 已完成 Phase 9.4：pilot evidence 只读 API / 前端入口（只读、脱敏、不触发真实 LLM）
+
+## 15. v2.9 发布完成与 v3.0 入口
+
+- [ ] v2.9.0 GitHub Release 已手动创建并记录（tag 不移动）
+- [ ] 下一阶段进入 v3.0 Final Production Landing 规划与实施
+- [ ] 已建立 v3.0 规划文档：`docs/v3_final_production_landing_plan.md`

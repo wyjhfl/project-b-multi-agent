@@ -138,3 +138,4 @@
 - v2.9.0 已完成 Phase 9.1~9.4 与 P0 cleanup，形成完整受控试点证据闭环。
 - v2.9.0 GitHub Release 已由用户手动创建，tag 保持不变。
 - 下一阶段进入 v3.0 生产落地最终阶段规划。
+- v3.0 规划文档：`docs/v3_final_production_landing_plan.md`。
