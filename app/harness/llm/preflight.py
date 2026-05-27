@@ -162,6 +162,64 @@ def run_llm_provider_preflight(
     if not preflight_enabled:
         warnings.append("real_llm_preflight_enabled=false")
 
+    if not acceptance_enabled or not preflight_enabled:
+        if perform_network_check:
+            warnings.append("network_check_skipped_disabled")
+        _append_check(
+            checks,
+            "disabled_mode",
+            True,
+            "preflight disabled: 跳过 provider/model/api_key 强校验与网络检查",
+        )
+        _append_check(
+            checks,
+            "provider_observed",
+            bool(provider_name),
+            f"provider={provider_name or '<empty>'}",
+        )
+        _append_check(
+            checks,
+            "model_observed",
+            bool(model_name),
+            f"model={'<set>' if bool(model_name) else '<empty>'}",
+        )
+        _append_check(
+            checks,
+            "api_key_env_observed",
+            bool(api_key_env_name),
+            f"real_llm_api_key_env={_mask_env_name(api_key_env_name)}",
+        )
+        has_api_key_disabled = bool(os.getenv(api_key_env_name)) if api_key_env_name else False
+        _append_check(
+            checks,
+            "api_key_present_observed",
+            has_api_key_disabled,
+            "api key in env: present" if has_api_key_disabled else "api key in env: missing",
+        )
+        _append_check(
+            checks,
+            "network_check_gate",
+            bool(cfg.real_llm_preflight_network_check),
+            f"real_llm_preflight_network_check={bool(cfg.real_llm_preflight_network_check)}",
+        )
+        _validate_timeout_and_retry(cfg, checks, warnings, errors)
+        return LLMPreflightResult(
+            allowed=False,
+            status="disabled",
+            provider=provider_name,
+            model=model_name,
+            base_url=_redact_base_url(base_url_text),
+            api_key_env=api_key_env_name,
+            api_key_present=has_api_key_disabled,
+            network_check_allowed=bool(cfg.real_llm_preflight_network_check),
+            network_check_requested=perform_network_check,
+            network_check_executed=False,
+            checks=checks,
+            warnings=warnings,
+            errors=[],
+            latency_ms=0.0,
+        )
+
     provider_ok = provider_name in {"litellm"}
     _append_check(checks, "provider_supported", provider_ok, f"provider={provider_name or '<empty>'}")
     if not provider_ok:

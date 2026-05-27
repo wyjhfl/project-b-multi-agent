@@ -34,9 +34,12 @@ def test_preflight_default_disabled_no_network(monkeypatch):
 
     monkeypatch.setattr(preflight_mod, "_perform_network_check", _fake_network)
     result = run_llm_provider_preflight(perform_network_check=True)
-    assert result.status == "failed"
+    assert result.status == "disabled"
+    assert result.allowed is False
     assert result.network_check_executed is False
     assert result.network_check_allowed is False
+    assert all("real_llm_model is empty" not in err for err in result.errors)
+    assert all("missing api key env" not in err for err in result.errors)
     assert called["count"] == 0
 
 
@@ -65,6 +68,19 @@ def test_preflight_missing_api_key_env_no_leak(monkeypatch):
     assert "sk-" not in text
 
 
+def test_preflight_enabled_unsupported_provider_returns_error(monkeypatch):
+    _set_default_real_llm_flags(monkeypatch)
+    monkeypatch.setattr(settings, "real_llm_acceptance_enabled", True)
+    monkeypatch.setattr(settings, "real_llm_preflight_enabled", True)
+    monkeypatch.setattr(settings, "real_llm_provider", "unsupported_provider")
+    monkeypatch.setattr(settings, "real_llm_model", "gpt-4o-mini")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-real-check")
+
+    result = run_llm_provider_preflight(perform_network_check=False)
+    assert result.status == "failed"
+    assert any("unsupported provider" in err for err in result.errors)
+
+
 def test_preflight_network_check_true_but_not_allowed(monkeypatch):
     _set_default_real_llm_flags(monkeypatch)
     monkeypatch.setattr(settings, "real_llm_acceptance_enabled", True)
@@ -82,6 +98,7 @@ def test_preflight_network_check_true_but_not_allowed(monkeypatch):
     result = run_llm_provider_preflight(perform_network_check=True)
     assert result.network_check_executed is False
     assert any("network_check_not_allowed" in err for err in result.errors)
+    assert "sk-real-check" not in str(result.to_dict())
     assert called["count"] == 0
 
 
