@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-671%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.6.0-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-727%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.7.0-green)]()
 
 ---
 
@@ -444,7 +444,7 @@ python -m pytest -q
 > 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
 > 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
 
-当前基线：**671 passed, 4 skipped**，覆盖全部模块：
+当前基线：**727 passed, 4 skipped**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -491,6 +491,7 @@ python -m pytest -q
 | **v2.4.0** | Operator Console Pilot | 试点级运营台闭环（Dashboard / Tasks / Approvals / Trace / Audit / Metrics / RBAC / Tools / NL2SQL）+ Docker demo scripts；默认离线可跑；前端工具调用仍受后端策略与审批约束；verified with 638 passed tests |
 | **v2.5.0** | Real LLM Optional Acceptance Pack | Phase 5.1 provider preflight / Phase 5.2 opt-in real LLM smoke / Phase 5.3 token/cost/budget/cache/fallback 验收 / Phase 5.4 LLMJudge opt-in smoke / Phase 5.5 文档与 release prep；默认 fake/offline，默认测试不调用真实 LLM |
 | **v2.6.0** | Phase 6.0 Engineering Readiness | 部署门禁（deployment guard）/ 生产模板（.env.production.example + compose override）/ prod 脚本 / CI 工程化增强；定位企业内网试点准生产可投入使用；默认离线路径不变 |
+| **v2.7.0** | Production Security Baseline | Phase 7.1 CORS + 安全响应头 / Phase 7.2 request size limit + rate limit + basic abuse guard / Phase 7.3 结构化日志与脱敏 / Phase 7.4 审计留存与 JSONL 导出边界 / Phase 7.5 OIDC/SSO 最小接入骨架与配置预检；默认 fake/offline，默认测试不调用真实 LLM |
 
 ---
 
@@ -631,7 +632,7 @@ project-b-multi-agent/
 │   ├── init_demo_db.py             #   初始化 demo 数据库
 │   ├── start_dev.py                #   开发启动脚本
 │   └── check_health.py             #   健康检查
-├── tests/                          # 测试（671+ 个）
+├── tests/                          # 测试（727+ 个）
 ├── .github/workflows/ci.yml        # CI 配置
 ├── Dockerfile                      # Docker 镜像
 ├── docker-compose.yml              # Docker Compose
@@ -655,7 +656,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 671 passed, 4 skipped（默认 real_llm 用例 skip） |
+| **测试** | pytest + httpx | 727 passed, 4 skipped（默认 real_llm 用例 skip） |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -685,7 +686,8 @@ project-b-multi-agent/
 - **v2.4.4**：完成 RBAC 试点说明页与 Docker 本地演示脚本（`scripts/demo_up.ps1`、`scripts/demo_smoke.ps1`、`scripts/demo_down.ps1`）。
 - **v2.4.5**：完成 Tools + NL2SQL 试点页（工具筛选与最小调用验证、NL2SQL preview/execute 页面）。
 - **v2.5.0**：完成真实 LLM 可选验收包收口（Provider preflight、opt-in real LLM smoke、token/cost/budget/cache/fallback 验收、LLMJudge opt-in smoke、报告模板与 release prep 文档）。
-- **v2.6.0**：完成 Phase 6.0 工程化落地（deployment guard、/deployment/check、生产模板 compose override、prod 脚本、CI 工程化增强），当前基线 671 passed, 4 skipped。
+- **v2.6.0**：完成 Phase 6.0 工程化落地（deployment guard、/deployment/check、生产模板 compose override、prod 脚本、CI 工程化增强）。
+- **v2.7.0**：完成 Production Security Baseline 阶段交付（Phase 7.1~7.5：CORS/安全响应头、请求防护、结构化日志脱敏、审计留存与导出边界、OIDC/SSO 最小接入骨架与配置预检），当前基线 727 passed, 4 skipped。
 
 ### RBAC 试点口径
 
@@ -693,17 +695,20 @@ project-b-multi-agent/
 - 启用权限试点需显式设置：`AUTH_ENABLED=true`、`RBAC_ENABLED=true`。
 - 当前仅做试点级权限说明与页面收敛，不实现生产登录系统。
 
-### v2.6 阶段定位
+### v2.7.0 阶段定位
 
-- 当前阶段目标为“企业内网试点准生产可投入使用”。
+- 当前阶段目标为“企业内网试点准生产安全基线能力增强”。
 - 默认开发/演示路径保持不变，仍可离线运行。
 - 生产形态通过 `docker-compose.prod.yml` override 与 `scripts/prod_*.ps1` 执行。
 - v2.7 Phase 7.1 已实现 CORS 与安全响应头基线：development 默认允许 `http://localhost:3000`，production 需显式配置允许来源且禁止 `*`。
 - v2.7 Phase 7.2 已实现请求防护基线：rate limit、request size limit、basic abuse guard（当前限流为进程内内存版，适合单实例内网试点）。
+- v2.7 Phase 7.3 已实现结构化日志与日志脱敏：默认不记录 prompt 原文/密钥原文。
+- v2.7 Phase 7.4 已实现审计留存策略与 JSONL 导出边界：默认脱敏，不导出 prompt 原文和密钥原文。
+- v2.7 Phase 7.5 已实现 OIDC/SSO 最小接入骨架与配置预检：默认关闭，不依赖真实外部 IdP。
 
-### v3.0 生产路线（当前处于第一阶段）
+### v3.0 生产路线（当前处于第二阶段）
 
-- v3.0 生产路线分阶段推进，当前处于第一阶段：**v2.6 / Phase 6.0 工程化落地**。
+- v3.0 生产路线分阶段推进，当前处于第二阶段：**v2.7 / Production Security Baseline 能力增强**。
 - 默认开发模板继续使用 `docker-compose.yml`（离线演示友好，auth/rbac 默认关闭）。
 - 生产 override 模板使用 `docker-compose.yml + docker-compose.prod.yml`（启用生产门禁所需配置约束）。
 - 推荐运维脚本：
@@ -714,7 +719,7 @@ project-b-multi-agent/
 
 ### 仍保持的边界
 
-- 不宣称生产级 SSO 已完成。
+- 不宣称生产级 SSO/OIDC 已完成（Phase 7.5 仅为最小接入骨架与配置预检）。
 - 不宣称多租户已完成。
 - 不宣称复杂 BI 已完成。
 - 不接真实外部 MCP / 真实 LLM 作为默认演示依赖。

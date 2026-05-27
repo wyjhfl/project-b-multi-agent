@@ -1,4 +1,4 @@
-# 部署运行手册（v2.6 / Phase 6.0）
+# 部署运行手册（v2.7.0 / Production Security Baseline）
 
 ## 1. 适用范围
 
@@ -170,8 +170,8 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 
 - 默认路径仍为离线演示，不依赖真实 LLM 与真实外部 MCP。
 - 真实 LLM smoke 为 opt-in，不进入默认 CI。
-- 本手册不包含生产级 SSO/OIDC、多租户、复杂 BI 方案。
-- 当前已完成安全基线前三步（Phase 7.1 CORS/安全响应头 + Phase 7.2 请求防护 + Phase 7.3 结构化日志与脱敏），但仍不等于完整公网生产安全基线完成。
+- 本手册不包含生产级 SSO/OIDC、多租户、复杂 BI 方案；OIDC 当前仅为最小接入骨架与配置预检。
+- 当前已完成安全基线前五步（Phase 7.1~7.5：CORS/安全响应头、请求防护、结构化日志脱敏、审计留存与导出边界、OIDC 最小接入骨架与配置预检），但仍不等于完整公网生产安全基线完成。
 - 当前限流为进程内内存版，适用于单实例内网试点；多实例生产应升级为 Redis 或网关级限流。
 - 当前日志为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
 - 审计导出默认使用字段白名单与脱敏边界，不导出 prompt 原文及密钥原文。

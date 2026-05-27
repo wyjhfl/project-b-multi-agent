@@ -29,6 +29,7 @@
 | **v2.4.0** | Operator Console Pilot | 试点级运营台闭环（Dashboard/Tasks/Approvals/Trace/Audit/Metrics/RBAC/Tools/NL2SQL + Docker 演示脚本）；默认离线可跑；638+ tests |
 | **v2.5.0** | Real LLM Optional Acceptance Pack | Phase 5.1 provider preflight / Phase 5.2 opt-in real LLM smoke / Phase 5.3 token/cost/budget/cache/fallback 验收 / Phase 5.4 LLMJudge opt-in smoke / Phase 5.5 文档收口与 release prep；默认 fake/offline，默认测试不调用真实 LLM |
 | **v2.6.0** | Phase 6.0 Engineering Readiness | 部署门禁（deployment guard）/ 生产模板（.env.production.example + compose override）/ prod 脚本 / CI 工程化增强；定位企业内网试点准生产可投入使用；默认离线路径不变 |
+| **v2.7.0** | Production Security Baseline | Phase 7.1 CORS + 安全响应头 / Phase 7.2 request size limit + rate limit + basic abuse guard / Phase 7.3 结构化日志与脱敏 / Phase 7.4 审计留存与 JSONL 导出边界 / Phase 7.5 OIDC/SSO 最小接入骨架与配置预检；默认 fake/offline，默认测试不调用真实 LLM |
 
 ## Known Pitfalls
 
@@ -102,10 +103,10 @@
 
 ## v3.0 生产路线说明（当前阶段）
 
-- v3.0 采用分阶段推进，当前处于第一阶段：v2.6 / Phase 6.0 工程化落地。
+- v3.0 采用分阶段推进，当前处于第二阶段：v2.7 / Production Security Baseline 能力增强。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前 v2.6.0 回归基线：671 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前 v2.7.0 回归基线：727 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -114,3 +115,12 @@
 - guard 拦截响应（429/413/400/414）同样需覆盖安全响应头与允许来源 CORS 头。
 - 当前限流为进程内内存版，适用于单实例内网试点；多实例生产需 Redis 或网关级限流。
 - 当前阶段仍不等于完整公网生产安全基线，不宣称公网生产可直接上线。
+
+
+## v2.7.0 release prep 口径
+
+- v2.7.0 已完成 Production Security Baseline 阶段交付（Phase 7.1~7.5）。
+- OIDC/SSO 当前仅为最小接入骨架与配置预检，默认关闭，不依赖真实外部 IdP。
+- 默认 fake/offline，默认 pytest 不调用真实 LLM，真实 LLM 仍为 opt-in 验收。
+- 审计导出默认脱敏，不导出 prompt 原文、密钥原文、连接串密码原文。
+- 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。

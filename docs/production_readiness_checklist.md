@@ -1,4 +1,4 @@
-# 生产就绪检查清单（v2.6 / Phase 6.0）
+# 生产就绪检查清单（v2.7.0 / Production Security Baseline）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -86,5 +86,5 @@
 - [ ] 复杂 BI
 - [ ] 真实外部 MCP Server 生产验收
 - [ ] 真实 LLM 生产验收完成声明（禁止）
-- [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2/7.3/7.4：CORS、安全响应头、request size limit、rate limit、basic abuse guard、结构化日志脱敏、审计留存与导出边界）
+- [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2/7.3/7.4/7.5：CORS、安全响应头、request size limit、rate limit、basic abuse guard、结构化日志脱敏、审计留存与导出边界、OIDC 最小接入骨架与配置预检）
 - [ ] 多实例一致性限流（当前仅进程内内存限流）

@@ -2,7 +2,7 @@
 
 ## 1. 当前基础盘点
 
-v2.6.0 已形成可复用的工程化基础，作为 v2.7 安全基线的起点：
+v2.6.0 已形成可复用的工程化基础，v2.7.0 在其上完成 Production Security Baseline 阶段交付：
 
 - 部署门禁：`deployment_guard` + `/deployment/check` 结构化检查。
 - 生产模板：`docker-compose.prod.yml` + `.env.production.example`。
@@ -95,7 +95,7 @@ v2.7 的目标是补齐“企业内网试点准生产可投入使用”的安全
 - 默认不依赖真实外部 IdP，不访问外网 discovery endpoint。
 - 不宣称生产级 SSO/OIDC 已完成；生产接入仍需企业 IdP、证书、密钥轮换与安全评审。
 
-## 8. Phase 7.6：v2.7 release prep（规划中）
+## 8. Phase 7.6：v2.7 release prep（已完成）
 
 规划方向：
 
@@ -103,7 +103,12 @@ v2.7 的目标是补齐“企业内网试点准生产可投入使用”的安全
 - 整理 runbook / release notes / release review / 交接材料。
 - 形成 tag 前发布检查清单。
 
-## 9. 当前边界与不做项
+## 9. v2.7.0 交付定位与边界
+
+- v2.7.0 定位为“企业内网试点准生产安全基线能力增强”。
+- 当前能力不等于完整公网生产安全基线，不宣称公网生产可直接上线。
+
+## 10. 当前边界与不做项
 
 - 默认离线路径不变。
 - 默认 `pytest` 不调用真实 LLM。
