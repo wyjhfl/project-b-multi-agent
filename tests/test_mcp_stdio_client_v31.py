@@ -318,7 +318,7 @@ def test_timeout_recovery_has_no_stale_process(tmp_path):
     client.close()
 
 
-def test_initialize_client_version_is_280(tmp_path):
+def test_initialize_client_version_is_300(tmp_path):
     capture_file = tmp_path / "init_params.json"
     client = StdioMCPClient(
         server_name="capture_init_version",
@@ -331,5 +331,5 @@ def test_initialize_client_version_is_280(tmp_path):
     assert capture_file.exists()
     payload = json.loads(capture_file.read_text(encoding="utf-8"))
     assert payload["clientInfo"]["name"] == "project-b"
-    assert payload["clientInfo"]["version"] == "2.9.0"
+    assert payload["clientInfo"]["version"] == "3.0.0"
     client.close()

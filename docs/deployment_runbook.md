@@ -1,4 +1,4 @@
-# 部署运行手册（v2.9.0 / Real LLM Controlled Pilot Evidence）
+# 部署运行手册（v3.0.0 release prep / Final Production Landing）
 
 ## 1. 适用范围
 
@@ -176,21 +176,21 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 当前日志为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
 - 审计导出默认使用字段白名单与脱敏边界，不导出 prompt 原文及密钥原文。
 
-## 10. v2.9.0 release prep 口径补充
+## 10. v3.0.0 release prep 口径补充
 
-- v2.9.0 定位为 Real LLM Controlled Pilot Evidence（受控试点证据），不是生产验收完成声明。
-- `/llm/preflight` 与前端 `/llm` 页面用于配置预检与状态观测，不代表真实 LLM 生产验收完成。
-- acceptance_summary 已统一字段：provider/model、real_call_attempted、real_call_succeeded、fallback_reason、tokens/cost、budget_action、cache_hit、request_id、error_type、warnings。
-- `/llm/pilot/reports` 只读 API 与前端 Pilot Evidence 只读入口已上线，支持路径穿越防护与读取后二次脱敏。
-- 真实 LLM smoke 仅 opt-in，不进入默认 pytest/CI；本轮 release prep 未执行真实外网 LLM smoke。
+- v3.0.0 定位为 Final Production Landing（企业内网试点/准生产演示落地阶段），不是公网生产直接上线声明。
+- v3.0.0 已完成 Phase 10.1~10.4：
+  - 10.1 真实 LLM opt-in 执行记录模板（本轮 skipped）
+  - 10.2 部署演练与回滚
+  - 10.3 运维监控与备份恢复 runbook
+  - 10.4 安全复核与 Go/No-Go
+- 真实 LLM smoke 仅 opt-in，不进入默认 pytest/CI；本轮 release prep 未执行真实外网 LLM。
 - 保持默认 fake/offline，不接真实外部 MCP 作为默认依赖。
-- v2.8.0 tag 与 GitHub Release 已发布且不移动；main 持续向 v2.9.0 演进。
-- v3.0 Phase 10.1 已建立执行记录模板：`docs/real_llm_pilot_execution_log_v30.md`，当前记录为待手动 opt-in 执行。
-- v3.0 Phase 10.2 已建立部署演练与回滚记录：`docs/production_deployment_drill_v30.md`（本地/内网试点模拟，不等于公网生产上线）。
+- v2.9.0 tag 与 GitHub Release 已发布且不移动；main 当前为 v3.0.0 release prep 演进。
 - 回滚策略以 `prod_down.ps1` 停止 prod compose、恢复默认 compose 路径、清理临时环境变量为主。
 - 真实 LLM 与真实外部 MCP 默认关闭（`REAL_LLM_ACCEPTANCE_ENABLED=false`、`MCP_MODE=fake`）。
-- v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`。
-- Phase 10.3 仅做 runbook 级演练与最小验证，不引入 Prometheus/Grafana/ELK 等复杂平台。
-- audit export 与 pilot report export 保持脱敏边界，不导出 prompt 原文与密钥原文。
-- v3.0 Phase 10.4 已建立安全复核与 Go/No-Go 评审：`docs/security_go_no_go_review_v30.md`。
+- 运维与安全评审文档：
+  - `docs/production_deployment_drill_v30.md`
+  - `docs/operations_monitoring_backup_drill_v30.md`
+  - `docs/security_go_no_go_review_v30.md`
 - Go/No-Go 口径：企业内网试点/准生产演示 Go；公网生产直接上线 No-Go；多租户/复杂 BI/完整生产级 SSO 声明 No-Go。

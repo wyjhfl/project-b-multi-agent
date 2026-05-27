@@ -1,4 +1,4 @@
-# 生产就绪检查清单（v2.9.0 / Real LLM Controlled Pilot Evidence）
+# 生产就绪检查清单（v3.0.0 release prep / Final Production Landing）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -174,3 +174,13 @@
 - [ ] OIDC 当前边界复核：最小接入骨架 + 配置预检 + 默认关闭
 - [ ] 已链接 Phase 10.2 / 10.3 演练文档
 - [ ] Go/No-Go 结论已收口：企业内网试点/准生产演示 Go，公网生产直上 No-Go
+
+## 20. v3.0.0 release prep 收口检查
+
+- [ ] 版本号已同步到 3.0.0（pyproject / app.version / health.version / stdio fallback / tests 断言）
+- [ ] 已新增 `RELEASE_NOTES_v3.0.0.md`
+- [ ] 已新增 `docs/release_review_v3.0_final_production_landing.md`
+- [ ] release notes 覆盖 Phase 10.1~10.4 与边界声明
+- [ ] release review 覆盖 scope / changed modules / verification matrix / security & operational boundary / known limitations / Go-No-Go
+- [ ] 默认 fake/offline 与默认 pytest/CI 不调用真实 LLM 行为保持不变
+- [ ] 本轮未执行真实外网 LLM

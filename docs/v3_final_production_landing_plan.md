@@ -53,6 +53,14 @@
 - release review。
 - tag decision。
 
+## 5. v3.0.0 release prep 现状（2026-05-27）
+
+- Phase 10.1~10.4 文档化收口已完成。
+- 本轮真实 LLM opt-in 执行记录为 skipped（未配置完整外部环境，不执行真实外网 LLM）。
+- 当前默认路径保持 fake/offline，默认 pytest/CI 不调用真实 LLM。
+- 当前验证基线：`750 passed, 4 skipped`（如后续全量复测变化，以最新结果为准）。
+- 下一步：进入 v3.0.0 tag 决策（本阶段不打 tag、不创建 GitHub Release）。
+
 ## 4. 明确不做（边界）
 
 - 不默认执行真实外网 LLM。

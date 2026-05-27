@@ -103,9 +103,9 @@
 - 不宣称公网生产可直接上线。
 - 未完成项仍包括：生产级 SSO/OIDC、多租户、复杂 BI、真实外部 MCP 生产验收。
 
-## v3.0 生产路线说明（当前阶段）
+## v3.0 生产路线说明（当前）
 
-- v3.0 采用分阶段推进，当前处于第三阶段：v2.9 / Real LLM Controlled Pilot Evidence（受控试点证据）。
+- v3.0 采用分阶段推进，Phase 10.1~10.4 已完成，当前处于 v3.0.0 release prep。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
 - 当前回归基线：750 passed, 4 skipped（默认 real_llm 用例 skip）。
@@ -127,9 +127,9 @@
 - 审计导出默认脱敏，不导出 prompt 原文、密钥原文、连接串密码原文。
 - 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
 
-## v2.9.0 Real LLM Controlled Pilot Evidence 口径
+## v2.9.0 Real LLM Controlled Pilot Evidence 口径（历史阶段）
 
-- 当前阶段为 v2.9 受控试点证据，默认 fake/offline 路径不变。
+- v2.9 阶段已完成受控试点证据交付，默认 fake/offline 路径不变。
 - 默认 pytest/CI 不调用真实 LLM，真实 LLM 仅 opt-in 验收。
 - `/llm/preflight` 与 LLM Pilot 页面用于配置预检和状态观测；`/llm/pilot/reports` 提供只读证据审查入口。
 - 审计、日志、导出必须保持脱敏边界：不记录 prompt 原文、不输出密钥原文。
@@ -143,3 +143,4 @@
 - v3.0 Phase 10.2 已建立部署演练与回滚记录：`docs/production_deployment_drill_v30.md`（本地/内网试点模拟）。
 - v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`（runbook 级演练，不引入复杂运维平台）。
 - v3.0 Phase 10.4 已建立安全复核与 Go/No-Go 评审：`docs/security_go_no_go_review_v30.md`（企业内网试点/准生产演示 Go，公网生产直上 No-Go）。
+- 当前进入 v3.0.0 release prep：`RELEASE_NOTES_v3.0.0.md`、`docs/release_review_v3.0_final_production_landing.md`。
