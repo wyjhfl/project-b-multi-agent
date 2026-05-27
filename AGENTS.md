@@ -133,3 +133,5 @@
 - `/llm/preflight` 与 LLM Pilot 页面仅用于配置预检和状态观测，不代表生产验收完成。
 - 审计、日志、导出必须保持脱敏边界：不记录 prompt 原文、不输出密钥原文。
 - 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
+- v2.8.0 GitHub Release 已由用户手动创建，tag 保持不变。
+- 下一阶段推荐进入 v2.9 Real LLM Controlled Pilot Evidence（受控试点证据归档）。

@@ -28,7 +28,9 @@ git ls-remote --tags origin v2.8.0
 
 预期：返回 `refs/tags/v2.8.0`。
 
-## 4. GitHub Release 手动创建步骤（仅准备，不自动执行）
+## 4. GitHub Release 手动创建与结果记录
+
+### 4.1 手动创建步骤（留档）
 
 1. 打开仓库 Releases 页面。
 2. 点击 “Draft a new release”。
@@ -37,7 +39,13 @@ git ls-remote --tags origin v2.8.0
 5. 将 `RELEASE_NOTES_v2.8.0.md` 内容复制为 Release 描述。
 6. 核对边界声明后手动发布。
 
-> 当前状态：**尚未创建 GitHub Release**。
+### 4.2 本次发布结果
+
+- GitHub Release：**已由用户手动创建**。
+- Release title：`Project B v2.8.0 - Controlled Real LLM Pilot`
+- Release notes 来源：`RELEASE_NOTES_v2.8.0.md`
+- `v2.8.0` tag 仍指向：`7ef45bf9af9bec9e3c48b65f88671625b5ab23b0`
+- 当前 main 已超前 tag（发布后文档收口提交），但 tag 未移动、未删除、未重建。
 
 ## 5. 验证摘要
 
@@ -59,6 +67,7 @@ git ls-remote --tags origin v2.8.0
 - 不等于公网生产可直接上线。
 - 不宣称真实外部 MCP 生产验收完成。
 - 生产级 SSO/OIDC、多租户、复杂 BI 仍未完成。
+- `v2.8.0` tag 未移动、未删除、未重建。
 
 ## 7. 下一阶段建议
 

@@ -108,3 +108,8 @@
 - [ ] 审计导出继续保持白名单 + 脱敏，不导出 prompt 原文与密钥原文
 - [ ] 真实 LLM smoke 仍为 opt-in，本轮 release prep 未执行真实外网 LLM smoke
 - [ ] 不宣称真实 LLM 生产验收完成，不宣称公网生产可直接上线
+
+## 13. v2.8 发布后收口与 v2.9 入口
+
+- [ ] v2.8.0 GitHub Release 已手动创建并记录（tag 不移动）
+- [ ] 下一阶段进入 v2.9 Real LLM Controlled Pilot Evidence 规划与实施

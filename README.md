@@ -743,3 +743,8 @@ project-b-multi-agent/
 - 验收摘要统一字段：provider/model、real_call_attempted、fallback_reason、tokens/cost、budget_action、cache_hit、request_id、error_type。
 - 审计导出默认脱敏，不导出 prompt 原文、API key/token/password/secret/数据库密码原文。
 - 不宣称真实 LLM 生产验收完成，不宣称公网生产可直接上线。
+
+### v2.8.0 发布后状态
+
+- v2.8.0 GitHub Release 已由用户手动创建（tag 不移动）。
+- 下一阶段推荐进入 **v2.9 Real LLM Controlled Pilot Evidence**，优先完成真实 LLM 受控试点证据归档闭环。
