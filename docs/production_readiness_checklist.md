@@ -212,3 +212,12 @@
 - [ ] pilot report 目录不存在时返回空状态，不报 500
 - [ ] 汇总响应保持脱敏边界：不返回 prompt 原文、密钥/token/password/DSN 密码
 - [ ] 默认 fake/offline 与默认 pytest/CI 不调用真实 LLM 行为保持不变
+
+## 24. v3.1 Phase 11.3（真实 LLM opt-in 实测执行与报告归档）检查
+
+- [ ] 已新增执行记录：`docs/real_llm_pilot_execution_log_v31.md`
+- [ ] 仅在 opt-in 必需变量齐全时执行真实外网 LLM smoke
+- [ ] 变量缺失时记录 `status=skipped`，不伪造成功报告
+- [ ] 若执行成功，归档 JSON/Markdown 报告并记录 request_id/tokens/cost/fallback/budget/cache/evidence links
+- [ ] 报告与执行记录不包含 prompt 原文与密钥原文
+- [ ] 本阶段不改版本号、不打 tag、不创建 Release、不移动 `v3.0.0` tag

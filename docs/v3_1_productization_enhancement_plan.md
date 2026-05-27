@@ -80,6 +80,12 @@
   - executed 或 skipped 结果可追踪；
   - 报告字段完整且脱敏边界有效。
 
+当前状态（2026-05-27）：
+
+- 已新增 v3.1 执行记录：`docs/real_llm_pilot_execution_log_v31.md`
+- 本轮因 opt-in 环境变量缺失，记录 `status=skipped`
+- 未执行真实外网 LLM，未伪造成功报告，等待用户手动注入环境后重试
+
 ### Phase 11.4：OIDC/SSO 最小真实 IdP 配置演练文档（P1）
 
 - 目标：

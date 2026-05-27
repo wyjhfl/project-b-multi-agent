@@ -776,3 +776,6 @@ project-b-multi-agent/
   - 后端只读聚合 API：`GET /operations/summary`
   - 前端只读页面：`/operations`
   - 汇总 health/deployment/metrics/audit/tasks/approvals/pilot reports/demo evidence，且保持脱敏边界
+- v3.1 Phase 11.3 已建立真实 LLM opt-in 执行记录：`docs/real_llm_pilot_execution_log_v31.md`
+  - 本轮因 opt-in 环境变量缺失记录 `skipped`
+  - 未执行真实外网 LLM，未生成伪造成功报告，待用户手动注入环境后重试
