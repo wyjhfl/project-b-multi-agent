@@ -107,7 +107,7 @@
 - v3.0 采用分阶段推进，当前处于第三阶段：v2.8 / Controlled Real LLM Pilot（受控试点）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前 v2.8.0 回归基线：730 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前回归基线：750 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -140,3 +140,4 @@
 - 试点报告默认脱敏，不包含 prompt 原文与密钥原文；默认 pytest/CI 不生成真实外网报告。
 - v2.9 Phase 9.3 已完成 NL2SQL/Judge/audit/metrics 证据串联，报告包含 evidence_links 与 observability 脱敏摘要。
 - v2.9 Phase 9.3 P0 cleanup 已完成 Judge audit evidence link 收口：Judge 证据链接必须可追溯，或明确标记未记录。
+- v2.9 Phase 9.4 已完成 pilot evidence 只读查看入口（后端 API + 前端只读区域），不触发真实 LLM 执行。

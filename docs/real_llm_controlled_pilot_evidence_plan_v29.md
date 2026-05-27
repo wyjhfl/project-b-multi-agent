@@ -1,4 +1,4 @@
-﻿# v2.9 Real LLM Controlled Pilot Evidence 规划
+# v2.9 Real LLM Controlled Pilot Evidence 规划
 
 ## 1. 目标定位
 
@@ -84,10 +84,11 @@
 - runtime metrics 仅记录安全摘要字段，不包含 prompt 与密钥原文。
 - 已完成 Phase 9.3 P0 cleanup：Judge evidence_links 不再是占位字段，写入可追溯 `llm_judge_acceptance` 审计事件。
 
-### Phase 9.4：pilot evidence review API 或前端只读入口
+### Phase 9.4：pilot evidence review API 或前端只读入口（已完成）
 
-- 提供只读证据审查入口（API 或前端）。
-- 不提供敏感字段明文展示与导出。
+- 已提供后端只读 API：`/llm/pilot/reports`、`/llm/pilot/reports/{report_id}`、`/llm/pilot/reports/{report_id}/markdown`。
+- 已在前端 LLM 页增加 Pilot Evidence 只读区域，展示关键字段与脱敏详情。
+- API 与前端只读入口均不触发真实 LLM，不展示敏感字段明文。
 
 ### Phase 9.5：v2.9 release prep
 

@@ -1,4 +1,4 @@
-﻿# 生产就绪检查清单（v2.8.0 / Controlled Real LLM Pilot）
+# 生产就绪检查清单（v2.8.0 / Controlled Real LLM Pilot）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -101,7 +101,7 @@
 
 ## 12. v2.8.0 release prep 补充检查
 
-- [ ] 当前后端全量基线为 730 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] 当前后端全量基线为 750 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
 - [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
 - [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
@@ -125,3 +125,4 @@
 - [ ] 已完成 Phase 9.3：NL2SQL/Judge/audit/metrics 证据串联（evidence_links + observability）
 - [ ] evidence_links 与 metrics snapshot 仅保留脱敏摘要，不包含 prompt 原文与密钥原文
 - [ ] Judge evidence_links 必须可追溯（`llm_judge_acceptance`）或明确标记未记录（非空语义说明）
+- [ ] 已完成 Phase 9.4：pilot evidence 只读 API / 前端入口（只读、脱敏、不触发真实 LLM）

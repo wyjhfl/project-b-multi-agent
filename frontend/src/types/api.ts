@@ -346,3 +346,50 @@ export interface LlmPreflightResponse {
   latency_ms: number;
 }
 
+export interface LlmPilotReportListItem {
+  report_id: string;
+  generated_at: string;
+  provider: string;
+  model: string;
+  scenario: string;
+  outcome: string;
+  request_id: string;
+  real_call_succeeded: boolean;
+  fallback_used: boolean;
+  cost: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  audit_event_id: string;
+  audit_event_type: string;
+  path: string;
+  name: string;
+}
+
+export interface LlmPilotReportDetail {
+  report_id: string;
+  generated_at: string;
+  provider: string;
+  model: string;
+  scenario: string;
+  outcome: string;
+  request_id: string;
+  real_call_attempted: boolean;
+  real_call_succeeded: boolean;
+  fallback_used: boolean;
+  fallback_reason: string;
+  budget_action: string;
+  cache_hit: boolean;
+  latency_ms: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cost: number;
+  error_type: string;
+  evidence_links?: Record<string, unknown> | null;
+  observability?: Record<string, unknown> | null;
+  evidence_notes?: string[] | null;
+  cases?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+

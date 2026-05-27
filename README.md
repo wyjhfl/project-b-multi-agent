@@ -444,7 +444,7 @@ python -m pytest -q
 > 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
 > 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
 
-当前基线：**730 passed, 4 skipped**，覆盖全部模块：
+当前基线：**750 passed, 4 skipped**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -657,7 +657,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 730 passed, 4 skipped（默认 real_llm 用例 skip） |
+| **测试** | pytest + httpx | 750 passed, 4 skipped（默认 real_llm 用例 skip） |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -753,3 +753,4 @@ project-b-multi-agent/
 - 报告默认脱敏，不包含 prompt 原文与密钥原文；默认不执行真实 LLM，默认 pytest/CI 不生成真实外网报告。
 - v2.9 Phase 9.3 已完成：NL2SQL/Judge/audit/metrics 证据串联，报告新增 evidence_links 与 observability 脱敏摘要，可按 request_id 追溯。
 - v2.9 Phase 9.3 P0 cleanup 已完成：Judge evidence_links 对应可追溯 `llm_judge_acceptance` 审计事件，不再只是字段占位。
+- v2.9 Phase 9.4 已完成：提供 Pilot Evidence 只读查看 API 与前端只读入口（不执行真实 LLM，不展示 prompt/key 原文）。

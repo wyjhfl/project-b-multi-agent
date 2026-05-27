@@ -1,4 +1,4 @@
-﻿# v2.5 真实 LLM Smoke 验收报告模板（opt-in）
+# v2.5 真实 LLM Smoke 验收报告模板（opt-in）
 
 > 说明：本模板用于 **opt-in smoke** 记录，不代表真实 LLM 生产验收完成。  
 > 适用版本：v2.5.x 及后续受控试点阶段。
@@ -84,6 +84,7 @@
 - log_request_id：
 - trace_id（如有）：
 - report_artifacts（JSON/Markdown 路径）：
+- pilot evidence review API：`/llm/pilot/reports/{report_id}`（只读）
 
 ## 7. LLMJudge 结果（opt-in）
 
