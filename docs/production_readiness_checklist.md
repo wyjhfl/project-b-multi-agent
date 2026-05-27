@@ -221,3 +221,12 @@
 - [ ] 若执行成功，归档 JSON/Markdown 报告并记录 request_id/tokens/cost/fallback/budget/cache/evidence links
 - [ ] 报告与执行记录不包含 prompt 原文与密钥原文
 - [ ] 本阶段不改版本号、不打 tag、不创建 Release、不移动 `v3.0.0` tag
+
+## 25. v3.1 Phase 11.4（OIDC/SSO 最小真实 IdP 配置演练）检查
+
+- [ ] 已新增演练文档：`docs/oidc_minimal_idp_drill_v31.md`
+- [ ] 已覆盖配置项：issuer/client_id/client_secret_env/redirect_uri/scopes/role_claim/default_role/allowed_roles/require_https
+- [ ] 已明确 development 与 production 差异（localhost http 仅 development warning；production 必须 https）
+- [ ] 已覆盖 `/auth/oidc/status` 与 `/deployment/check` 检查步骤
+- [ ] 已覆盖常见失败场景与回滚步骤（关闭 OIDC、清理临时 env、不删除用户数据）
+- [ ] 不提交真实 client_secret，不接入真实生产 IdP，不宣称生产级 SSO/OIDC 完成

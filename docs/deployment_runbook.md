@@ -98,6 +98,11 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build ap
 - `OIDC_DEFAULT_ROLE=viewer`
 - `OIDC_ALLOWED_ROLES=admin,operator,viewer,auditor`
 - `OIDC_REQUIRE_HTTPS=true`
+
+v3.1 Phase 11.4 演练文档：
+
+- `docs/oidc_minimal_idp_drill_v31.md`
+- 用于最小真实 IdP 配置演练与排障，不包含完整生产级 SSO 登录流程。
 - 可通过 `GET /auth/oidc/status` 查看配置状态（仅返回 `client_secret_present` 布尔值，不返回密钥原文）
 
 ## 5. 配置检查脚本

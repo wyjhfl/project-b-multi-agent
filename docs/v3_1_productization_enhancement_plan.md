@@ -102,6 +102,12 @@
   - OIDC 最小接入与失败场景有清晰文档；
   - 不泄露 `client_secret` 原文。
 
+当前状态（2026-05-27）：
+
+- 已新增演练文档：`docs/oidc_minimal_idp_drill_v31.md`
+- 覆盖最小真实 IdP 配置项、development/production 差异、status/deployment guard 检查、常见失败与回滚步骤
+- 保持边界：不接入真实生产 IdP、不提交真实 client_secret、不宣称生产级 SSO/OIDC 完成
+
 ### Phase 11.5：运维 polish（P2）
 
 - 目标：

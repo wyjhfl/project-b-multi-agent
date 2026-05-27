@@ -150,3 +150,4 @@
 - v3.1 Phase 11.1 已完成离线演示 seed 与 E2E 脚本：`scripts/demo_seed_data.py`、`scripts/demo_e2e.ps1`、`docs/demo_e2e_runbook_v31.md`。
 - v3.1 Phase 11.2 已完成只读运营总览：后端 `GET /operations/summary` + 前端 `/operations`（只读、脱敏、不触发真实 LLM）。
 - v3.1 Phase 11.3 已新增执行记录：`docs/real_llm_pilot_execution_log_v31.md`（本轮 opt-in 变量缺失，status=skipped，未执行真实外网 LLM）。
+- v3.1 Phase 11.4 已新增 OIDC 演练文档：`docs/oidc_minimal_idp_drill_v31.md`（最小真实 IdP 配置演练，不等于生产级 SSO/OIDC 完成）。

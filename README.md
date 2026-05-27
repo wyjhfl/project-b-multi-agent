@@ -779,3 +779,6 @@ project-b-multi-agent/
 - v3.1 Phase 11.3 已建立真实 LLM opt-in 执行记录：`docs/real_llm_pilot_execution_log_v31.md`
   - 本轮因 opt-in 环境变量缺失记录 `skipped`
   - 未执行真实外网 LLM，未生成伪造成功报告，待用户手动注入环境后重试
+- v3.1 Phase 11.4 已建立 OIDC/SSO 最小真实 IdP 配置演练文档：
+  - `docs/oidc_minimal_idp_drill_v31.md`
+  - 仅用于最小配置演练与排障，不等于生产级 SSO/OIDC 完成
