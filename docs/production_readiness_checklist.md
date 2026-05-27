@@ -192,3 +192,13 @@
 - [ ] v3.1 不改当前发布版本号（当前仍为 3.0.0）
 - [ ] v3.1 仍保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM
 - [ ] v3.1 仍保持边界：不宣称公网生产直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成
+
+## 22. v3.1 Phase 11.1（演示数据与端到端演示脚本）检查
+
+- [ ] 已新增离线 seed 脚本：`scripts/demo_seed_data.py`
+- [ ] 已新增 E2E 演示脚本：`scripts/demo_e2e.ps1`
+- [ ] 已新增 runbook：`docs/demo_e2e_runbook_v31.md`
+- [ ] seed 数据覆盖任务/审批/审计/metrics/NL2SQL/pilot report/trace 示例
+- [ ] 脚本默认 fake/offline，不调用真实外网 LLM，不依赖真实外部 MCP
+- [ ] 服务未启动时在线 smoke 明确 `status=skipped`，不误报成功
+- [ ] 本阶段不改版本号、不打 tag、不创建 Release

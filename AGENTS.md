@@ -147,3 +147,4 @@
 - v3.0.0 GitHub Release 已由用户手动创建，tag 保持不变。
 - 下一阶段进入 v3.1 或后续产品化增强规划，继续保持默认 fake/offline 与边界声明不变。
 - v3.1 规划文档：`docs/v3_1_productization_enhancement_plan.md`（当前版本仍为 3.0.0，不打 tag、不创建 Release）。
+- v3.1 Phase 11.1 已完成离线演示 seed 与 E2E 脚本：`scripts/demo_seed_data.py`、`scripts/demo_e2e.ps1`、`docs/demo_e2e_runbook_v31.md`。

@@ -768,3 +768,7 @@ project-b-multi-agent/
 - v3.0.0 GitHub Release 已由用户手动创建，v3.0.0 tag 保持不变。
 - 下一阶段建议进入 v3.1 或后续产品化增强规划（继续保持不宣称公网直上与不宣称真实 LLM 生产验收完成边界）。
 - v3.1 规划已开启：`docs/v3_1_productization_enhancement_plan.md`（不改版本号，当前仍为 3.0.0）。
+- v3.1 Phase 11.1 已落地离线演示 seed 与 E2E 脚本：
+  - `scripts/demo_seed_data.py`
+  - `scripts/demo_e2e.ps1`
+  - `docs/demo_e2e_runbook_v31.md`

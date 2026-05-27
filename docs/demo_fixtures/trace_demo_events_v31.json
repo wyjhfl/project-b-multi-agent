@@ -1,0 +1,28 @@
+{
+  "task_id": "demo-v31-trace-demo",
+  "events": [
+    {
+      "event_type": "task_started",
+      "actor": "system",
+      "detail": {
+        "mode": "keyword"
+      }
+    },
+    {
+      "event_type": "plan_created",
+      "actor": "planner",
+      "detail": {
+        "plan": "读取本地离线演示指标"
+      }
+    },
+    {
+      "event_type": "task_completed",
+      "actor": "system",
+      "detail": {
+        "status": "completed",
+        "offline": true
+      }
+    }
+  ],
+  "note": "该 trace fixture 仅用于演示，不包含 prompt 原文与敏感凭据。"
+}

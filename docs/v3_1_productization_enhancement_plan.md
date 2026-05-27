@@ -32,6 +32,14 @@
   - 在新环境按文档可复现演示流程；
   - 演示脚本有明确输入/输出与失败处理说明。
 
+当前状态（2026-05-27）：
+
+- 已落地：
+  - `scripts/demo_seed_data.py`
+  - `scripts/demo_e2e.ps1`
+  - `docs/demo_e2e_runbook_v31.md`
+- 已补充最小测试：`tests/test_demo_seed_data_v311.py`
+
 ### Phase 11.2：只读运营总览 Dashboard（P0）
 
 - 目标：
