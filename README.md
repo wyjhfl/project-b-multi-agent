@@ -755,3 +755,4 @@ project-b-multi-agent/
 - v3.0 规划文档：`docs/v3_final_production_landing_plan.md`。
 - v3.0 Phase 10.1 已建立执行记录模板：`docs/real_llm_pilot_execution_log_v30.md`（本轮未执行真实外网 LLM，待手动 opt-in）。
 - v3.0 Phase 10.2 已建立生产部署演练与回滚记录：`docs/production_deployment_drill_v30.md`（本地/内网试点模拟，不等于公网生产上线）。
+- v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`（runbook 级演练，不引入复杂运维平台）。

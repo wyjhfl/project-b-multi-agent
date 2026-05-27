@@ -150,3 +150,15 @@
 - [ ] `scripts/prod_config_check.ps1` 在 production 缺配置时失败
 - [ ] `scripts/prod_config_check.ps1` 在 production 临时合法配置时通过
 - [ ] 回滚步骤明确：停止 prod compose、恢复默认 compose、清理临时环境变量、不删用户数据
+
+## 18. v3.0 Phase 10.3（运维监控与备份恢复演练）检查
+
+- [ ] 已建立运维演练文档：`docs/operations_monitoring_backup_drill_v30.md`
+- [ ] runbook 覆盖 `/health`、`/deployment/check`、`/metrics/runtime`、`/llm/pilot/reports`、`/audit/events/export`
+- [ ] 结构化日志与 `X-Request-ID` 链路检查项已记录
+- [ ] SQLite 备份恢复模板已记录（停服务复制/替换文件）
+- [ ] PostgreSQL 备份恢复模板已记录（`pg_dump` / `psql`，不含真实连接串）
+- [ ] Redis 备份恢复模板已记录（RDB/AOF 或 `redis-cli --rdb`，不含真实密码）
+- [ ] audit export / pilot report export 保持脱敏边界，不导出 prompt 原文与密钥原文
+- [ ] 清理前先备份，不删除用户数据
+- [ ] 本轮验证结果已记录（可执行命令 + executed/skipped）

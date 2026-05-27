@@ -189,3 +189,6 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - v3.0 Phase 10.2 已建立部署演练与回滚记录：`docs/production_deployment_drill_v30.md`（本地/内网试点模拟，不等于公网生产上线）。
 - 回滚策略以 `prod_down.ps1` 停止 prod compose、恢复默认 compose 路径、清理临时环境变量为主。
 - 真实 LLM 与真实外部 MCP 默认关闭（`REAL_LLM_ACCEPTANCE_ENABLED=false`、`MCP_MODE=fake`）。
+- v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`。
+- Phase 10.3 仅做 runbook 级演练与最小验证，不引入 Prometheus/Grafana/ELK 等复杂平台。
+- audit export 与 pilot report export 保持脱敏边界，不导出 prompt 原文与密钥原文。
