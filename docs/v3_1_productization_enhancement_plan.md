@@ -123,6 +123,13 @@
   - 运维常见问题有标准处理路径；
   - 备份恢复演练步骤可复用。
 
+当前状态（2026-05-27）：
+
+- 已新增运维排障索引：`docs/operations_troubleshooting_index_v31.md`
+- 已新增备份恢复检查清单：`docs/backup_restore_checklist_v31.md`
+- 覆盖常见故障路径、恢复建议与“不删除用户数据”原则
+- 保持范围为 runbook/checklist 文档化，不引入复杂运维平台
+
 ### Phase 11.6：v3.1 release prep（P2）
 
 - 目标：

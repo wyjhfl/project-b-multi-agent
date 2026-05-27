@@ -782,3 +782,7 @@ project-b-multi-agent/
 - v3.1 Phase 11.4 已建立 OIDC/SSO 最小真实 IdP 配置演练文档：
   - `docs/oidc_minimal_idp_drill_v31.md`
   - 仅用于最小配置演练与排障，不等于生产级 SSO/OIDC 完成
+- v3.1 Phase 11.5 已完成运维 polish 文档收口：
+  - 运维排障索引：`docs/operations_troubleshooting_index_v31.md`
+  - 备份恢复检查清单：`docs/backup_restore_checklist_v31.md`
+  - 以 runbook/checklist 为主，不引入破坏性清理流程，不删除用户数据

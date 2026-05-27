@@ -198,4 +198,6 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
   - `docs/production_deployment_drill_v30.md`
   - `docs/operations_monitoring_backup_drill_v30.md`
   - `docs/security_go_no_go_review_v30.md`
+  - `docs/operations_troubleshooting_index_v31.md`
+  - `docs/backup_restore_checklist_v31.md`
 - Go/No-Go 口径：企业内网试点/准生产演示 Go；公网生产直接上线 No-Go；多租户/复杂 BI/完整生产级 SSO 声明 No-Go。

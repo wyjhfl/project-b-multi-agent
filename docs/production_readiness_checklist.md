@@ -230,3 +230,12 @@
 - [ ] 已覆盖 `/auth/oidc/status` 与 `/deployment/check` 检查步骤
 - [ ] 已覆盖常见失败场景与回滚步骤（关闭 OIDC、清理临时 env、不删除用户数据）
 - [ ] 不提交真实 client_secret，不接入真实生产 IdP，不宣称生产级 SSO/OIDC 完成
+
+## 26. v3.1 Phase 11.5（运维 polish）检查
+
+- [ ] 已新增运维排障索引：`docs/operations_troubleshooting_index_v31.md`
+- [ ] 已新增备份恢复检查清单：`docs/backup_restore_checklist_v31.md`
+- [ ] 排障索引已覆盖：服务未启动、compose 配置失败、deployment check `ok=false`、`/operations` 无数据、demo smoke skipped、pilot reports 为空、audit export 403、OIDC secret env 缺失、real LLM opt-in skipped
+- [ ] 每个场景均明确“不删除用户数据”恢复原则
+- [ ] 备份恢复检查清单已覆盖 sqlite / postgres / redis 模板与恢复后验证命令
+- [ ] 文档示例仅使用占位符，不包含真实凭据
