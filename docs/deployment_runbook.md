@@ -192,3 +192,5 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`。
 - Phase 10.3 仅做 runbook 级演练与最小验证，不引入 Prometheus/Grafana/ELK 等复杂平台。
 - audit export 与 pilot report export 保持脱敏边界，不导出 prompt 原文与密钥原文。
+- v3.0 Phase 10.4 已建立安全复核与 Go/No-Go 评审：`docs/security_go_no_go_review_v30.md`。
+- Go/No-Go 口径：企业内网试点/准生产演示 Go；公网生产直接上线 No-Go；多租户/复杂 BI/完整生产级 SSO 声明 No-Go。

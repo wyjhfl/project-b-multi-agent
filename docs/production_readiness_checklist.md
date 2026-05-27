@@ -162,3 +162,15 @@
 - [ ] audit export / pilot report export 保持脱敏边界，不导出 prompt 原文与密钥原文
 - [ ] 清理前先备份，不删除用户数据
 - [ ] 本轮验证结果已记录（可执行命令 + executed/skipped）
+
+## 19. v3.0 Phase 10.4（安全复核与 Go/No-Go）检查
+
+- [ ] 已建立安全复核文档：`docs/security_go_no_go_review_v30.md`
+- [ ] deployment guard 复核覆盖 JWT_SECRET / DATABASE_URL / REDIS_URL / CORS / 安全响应头 / rate limit / audit retention / OIDC
+- [ ] HTTP 安全基线复核覆盖 CORS、安全响应头、request size limit、rate limit、basic abuse guard
+- [ ] 结构化日志与 `X-Request-ID` 链路复核通过，日志脱敏边界明确
+- [ ] audit export 白名单 + redaction required + JSONL 导出边界复核通过
+- [ ] LLM 边界复核覆盖 preflight disabled 语义、opt-in smoke、pilot report 脱敏、pilot reports 只读 API path traversal 防护
+- [ ] OIDC 当前边界复核：最小接入骨架 + 配置预检 + 默认关闭
+- [ ] 已链接 Phase 10.2 / 10.3 演练文档
+- [ ] Go/No-Go 结论已收口：企业内网试点/准生产演示 Go，公网生产直上 No-Go
