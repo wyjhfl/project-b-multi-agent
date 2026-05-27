@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+﻿import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // 将 /api/* 转发到后端，避免浏览器跨域配置复杂化

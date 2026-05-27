@@ -264,6 +264,26 @@ export interface NL2SQLPreviewRequest {
   fallback_to_mock?: boolean;
 }
 
+export interface LlmAcceptanceSummary {
+  mode: string;
+  provider: string;
+  model: string;
+  real_call_attempted: boolean;
+  real_call_succeeded: boolean;
+  fallback_used: boolean;
+  fallback_reason: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cost: number;
+  latency_ms: number;
+  cache_hit: boolean;
+  budget_action: string;
+  request_id: string;
+  error_type: string;
+  warnings: string[];
+}
+
 export interface NL2SQLPreviewResult {
   selected_tables: string[];
   fallback: boolean;
@@ -278,6 +298,9 @@ export interface NL2SQLPreviewResult {
   fallback_reason?: string | null;
   warnings: string[];
   guardrails?: Record<string, GuardrailsResult | unknown> | null;
+  provider_metadata?: Record<string, unknown> | null;
+  budget_status?: Record<string, unknown> | null;
+  acceptance_summary?: LlmAcceptanceSummary | null;
 }
 
 export type NL2SQLExecuteRequest = NL2SQLPreviewRequest;
@@ -301,3 +324,25 @@ export interface NL2SQLExecuteResult extends NL2SQLPreviewResult {
   } | null;
   chart_spec?: Record<string, unknown> | null;
 }
+
+export interface LlmPreflightResponse {
+  allowed: boolean;
+  status: string;
+  provider: string;
+  model: string;
+  base_url: string;
+  api_key_env: string;
+  api_key_present: boolean;
+  network_check_allowed: boolean;
+  network_check_requested: boolean;
+  network_check_executed: boolean;
+  checks: Array<{
+    name: string;
+    ok: boolean;
+    detail: string;
+  }>;
+  warnings: string[];
+  errors: string[];
+  latency_ms: number;
+}
+

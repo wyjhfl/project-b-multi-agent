@@ -1,7 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
-import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -24,10 +23,15 @@ class LLMPreflightResult:
     status: str
     provider: str
     model: str
+    base_url: str
+    api_key_env: str
+    api_key_present: bool
+    network_check_allowed: bool
+    network_check_requested: bool
+    network_check_executed: bool
     checks: list[dict[str, Any]]
     warnings: list[str]
     errors: list[str]
-    network_check_enabled: bool
     latency_ms: float
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,10 +40,17 @@ class LLMPreflightResult:
             "status": self.status,
             "provider": self.provider,
             "model": self.model,
+            "base_url": self.base_url,
+            "api_key_env": self.api_key_env,
+            "api_key_present": self.api_key_present,
+            "network_check_allowed": self.network_check_allowed,
+            "network_check_requested": self.network_check_requested,
+            "network_check_executed": self.network_check_executed,
+            # 兼容历史字段
+            "network_check_enabled": self.network_check_executed,
             "checks": self.checks,
             "warnings": self.warnings,
             "errors": self.errors,
-            "network_check_enabled": self.network_check_enabled,
             "latency_ms": self.latency_ms,
         }
 
@@ -49,12 +60,27 @@ def _append_check(checks: list[dict[str, Any]], name: str, ok: bool, detail: str
 
 
 def _mask_env_name(value: str) -> str:
-    text = value.strip()
+    text = (value or "").strip()
     if not text:
         return ""
     if len(text) <= 3:
         return "***"
     return text[:3] + "***"
+
+
+def _redact_base_url(value: str) -> str:
+    text = (value or "").strip()
+    if not text:
+        return ""
+    lowered = text.lower()
+    if "@" not in text:
+        return text
+    if "://" in lowered:
+        scheme, rest = text.split("://", 1)
+        if "@" in rest:
+            _, host_part = rest.rsplit("@", 1)
+            return f"{scheme}://***@{host_part}"
+    return "***"
 
 
 def _validate_timeout_and_retry(cfg: Settings, checks: list[dict[str, Any]], warnings: list[str], errors: list[str]) -> None:
@@ -66,17 +92,17 @@ def _validate_timeout_and_retry(cfg: Settings, checks: list[dict[str, Any]], war
         f"real_llm_preflight_timeout_seconds={cfg.real_llm_preflight_timeout_seconds}",
     )
     if not timeout_ok:
-        errors.append("real_llm_preflight_timeout_seconds out of range (1~120)")
+        errors.append("real_llm_preflight_timeout_seconds 超出范围（1~120）")
 
     llm_timeout_ok = 1.0 <= float(cfg.llm_timeout_seconds) <= 300.0
     _append_check(checks, "llm_timeout_range", llm_timeout_ok, f"llm_timeout_seconds={cfg.llm_timeout_seconds}")
     if not llm_timeout_ok:
-        warnings.append("llm_timeout_seconds out of recommended range (1~300)")
+        warnings.append("llm_timeout_seconds 超出建议范围（1~300）")
 
     llm_retry_ok = 0 <= int(cfg.llm_max_retries) <= 5
     _append_check(checks, "llm_retry_range", llm_retry_ok, f"llm_max_retries={cfg.llm_max_retries}")
     if not llm_retry_ok:
-        warnings.append("llm_max_retries out of recommended range (0~5)")
+        warnings.append("llm_max_retries 超出建议范围（0~5）")
 
     llm_backoff_ok = 0.0 <= float(cfg.llm_retry_backoff_seconds) <= 10.0
     _append_check(
@@ -86,7 +112,7 @@ def _validate_timeout_and_retry(cfg: Settings, checks: list[dict[str, Any]], war
         f"llm_retry_backoff_seconds={cfg.llm_retry_backoff_seconds}",
     )
     if not llm_backoff_ok:
-        warnings.append("llm_retry_backoff_seconds out of recommended range (0~10)")
+        warnings.append("llm_retry_backoff_seconds 超出建议范围（0~10）")
 
 
 def _perform_network_check(
@@ -96,7 +122,6 @@ def _perform_network_check(
     api_key: str,
     base_url: str,
 ) -> tuple[bool, str, float]:
-    started = time.perf_counter()
     provider = create_provider(
         provider_name=provider_name,
         api_key=api_key,
@@ -108,7 +133,7 @@ def _perform_network_check(
         temperature=0.0,
     )
     metadata = provider.generate_with_metadata("请只返回: ok")
-    latency_ms = (time.perf_counter() - started) * 1000.0
+    latency_ms = float(getattr(metadata, "latency_ms", 0.0) or 0.0)
     if not (metadata.content or "").strip():
         return False, "network_check_empty_content", latency_ms
     return True, "network_check_ok", latency_ms
@@ -119,13 +144,13 @@ def run_llm_provider_preflight(
     perform_network_check: bool = False,
 ) -> LLMPreflightResult:
     cfg = settings or global_settings
-    started = time.perf_counter()
     checks: list[dict[str, Any]] = []
     warnings: list[str] = []
     errors: list[str] = []
 
     provider_name = (cfg.real_llm_provider or "").strip().lower()
     model_name = (cfg.real_llm_model or "").strip()
+    base_url_text = (cfg.real_llm_base_url or "").strip()
     api_key_env_name = (cfg.real_llm_api_key_env or "").strip()
 
     acceptance_enabled = bool(cfg.real_llm_acceptance_enabled)
@@ -142,12 +167,11 @@ def run_llm_provider_preflight(
     if not provider_ok:
         errors.append(f"unsupported provider: {provider_name or '<empty>'}")
 
-    base_url_text = (cfg.real_llm_base_url or "").strip()
     _append_check(
         checks,
         "base_url_configured",
         bool(base_url_text),
-        "base_url: configured" if base_url_text else "base_url: empty (allowed if provider default endpoint is used)",
+        "base_url: configured" if base_url_text else "base_url: empty (provider 默认地址)",
     )
 
     model_ok = bool(model_name)
@@ -180,18 +204,24 @@ def run_llm_provider_preflight(
         network_allowed,
         f"real_llm_preflight_network_check={network_allowed}",
     )
-    if perform_network_check and not network_allowed:
-        warnings.append("network_check requested but real_llm_preflight_network_check=false")
 
-    status = "ready"
-    allowed = not errors and acceptance_enabled and preflight_enabled and provider_ok and model_ok and has_api_key
-
-    should_run_network = (
-        perform_network_check
-        and network_allowed
-        and allowed
+    ready_for_network = (
+        acceptance_enabled
+        and preflight_enabled
+        and provider_ok
+        and model_ok
+        and has_api_key
+        and not errors
     )
-    if should_run_network:
+
+    network_check_executed = False
+    network_latency_ms = 0.0
+    if perform_network_check and not network_allowed:
+        errors.append("network_check_not_allowed")
+    if perform_network_check and network_allowed and not ready_for_network:
+        errors.append("network_check_requires_ready_configuration")
+
+    if perform_network_check and network_allowed and ready_for_network:
         try:
             ok, detail, network_latency_ms = _perform_network_check(
                 cfg,
@@ -200,6 +230,7 @@ def run_llm_provider_preflight(
                 api_key_value or "",
                 base_url_text,
             )
+            network_check_executed = True
             _append_check(checks, "network_check", ok, detail)
             _append_check(checks, "network_check_latency_ms", True, f"{network_latency_ms:.2f}")
             if not ok:
@@ -214,25 +245,32 @@ def run_llm_provider_preflight(
             UnknownProviderError,
             Exception,
         ) as exc:
+            network_check_executed = True
             _append_check(checks, "network_check", False, "network_check_exception")
             errors.append(f"network_check_failed:{exc.__class__.__name__}")
 
-    if not acceptance_enabled or not preflight_enabled:
-        status = "disabled"
-    elif errors:
+    if errors:
         status = "failed"
-    elif should_run_network:
+    elif not acceptance_enabled or not preflight_enabled:
+        status = "disabled"
+    elif network_check_executed:
         status = "passed"
+    else:
+        status = "ready"
 
-    total_latency = (time.perf_counter() - started) * 1000.0
     return LLMPreflightResult(
-        allowed=allowed and not errors,
+        allowed=ready_for_network and not errors,
         status=status,
         provider=provider_name,
         model=model_name,
+        base_url=_redact_base_url(base_url_text),
+        api_key_env=api_key_env_name,
+        api_key_present=has_api_key,
+        network_check_allowed=network_allowed,
+        network_check_requested=perform_network_check,
+        network_check_executed=network_check_executed,
         checks=checks,
         warnings=warnings,
         errors=errors,
-        network_check_enabled=bool(should_run_network),
-        latency_ms=total_latency,
+        latency_ms=network_latency_ms,
     )

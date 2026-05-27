@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -25,6 +25,7 @@ class LLMAcceptanceResult:
     latency_ms: float = 0.0
     cache_hit: bool = False
     budget_action: str = ""
+    request_id: str = ""
     error_type: str = ""
     warnings: list[str] = field(default_factory=list)
 
@@ -44,6 +45,7 @@ class LLMAcceptanceResult:
             "latency_ms": self.latency_ms,
             "cache_hit": self.cache_hit,
             "budget_action": self.budget_action,
+            "request_id": self.request_id,
             "error_type": self.error_type,
             "warnings": list(self.warnings),
         }
@@ -74,13 +76,24 @@ def summarize_llm_acceptance(
     model_name = model or str(metadata.get("model", "") or "")
     provider_name = provider or str(metadata.get("provider", "") or "")
     budget_action = str((budget_status or {}).get("action", "") or "")
+    request_id = str(metadata.get("request_id", "") or "")
     reason = (fallback_reason or "").strip()
+
     attempted = (
         bool(real_call_attempted)
         if real_call_attempted is not None
         else (not fallback_used and not cache_hit and provider_name not in {"", "fake", "mock"})
     )
+
     succeeded = attempted and (not fallback_used) and not error_type and bool(prompt_tokens or completion_tokens or metadata)
+
+    if fallback_used and not reason:
+        if error_type:
+            reason = f"fallback_due_to_{error_type}"
+        elif budget_action == "fallback":
+            reason = "budget_blocked"
+        else:
+            reason = "fallback_unspecified"
 
     return LLMAcceptanceResult(
         mode=mode,
@@ -97,6 +110,7 @@ def summarize_llm_acceptance(
         latency_ms=latency_ms,
         cache_hit=cache_hit,
         budget_action=budget_action,
+        request_id=request_id,
         error_type=(error_type or "").strip(),
         warnings=list(warnings or []),
     )

@@ -175,3 +175,16 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 当前限流为进程内内存版，适用于单实例内网试点；多实例生产应升级为 Redis 或网关级限流。
 - 当前日志为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
 - 审计导出默认使用字段白名单与脱敏边界，不导出 prompt 原文及密钥原文。
+
+## v2.8 Controlled Real LLM Pilot 运行补充
+
+- 默认保持 `REAL_LLM_ACCEPTANCE_ENABLED=false`、`REAL_LLM_PREFLIGHT_ENABLED=false`、`REAL_LLM_SMOKE_ENABLED=false`。
+- 仅在受控验收窗口显式开启：
+  - `REAL_LLM_SMOKE_ENABLED=true`
+  - `REAL_LLM_ACCEPTANCE_ENABLED=true`
+  - `REAL_LLM_PREFLIGHT_ENABLED=true`
+  - `REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`
+  - `REAL_LLM_MODEL=<明确模型>`
+  - `REAL_LLM_API_KEY_ENV=<密钥环境变量名>`
+- 推荐先执行 `/llm/preflight`，确认 `api_key_present=true` 与 `network_check_allowed=true`。
+- 真实 LLM 验收后应补齐 smoke 报告，记录 request_id/fallback_reason/budget_action/cache_hit/cost。

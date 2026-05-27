@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { getApprovalSummary, listPendingApprovals } from "@/lib/api/approvals";
 import { getRuntimeSummary, getTasksSummary } from "@/lib/api/metrics";
 import { listTasks } from "@/lib/api/tasks";
@@ -92,6 +92,9 @@ export default async function DashboardPage() {
           </Link>
           <Link className="button secondary" href="/nl2sql">
             NL2SQL
+          </Link>
+          <Link className="button secondary" href="/llm">
+            LLM Pilot
           </Link>
         </div>
       </section>

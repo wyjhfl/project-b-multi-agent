@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -11,6 +11,7 @@ from app.agent.nl2sql.llm_generator import LLMNL2SQLGenerator
 from app.agent.nl2sql.metadata import SchemaMetadataExtractor
 from app.agent.nl2sql.provider import ProviderConfigError, UnknownProviderError, create_provider
 from app.core.config import settings
+from app.harness.llm.acceptance import summarize_llm_acceptance
 from app.harness.llm.budget import get_llm_budget_manager
 from app.harness.llm.cache import build_nl2sql_cache_key, get_llm_result_cache
 from app.harness.security.guardrails import GuardrailsEngine
@@ -21,8 +22,7 @@ class NL2SQLPipeline:
     """NL2SQL Pipeline 服务
 
     preview(): 只生成 SQL + SQLGuard 校验，不执行 SQLite
-    run(): 完整流程：query → schema → pruner → generator → guard → executor → formatter → chart
-    所有错误进入 success=false + answer，不抛 500。
+    run(): 完整流程，统一返回结构化结果，不抛 500。
     """
 
     def __init__(self) -> None:
@@ -74,6 +74,7 @@ class NL2SQLPipeline:
             "guardrails": guardrails_info,
             "provider_metadata": gen_result.get("provider_metadata"),
             "budget_status": gen_result.get("budget_status"),
+            "acceptance_summary": gen_result.get("acceptance_summary"),
         }
 
     def run(
@@ -142,6 +143,7 @@ class NL2SQLPipeline:
             "guardrails": preview_result.get("guardrails"),
             "provider_metadata": preview_result.get("provider_metadata"),
             "budget_status": preview_result.get("budget_status"),
+            "acceptance_summary": preview_result.get("acceptance_summary"),
         }
 
     def _generate(
@@ -155,61 +157,81 @@ class NL2SQLPipeline:
         provider_metadata: dict[str, Any] | None = None
         budget_status: dict[str, Any] | None = None
         cache_key: str | None = None
+
         if generator == "llm":
             try:
                 prov = create_provider(provider)
                 gen = LLMNL2SQLGenerator(provider=prov, fallback_to_mock=fallback_to_mock)
             except UnknownProviderError as exc:
-                return {
-                    "selected_tables": [],
-                    "sql": "",
-                    "guard_allowed": False,
-                    "guard_reason": str(exc),
-                    "reasoning": "",
-                    "confidence": 0.0,
-                    "generator_used": "llm",
-                    "provider_used": provider,
-                    "fallback_used": False,
-                    "fallback_reason": str(exc),
-                    "warnings": [],
-                    "provider_metadata": None,
-                    "budget_status": None,
-                }
+                fallback_reason = str(exc)
+                return self._finalize_llm_result(
+                    mode="llm",
+                    provider_name=provider or "",
+                    provider_model="",
+                    output={
+                        "selected_tables": [],
+                        "sql": "",
+                        "guard_allowed": False,
+                        "guard_reason": fallback_reason,
+                        "reasoning": "",
+                        "confidence": 0.0,
+                        "generator_used": "llm",
+                        "provider_used": provider,
+                        "fallback_used": False,
+                        "fallback_reason": fallback_reason,
+                        "warnings": [],
+                        "provider_metadata": None,
+                        "budget_status": None,
+                    },
+                )
             except ProviderConfigError as exc:
+                fallback_reason = str(exc)
                 if fallback_to_mock:
                     gen = MockNL2SQLGenerator()
                     result = gen.generate(query, schema)
                     self._record_token_usage("nl2sql", "mock_fallback", None)
-                    return {
-                        "selected_tables": [t.name for t in result.pruned_schema.tables],
-                        "sql": result.sql,
-                        "guard_allowed": result.guard_result.allowed,
-                        "guard_reason": result.guard_result.reason,
-                        "reasoning": result.reasoning,
-                        "confidence": result.confidence,
-                        "generator_used": "mock_fallback",
+                    return self._finalize_llm_result(
+                        mode="llm",
+                        provider_name="litellm",
+                        provider_model="",
+                        output={
+                            "selected_tables": [t.name for t in result.pruned_schema.tables],
+                            "sql": result.sql,
+                            "guard_allowed": result.guard_result.allowed,
+                            "guard_reason": result.guard_result.reason,
+                            "reasoning": result.reasoning,
+                            "confidence": result.confidence,
+                            "generator_used": "mock_fallback",
+                            "provider_used": "litellm",
+                            "fallback_used": True,
+                            "fallback_reason": fallback_reason,
+                            "warnings": result.warnings,
+                            "provider_metadata": None,
+                            "budget_status": None,
+                        },
+                        error_type="ProviderConfigError",
+                    )
+                return self._finalize_llm_result(
+                    mode="llm",
+                    provider_name="litellm",
+                    provider_model="",
+                    output={
+                        "selected_tables": [],
+                        "sql": "",
+                        "guard_allowed": False,
+                        "guard_reason": fallback_reason,
+                        "reasoning": "",
+                        "confidence": 0.0,
+                        "generator_used": "llm",
                         "provider_used": "litellm",
-                        "fallback_used": True,
-                        "fallback_reason": str(exc),
-                        "warnings": result.warnings,
+                        "fallback_used": False,
+                        "fallback_reason": fallback_reason,
+                        "warnings": [],
                         "provider_metadata": None,
                         "budget_status": None,
-                    }
-                return {
-                    "selected_tables": [],
-                    "sql": "",
-                    "guard_allowed": False,
-                    "guard_reason": str(exc),
-                    "reasoning": "",
-                    "confidence": 0.0,
-                    "generator_used": "llm",
-                    "provider_used": "litellm",
-                    "fallback_used": False,
-                    "fallback_reason": str(exc),
-                    "warnings": [],
-                    "provider_metadata": None,
-                    "budget_status": None,
-                }
+                    },
+                    error_type="ProviderConfigError",
+                )
 
             provider_name = getattr(prov, "name", "unknown")
             provider_model = str(getattr(prov, "_model", "") or settings.llm_model or "")
@@ -224,26 +246,40 @@ class NL2SQLPipeline:
                     self._metrics_recorder.set_budget_status("nl2sql", budget_status)
                 except Exception:
                     pass
+
             if not budget_status.get("allowed", True):
                 reason = str(budget_status.get("reason", "budget_blocked"))
                 if fallback_to_mock:
                     mock_result = self._build_mock_fallback_result(query, schema, provider_name, reason)
-                    return mock_result | {"budget_status": budget_status}
-                return {
-                    "selected_tables": [],
-                    "sql": "",
-                    "guard_allowed": False,
-                    "guard_reason": reason,
-                    "reasoning": f"预算限制拦截: {reason}",
-                    "confidence": 0.0,
-                    "generator_used": "llm",
-                    "provider_used": provider_name,
-                    "fallback_used": False,
-                    "fallback_reason": reason,
-                    "warnings": [reason],
-                    "provider_metadata": None,
-                    "budget_status": budget_status,
-                }
+                    mock_result["budget_status"] = budget_status
+                    return self._finalize_llm_result(
+                        mode="llm",
+                        provider_name=provider_name,
+                        provider_model=provider_model,
+                        output=mock_result,
+                        error_type="budget_blocked",
+                    )
+                return self._finalize_llm_result(
+                    mode="llm",
+                    provider_name=provider_name,
+                    provider_model=provider_model,
+                    output={
+                        "selected_tables": [],
+                        "sql": "",
+                        "guard_allowed": False,
+                        "guard_reason": reason,
+                        "reasoning": f"预算限制拦截: {reason}",
+                        "confidence": 0.0,
+                        "generator_used": "llm",
+                        "provider_used": provider_name,
+                        "fallback_used": False,
+                        "fallback_reason": reason,
+                        "warnings": [reason],
+                        "provider_metadata": None,
+                        "budget_status": budget_status,
+                    },
+                    error_type="budget_blocked",
+                )
 
             schema_hash = self._build_schema_hash(schema)
             cache_key = build_nl2sql_cache_key(
@@ -281,9 +317,16 @@ class NL2SQLPipeline:
                 cached_result["provider_metadata"] = cached_metadata
                 cached_result["budget_status"] = budget_status
                 self._record_token_usage("nl2sql", cached_result.get("generator_used", "llm"), cached_metadata)
-                return cached_result
+                return self._finalize_llm_result(
+                    mode="llm",
+                    provider_name=provider_name,
+                    provider_model=provider_model,
+                    output=cached_result,
+                )
         else:
             gen = MockNL2SQLGenerator()
+            provider_name = str(provider or "mock")
+            provider_model = ""
 
         result = gen.generate(query, schema)
         if isinstance(gen, LLMNL2SQLGenerator):
@@ -323,6 +366,51 @@ class NL2SQLPipeline:
                     self._cache.set(cache_key, output)
             except Exception:
                 pass
+
+        return self._finalize_llm_result(
+            mode=generator,
+            provider_name=provider_name,
+            provider_model=provider_model,
+            output=output,
+        )
+
+    def _finalize_llm_result(
+        self,
+        *,
+        mode: str,
+        provider_name: str,
+        provider_model: str,
+        output: dict[str, Any],
+        error_type: str | None = None,
+    ) -> dict[str, Any]:
+        if mode != "llm":
+            output["acceptance_summary"] = summarize_llm_acceptance(
+                mode="nl2sql",
+                provider="mock",
+                model="",
+                provider_metadata=output.get("provider_metadata") or {},
+                fallback_used=bool(output.get("fallback_used", False)),
+                fallback_reason=output.get("fallback_reason") or "",
+                budget_status=output.get("budget_status") or {},
+                warnings=list(output.get("warnings") or []),
+                error_type=error_type or "",
+                real_call_attempted=False,
+            ).to_dict()
+            return output
+
+        provider_metadata = dict(output.get("provider_metadata") or {})
+        summary = summarize_llm_acceptance(
+            mode="nl2sql",
+            provider=provider_name or str(output.get("provider_used") or ""),
+            model=provider_model,
+            provider_metadata=provider_metadata,
+            fallback_used=bool(output.get("fallback_used", False)),
+            fallback_reason=output.get("fallback_reason") or "",
+            budget_status=output.get("budget_status") or {},
+            warnings=list(output.get("warnings") or []),
+            error_type=error_type or str(provider_metadata.get("error_type") or ""),
+        ).to_dict()
+        output["acceptance_summary"] = summary
         return output
 
     def _build_schema_hash(self, schema: Any) -> str:

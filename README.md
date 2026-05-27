@@ -733,3 +733,12 @@ project-b-multi-agent/
 - 生产启用 OIDC 时需配置 issuer/client_id/redirect_uri/client_secret env，且要求 https。
 - 角色映射仅允许 `admin/operator/viewer/auditor`，未命中回退 `viewer`。
 - 当前仅为最小接入骨架与配置预检，不宣称生产级 SSO/OIDC 已完成。
+
+## v2.8 Controlled Real LLM Pilot（当前阶段）
+
+- 当前进入 v2.8 受控试点阶段，默认路径仍为 fake/offline。
+- 默认 pytest 与默认 CI 不调用真实 LLM；真实 LLM 仅 opt-in 验收。
+- 新增 LLM Pilot 页面与 `/llm/preflight` 状态收敛，用于配置预检与可观测，不用于生产放开。
+- 验收摘要统一字段：provider/model、real_call_attempted、fallback_reason、tokens/cost、budget_action、cache_hit、request_id、error_type。
+- 审计导出默认脱敏，不导出 prompt 原文、API key/token/password/secret/数据库密码原文。
+- 不宣称真实 LLM 生产验收完成，不宣称公网生产可直接上线。

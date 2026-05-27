@@ -1,7 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import json
+from abc import ABC, abstractmethod
 from typing import Any
 
 from pydantic import BaseModel
@@ -51,16 +51,15 @@ class FakeJudge(BaseJudge):
                 judge_provider="fake",
             )
 
-        rubric_parts = judge_input.rubric
-        if rubric_parts and judge_input.actual in rubric_parts:
+        if judge_input.rubric and judge_input.actual in judge_input.rubric:
             return JudgeResult(
                 score=1.0,
                 passed=True,
-                reasoning=f"actual matches rubric: {rubric_parts}",
+                reasoning=f"actual matches rubric: {judge_input.rubric}",
                 judge_provider="fake",
             )
 
-        if judge_input.expected == "blocked" and judge_input.actual in ("blocked", "failed"):
+        if judge_input.expected == "blocked" and judge_input.actual in {"blocked", "failed"}:
             return JudgeResult(
                 score=0.8,
                 passed=True,
@@ -149,7 +148,7 @@ class LLMJudgeProvider(BaseJudge):
     @staticmethod
     def _build_prompt(judge_input: JudgeInput) -> str:
         return (
-            "你是评测裁判，请根据输入给出 JSON 对象，不要输出其他文本。\n"
+            "你是评测裁判，请根据输入返回 JSON 对象，不要输出其他文本。\n"
             "JSON 字段要求：score(0~1), passed(bool), reasoning(string), confidence(0~1)。\n"
             f"query: {judge_input.query}\n"
             f"expected: {judge_input.expected}\n"
@@ -190,6 +189,7 @@ class LLMJudgeProvider(BaseJudge):
                     "confidence": self._clamp_01(fake_result.score),
                 }
             )
+
         acceptance = summarize_llm_acceptance(
             mode="judge",
             provider=self._provider,
@@ -268,6 +268,19 @@ class LLMJudgeProvider(BaseJudge):
                     "cost": 0.0,
                 }
             )
+            acceptance = summarize_llm_acceptance(
+                mode="judge",
+                provider=self._provider,
+                model=self._model or "",
+                provider_metadata=provider_metadata,
+                fallback_used=bool(cached.get("fallback_used", False)),
+                fallback_reason=str(cached.get("fallback_reason", "")),
+                budget_status=budget_status,
+                warnings=[],
+                error_type="",
+                real_call_attempted=False,
+            )
+            self._last_acceptance_summary = acceptance.to_dict()
             return JudgeResult(
                 score=self._clamp_01(float(cached.get("score", 0.0))),
                 passed=bool(cached.get("passed", False)),
@@ -275,20 +288,7 @@ class LLMJudgeProvider(BaseJudge):
                 judge_provider=str(cached.get("judge_provider", self._provider)),
                 fallback_used=bool(cached.get("fallback_used", False)),
                 fallback_reason=str(cached.get("fallback_reason", "")),
-                provider_metadata=provider_metadata | {
-                    "acceptance_summary": summarize_llm_acceptance(
-                        mode="judge",
-                        provider=self._provider,
-                        model=self._model or "",
-                        provider_metadata=provider_metadata,
-                        fallback_used=bool(cached.get("fallback_used", False)),
-                        fallback_reason=str(cached.get("fallback_reason", "")),
-                        budget_status=budget_status,
-                        warnings=[],
-                        error_type="",
-                        real_call_attempted=False,
-                    ).to_dict()
-                },
+                provider_metadata=provider_metadata | {"acceptance_summary": self._last_acceptance_summary},
                 prompt_tokens=0,
                 completion_tokens=0,
                 cost=0.0,

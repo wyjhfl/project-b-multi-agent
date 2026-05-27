@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import uuid
 from datetime import datetime
@@ -38,21 +38,25 @@ class CreateTaskResponse(BaseModel):
 
 def _get_kernel() -> AgentKernel:
     from app.main import get_kernel
+
     return get_kernel()
 
 
 def _get_trace_recorder():
     from app.main import get_trace_recorder
+
     return get_trace_recorder()
 
 
 def _get_task_store():
     from app.main import get_task_store
+
     return get_task_store()
 
 
 def _get_audit_recorder():
     from app.main import get_audit_recorder
+
     return get_audit_recorder()
 
 
@@ -64,13 +68,17 @@ async def create_task(req: CreateTaskRequest, _current_user=Depends(require_perm
     if finding.action == "block":
         task_id = str(uuid.uuid4())
         recorder = _get_trace_recorder()
-        recorder.record("prompt_injection_blocked", task_id=task_id, detail={
-            "query": safe_query,
-            "severity": finding.severity,
-            "reason": finding.reason,
-            "matched_patterns": finding.matched_patterns,
-            "mode": req.mode,
-        })
+        recorder.record(
+            "prompt_injection_blocked",
+            task_id=task_id,
+            detail={
+                "query": safe_query,
+                "severity": finding.severity,
+                "reason": finding.reason,
+                "matched_patterns": finding.matched_patterns,
+                "mode": req.mode,
+            },
+        )
         _get_audit_recorder().record(
             event_type="prompt_injection_blocked",
             task_id=task_id,

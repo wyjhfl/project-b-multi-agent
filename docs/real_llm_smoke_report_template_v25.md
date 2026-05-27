@@ -1,13 +1,13 @@
-# v2.5 真实 LLM Smoke 验收报告模板（Opt-in）
+﻿# v2.5 真实 LLM Smoke 验收报告模板（opt-in）
 
-> 说明：本模板用于 **opt-in smoke** 记录，不代表真实 LLM 生产验收完成。
-> 适用版本：v2.5.x 真实 LLM 可选验收包。
+> 说明：本模板用于 **opt-in smoke** 记录，不代表真实 LLM 生产验收完成。  
+> 适用版本：v2.5.x 及后续受控试点阶段。
 
 ## 1. 基本信息
 
 - 执行时间：
 - 执行人：
-- 执行环境（本地/CI job 名称）：
+- 执行环境（本地 / CI job 名称）：
 - 代码版本（commit hash）：
 
 ## 2. 配置摘要（脱敏）
@@ -27,6 +27,8 @@
 - 接口：`GET /llm/preflight?network_check=true`
 - status：
 - allowed：
+- network_check_allowed：
+- network_check_executed：
 - checks 摘要：
 - warnings：
 - errors：
@@ -56,6 +58,9 @@
 - 是否真实命中 LLM（是/否）：
 - fallback_used：
 - fallback_reason：
+- acceptance_summary.request_id：
+- acceptance_summary.budget_action：
+- acceptance_summary.cache_hit：
 - provider_metadata.latency_ms：
 - provider_metadata.prompt_tokens：
 - provider_metadata.completion_tokens：
@@ -70,7 +75,7 @@
 - 初步归因（配置/网络/模型/响应结构）：
 - 修复建议：
 
-## 7. LLMJudge 结果（Opt-in）
+## 7. LLMJudge 结果（opt-in）
 
 - judge_provider：
 - score：
@@ -78,6 +83,9 @@
 - confidence：
 - fallback_used：
 - fallback_reason：
+- acceptance_summary.request_id：
+- acceptance_summary.budget_action：
+- acceptance_summary.cache_hit：
 - provider_metadata.request_id：
 - provider_metadata.latency_ms：
 - provider_metadata.prompt_tokens：
@@ -89,10 +97,10 @@
 ## 8. 结论
 
 - 本次 smoke 结论：通过 / 未通过 / 部分通过
-- 是否建议进入下一阶段（Phase 5.3）：
+- 是否建议进入下一阶段：
 - 备注：
 
 ---
 
-**边界声明**：  
+**边界声明**：
 该报告仅表示在当前环境下完成了 opt-in smoke 验证，**不等于真实 LLM 生产验收完成**。

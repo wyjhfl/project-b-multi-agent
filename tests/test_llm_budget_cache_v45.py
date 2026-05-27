@@ -1,12 +1,12 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 
 from app.agent.nl2sql.provider import LLMGenerateMetadata, LLMProvider
 from app.core.config import settings
 from app.harness.eval.judge import JudgeInput, LLMJudgeProvider
-from app.harness.metrics.runtime_metrics import RuntimeMetricsRecorder
 from app.harness.llm.budget import get_llm_budget_manager
+from app.harness.metrics.runtime_metrics import RuntimeMetricsRecorder
 from app.main import reset_runtime_for_test
 from app.services.nl2sql_pipeline import NL2SQLPipeline
 
@@ -110,10 +110,13 @@ def test_nl2sql_budget_blocked_fallback_true(monkeypatch):
 
     pipeline = NL2SQLPipeline()
     result = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=True)
+    summary = result.get("acceptance_summary") or {}
     assert result["generator_used"] == "mock_fallback"
     assert result["fallback_used"] is True
     assert "budget_blocked" in (result["fallback_reason"] or "")
     assert provider.calls == 0
+    assert summary.get("budget_action") == "fallback"
+    assert summary.get("fallback_reason") != ""
 
 
 def test_nl2sql_budget_blocked_no_fallback_and_no_execute(monkeypatch):
@@ -129,11 +132,13 @@ def test_nl2sql_budget_blocked_no_fallback_and_no_execute(monkeypatch):
 
     pipeline = NL2SQLPipeline()
     result = pipeline.run("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    summary = result.get("acceptance_summary") or {}
     assert result["guard_allowed"] is False
     assert result["fallback_used"] is False
     assert "budget_blocked" in (result["fallback_reason"] or "")
     assert result["execution"]["success"] is False
     assert provider.calls == 0
+    assert summary.get("error_type") == "budget_blocked"
 
 
 def test_judge_budget_blocked_fallback_fake(monkeypatch):
@@ -178,11 +183,13 @@ def test_nl2sql_success_records_usage(monkeypatch):
     pipeline = NL2SQLPipeline()
     pipeline.set_metrics_recorder(recorder)
     result = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    summary = result.get("acceptance_summary") or {}
     assert result["guard_allowed"] is True
     assert provider.calls == 1
     assert recorder.total_prompt_tokens == 21
     assert recorder.total_completion_tokens == 9
     assert recorder.total_cost == 0.06
+    assert summary.get("cost") == 0.06
 
     budget_summary = get_llm_budget_manager().summary()
     assert budget_summary["current_cost"] >= 0.06
@@ -203,11 +210,13 @@ def test_nl2sql_cache_enabled_second_call_hits_cache(monkeypatch):
 
     first = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
     second = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    second_summary = second.get("acceptance_summary") or {}
     assert first["guard_allowed"] is True
     assert second["guard_allowed"] is True
     assert provider.calls == 1
     assert any("cache_hit:nl2sql" in w for w in second["warnings"])
     assert recorder.summary()["cache_hit_count"] >= 1
+    assert second_summary.get("cache_hit") is True
 
 
 def test_nl2sql_cache_disabled_calls_provider_every_time(monkeypatch):

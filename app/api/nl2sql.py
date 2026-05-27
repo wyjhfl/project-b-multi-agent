@@ -1,10 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
+
+from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from app.agent.nl2sql.metadata import SchemaMetadataExtractor
-from app.agent.nl2sql.provider import ProviderConfigError, UnknownProviderError, create_provider
+from app.agent.nl2sql.provider import ProviderConfigError, UnknownProviderError
 from app.harness.eval.nl2sql_runner import NL2SQLEvalRunner
 from app.harness.security.guardrails import GuardrailsEngine
 from app.harness.security.injection_guard import PromptInjectionGuard
@@ -18,14 +19,60 @@ _guardrails = GuardrailsEngine()
 
 def _get_audit_recorder():
     from app.main import get_audit_recorder
+
     return get_audit_recorder()
+
+
+def _record_llm_acceptance_event(action: str, payload: dict[str, Any]) -> None:
+    summary = dict(payload.get("acceptance_summary") or {})
+    if not summary:
+        return
+    provider_used = str(payload.get("provider_used") or "")
+    generator_used = str(payload.get("generator_used") or "")
+    if generator_used not in {"llm", "mock_fallback"} and provider_used not in {"litellm", "fake", "mock"}:
+        return
+
+    outcome = "success" if summary.get("real_call_succeeded") else "fallback"
+    if summary.get("error_type"):
+        outcome = "error"
+
+    detail = {
+        "request_id": summary.get("request_id", ""),
+        "provider": summary.get("provider", ""),
+        "model": summary.get("model", ""),
+        "real_call_attempted": bool(summary.get("real_call_attempted", False)),
+        "real_call_succeeded": bool(summary.get("real_call_succeeded", False)),
+        "fallback_used": bool(summary.get("fallback_used", False)),
+        "fallback_reason": summary.get("fallback_reason", ""),
+        "budget_action": summary.get("budget_action", ""),
+        "cache_hit": bool(summary.get("cache_hit", False)),
+        "prompt_tokens": int(summary.get("prompt_tokens", 0) or 0),
+        "completion_tokens": int(summary.get("completion_tokens", 0) or 0),
+        "total_tokens": int(summary.get("total_tokens", 0) or 0),
+        "cost": float(summary.get("cost", 0.0) or 0.0),
+        "latency_ms": float(summary.get("latency_ms", 0.0) or 0.0),
+        "error_type": summary.get("error_type", ""),
+        "warnings": list(summary.get("warnings") or []),
+    }
+
+    try:
+        _get_audit_recorder().record(
+            event_type="llm_acceptance",
+            action=action,
+            outcome=outcome,
+            severity="info",
+            reason=summary.get("fallback_reason") or summary.get("error_type") or "",
+            detail=detail,
+        )
+    except Exception:
+        pass
 
 
 class PreviewRequest(BaseModel):
     query: str
-    generator: str = Field(default="mock", description="生成器类型: mock 或 llm")
-    provider: str | None = Field(default=None, description="LLM Provider: fake 或 litellm")
-    fallback_to_mock: bool = Field(default=True, description="LLM 失败时是否 fallback 到 mock")
+    generator: str = Field(default="mock", description="生成器类型：mock 或 llm")
+    provider: str | None = Field(default=None, description="LLM Provider：fake 或 litellm")
+    fallback_to_mock: bool = Field(default=True, description="LLM 失败时是否回退到 mock")
 
 
 class PreviewResponse(BaseModel):
@@ -44,6 +91,7 @@ class PreviewResponse(BaseModel):
     guardrails: dict | None = None
     provider_metadata: dict | None = None
     budget_status: dict | None = None
+    acceptance_summary: dict | None = None
 
 
 @router.post("/preview", response_model=PreviewResponse)
@@ -76,9 +124,9 @@ async def preview_nl2sql(req: PreviewRequest):
 
 
 class EvalRequest(BaseModel):
-    generator: str = Field(default="mock", description="生成器类型: mock 或 llm")
-    provider: str | None = Field(default=None, description="LLM Provider: fake 或 litellm")
-    fallback_to_mock: bool = Field(default=True, description="LLM 失败时是否 fallback 到 mock")
+    generator: str = Field(default="mock", description="生成器类型：mock 或 llm")
+    provider: str | None = Field(default=None, description="LLM Provider：fake 或 litellm")
+    fallback_to_mock: bool = Field(default=True, description="LLM 失败时是否回退到 mock")
     execute_sql: bool = Field(default=False, description="是否执行 SQL 验证")
 
 
@@ -132,9 +180,9 @@ async def run_nl2sql_eval(req: EvalRequest = EvalRequest()):
 
 class ExecuteRequest(BaseModel):
     query: str
-    generator: str = Field(default="mock", description="生成器类型: mock 或 llm")
-    provider: str | None = Field(default=None, description="LLM Provider: fake 或 litellm")
-    fallback_to_mock: bool = Field(default=True, description="LLM 失败时是否 fallback 到 mock")
+    generator: str = Field(default="mock", description="生成器类型：mock 或 llm")
+    provider: str | None = Field(default=None, description="LLM Provider：fake 或 litellm")
+    fallback_to_mock: bool = Field(default=True, description="LLM 失败时是否回退到 mock")
 
 
 class ExecuteResponse(BaseModel):
@@ -156,6 +204,7 @@ class ExecuteResponse(BaseModel):
     guardrails: dict | None = None
     provider_metadata: dict | None = None
     budget_status: dict | None = None
+    acceptance_summary: dict | None = None
 
 
 def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, input_guard: dict | None = None):
@@ -169,6 +218,7 @@ def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, 
     merged_guardrails = result.get("guardrails") or {}
     if input_guard is not None:
         merged_guardrails = {"input": input_guard, **merged_guardrails}
+    _record_llm_acceptance_event("nl2sql_preview", result)
     return PreviewResponse(
         selected_tables=result["selected_tables"],
         fallback=result["fallback"],
@@ -185,6 +235,7 @@ def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, 
         guardrails=merged_guardrails,
         provider_metadata=result.get("provider_metadata"),
         budget_status=result.get("budget_status"),
+        acceptance_summary=result.get("acceptance_summary"),
     )
 
 
@@ -223,6 +274,7 @@ async def execute_nl2sql(req: ExecuteRequest):
     )
     merged_guardrails = result.get("guardrails") or {}
     merged_guardrails = {"input": input_guard, **merged_guardrails}
+    _record_llm_acceptance_event("nl2sql_execute", result)
     return ExecuteResponse(
         selected_tables=result["selected_tables"],
         fallback=not result["guard_allowed"],
@@ -242,4 +294,5 @@ async def execute_nl2sql(req: ExecuteRequest):
         guardrails=merged_guardrails,
         provider_metadata=result.get("provider_metadata"),
         budget_status=result.get("budget_status"),
+        acceptance_summary=result.get("acceptance_summary"),
     )

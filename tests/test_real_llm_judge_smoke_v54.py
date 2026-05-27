@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 
@@ -52,6 +52,7 @@ def test_real_llm_judge_smoke_opt_in_only(monkeypatch: pytest.MonkeyPatch):
     judge = LLMJudgeProvider(provider="litellm", fallback_to_fake=True)
     result = judge.evaluate(_build_smoke_input())
 
+    summary = (result.provider_metadata or {}).get("acceptance_summary") or {}
     if result.judge_provider == "litellm":
         provider_metadata = result.provider_metadata or {}
         assert "latency_ms" in provider_metadata
@@ -59,11 +60,13 @@ def test_real_llm_judge_smoke_opt_in_only(monkeypatch: pytest.MonkeyPatch):
         assert "completion_tokens" in provider_metadata
         assert "total_tokens" in provider_metadata
         assert "cost" in provider_metadata
+        assert summary.get("request_id", "") != ""
         print(
             "[real_llm_smoke] judge "
             f"judge_provider={result.judge_provider} score={result.score} passed={result.passed} "
             f"confidence={result.confidence} fallback_used={result.fallback_used} "
-            f"fallback_reason={result.fallback_reason} latency_ms={provider_metadata.get('latency_ms')} "
+            f"fallback_reason={result.fallback_reason} budget_action={summary.get('budget_action','')} "
+            f"cache_hit={summary.get('cache_hit')} latency_ms={provider_metadata.get('latency_ms')} "
             f"prompt_tokens={provider_metadata.get('prompt_tokens')} completion_tokens={provider_metadata.get('completion_tokens')} "
             f"total_tokens={provider_metadata.get('total_tokens')} cost={provider_metadata.get('cost')} "
             f"request_id={provider_metadata.get('request_id')} error_type={provider_metadata.get('error_type')}"
@@ -72,11 +75,13 @@ def test_real_llm_judge_smoke_opt_in_only(monkeypatch: pytest.MonkeyPatch):
         assert result.fallback_used is True
         assert isinstance(result.fallback_reason, str)
         assert result.fallback_reason.strip() != ""
+        assert summary.get("fallback_reason", "") != ""
         print(
             "[real_llm_smoke] judge "
             f"judge_provider={result.judge_provider} score={result.score} passed={result.passed} "
             f"confidence={result.confidence} fallback_used={result.fallback_used} "
-            f"fallback_reason={result.fallback_reason}"
+            f"fallback_reason={result.fallback_reason} budget_action={summary.get('budget_action','')} "
+            f"cache_hit={summary.get('cache_hit')} request_id={summary.get('request_id','')}"
         )
 
 
@@ -90,3 +95,5 @@ def test_real_llm_judge_smoke_fallback_disabled_returns_unavailable(monkeypatch:
     assert result.judge_provider == "llm_unavailable"
     assert result.fallback_used is False
     assert result.fallback_reason.strip() != ""
+    summary = (result.provider_metadata or {}).get("acceptance_summary") or {}
+    assert summary.get("error_type", "") != ""

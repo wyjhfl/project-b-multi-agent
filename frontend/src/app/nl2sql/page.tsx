@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useState } from "react";
 import { executeNl2sql, previewNl2sql } from "@/lib/api/nl2sql";

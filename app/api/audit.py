@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 def _get_audit_store():
     from app.main import get_audit_store
+
     return get_audit_store()
 
 

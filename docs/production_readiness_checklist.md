@@ -88,3 +88,13 @@
 - [ ] 真实 LLM 生产验收完成声明（禁止）
 - [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2/7.3/7.4/7.5：CORS、安全响应头、request size limit、rate limit、basic abuse guard、结构化日志脱敏、审计留存与导出边界、OIDC 最小接入骨架与配置预检）
 - [ ] 多实例一致性限流（当前仅进程内内存限流）
+
+## v2.8 Controlled Real LLM Pilot 验收检查
+
+- [ ] 默认 `REAL_LLM_ACCEPTANCE_ENABLED=false`、`REAL_LLM_PREFLIGHT_ENABLED=false`、`REAL_LLM_SMOKE_ENABLED=false`
+- [ ] `/llm/preflight` 返回结构化字段，且不泄漏 API key 原文
+- [ ] `network_check=true` 仅在显式开关和配置完整时执行
+- [ ] acceptance_summary 包含 request_id/fallback_reason/budget_action/cache_hit/cost
+- [ ] 审计导出不包含 prompt 原文与密钥原文
+- [ ] 真实 LLM smoke 报告已归档（opt-in）
+- [ ] 未宣称真实 LLM 生产验收完成

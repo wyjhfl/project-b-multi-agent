@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 
@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 from app.agent.nl2sql.provider import LLMGenerateMetadata, LLMProvider
 from app.core.config import settings
 from app.harness.llm import summarize_llm_acceptance
-from app.main import reset_runtime_for_test
 from app.main import app
+from app.main import reset_runtime_for_test
 from app.services.nl2sql_pipeline import NL2SQLPipeline
 
 client = TestClient(app)
@@ -74,6 +74,22 @@ def test_acceptance_summary_collects_token_cost_metadata():
     assert payload["total_tokens"] == 15
     assert payload["cost"] == 0.01
     assert payload["real_call_attempted"] is True
+    assert payload["request_id"] == "x"
+
+
+def test_acceptance_summary_fallback_reason_non_empty():
+    result = summarize_llm_acceptance(
+        mode="nl2sql",
+        provider="litellm",
+        model="m",
+        fallback_used=True,
+        fallback_reason="",
+        error_type="ProviderTimeoutError",
+        budget_status={"action": "fallback"},
+    )
+    payload = result.to_dict()
+    assert payload["fallback_used"] is True
+    assert payload["fallback_reason"] != ""
 
 
 def test_budget_disabled_does_not_block_llm_path(monkeypatch):
@@ -85,9 +101,15 @@ def test_budget_disabled_does_not_block_llm_path(monkeypatch):
 
     pipeline = NL2SQLPipeline()
     result = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    summary = result.get("acceptance_summary") or {}
     assert result["guard_allowed"] is True
     assert provider.calls == 1
     assert (result.get("budget_status") or {}).get("reason") == "budget_disabled"
+    assert summary.get("provider") == "litellm"
+    assert summary.get("real_call_attempted") is True
+    assert summary.get("real_call_succeeded") is True
+    assert summary.get("cache_hit") is False
+    assert summary.get("request_id") == "req-v53"
 
 
 def test_budget_hard_limit_with_fallback_to_mock(monkeypatch):
@@ -101,11 +123,15 @@ def test_budget_hard_limit_with_fallback_to_mock(monkeypatch):
     pipeline._budget_manager.record_usage("nl2sql", "litellm", "acceptance-model", 0, 0, 0.2)
 
     result = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=True)
+    summary = result.get("acceptance_summary") or {}
     assert result["generator_used"] == "mock_fallback"
     assert result["fallback_used"] is True
     assert (result["fallback_reason"] or "").strip() != ""
     assert "budget_blocked" in result["fallback_reason"]
     assert provider.calls == 0
+    assert summary.get("fallback_used") is True
+    assert summary.get("fallback_reason") != ""
+    assert summary.get("budget_action") == "fallback"
 
 
 def test_budget_hard_limit_without_fallback_fails_and_no_execute(monkeypatch):
@@ -127,12 +153,15 @@ def test_budget_hard_limit_without_fallback_fails_and_no_execute(monkeypatch):
 
     monkeypatch.setattr("app.services.nl2sql_pipeline.SQLiteReadOnlyExecutor", _NeverExecutor)
     result = pipeline.run("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    summary = result.get("acceptance_summary") or {}
     assert result["guard_allowed"] is False
     assert result["fallback_used"] is False
     assert (result["fallback_reason"] or "").strip() != ""
     assert "budget_blocked" in result["fallback_reason"]
     assert called["execute"] == 0
     assert provider.calls == 0
+    assert summary.get("budget_action") == "fallback"
+    assert summary.get("error_type") == "budget_blocked"
 
 
 def test_cache_hit_semantics_on_second_request(monkeypatch):
@@ -146,11 +175,17 @@ def test_cache_hit_semantics_on_second_request(monkeypatch):
 
     first = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
     second = pipeline.preview("今天GMV多少", generator="llm", provider="litellm", fallback_to_mock=False)
+    first_summary = first.get("acceptance_summary") or {}
+    second_summary = second.get("acceptance_summary") or {}
     assert first["guard_allowed"] is True
     assert second["guard_allowed"] is True
     assert provider.calls == 1
     assert any("cache_hit:nl2sql" in w for w in second["warnings"])
     assert (second.get("provider_metadata") or {}).get("cache_hit") is True
+    assert second_summary.get("cache_hit") is True
+    assert second_summary.get("real_call_attempted") is False
+    assert second_summary.get("fallback_reason") == ""
+    assert first_summary.get("request_id") == "req-v53"
 
 
 def test_fallback_reason_observable_when_provider_invalid(monkeypatch):
@@ -160,8 +195,10 @@ def test_fallback_reason_observable_when_provider_invalid(monkeypatch):
 
     pipeline = NL2SQLPipeline()
     result = pipeline.preview("今天GMV多少", generator="llm", provider="unknown", fallback_to_mock=False)
+    summary = result.get("acceptance_summary") or {}
     assert result["guard_allowed"] is False
     assert (result["fallback_reason"] or "").strip() != ""
+    assert summary.get("fallback_reason") != ""
 
 
 def test_metrics_runtime_contains_llm_budget_cache_summary(monkeypatch):

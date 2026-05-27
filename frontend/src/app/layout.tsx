@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import {
   BarChart3,
+  BrainCircuit,
   Boxes,
   ClipboardCheck,
   Database,
@@ -27,7 +28,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Project B 运营台",
-  description: "Project B v2.4 试点级运营台、审批台与观测台",
+  description: "Project B 企业内网试点运营控制台",
 };
 
 export default function RootLayout({
@@ -64,6 +65,10 @@ export default function RootLayout({
               <Link href="/nl2sql" className="nav-link">
                 <Database size={16} />
                 <span>NL2SQL</span>
+              </Link>
+              <Link href="/llm" className="nav-link">
+                <BrainCircuit size={16} />
+                <span>LLM Pilot</span>
               </Link>
               <Link href="/observability" className="nav-link">
                 <Radar size={16} />

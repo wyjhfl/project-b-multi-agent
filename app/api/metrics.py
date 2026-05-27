@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
@@ -9,11 +9,13 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 def _get_metrics_recorder():
     from app.main import get_metrics_recorder
+
     return get_metrics_recorder()
 
 
 def _get_metrics_store():
     from app.main import get_metrics_store
+
     return get_metrics_store()
 
 

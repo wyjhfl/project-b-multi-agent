@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 
@@ -215,4 +215,5 @@ def test_llm_judge_acceptance_summary_fields(monkeypatch):
     assert "latency_ms" in summary
     assert "cache_hit" in summary
     assert "budget_action" in summary
+    assert "request_id" in summary
     assert "error_type" in summary

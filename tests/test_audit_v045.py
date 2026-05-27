@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import os
@@ -118,6 +118,7 @@ def test_tasks_injection_writes_audit():
     assert resp.status_code == 200
 
     from app.main import get_audit_store
+
     store = get_audit_store()
     events = store.query_events(event_type="prompt_injection_blocked")
     assert len(events) >= 1
@@ -130,6 +131,7 @@ def test_nl2sql_preview_injection_writes_audit():
     assert resp.status_code == 200
 
     from app.main import get_audit_store
+
     store = get_audit_store()
     events = store.query_events(event_type="prompt_injection_blocked")
     nl2sql_events = [e for e in events if e.get("action") == "nl2sql_preview"]
@@ -139,6 +141,7 @@ def test_nl2sql_preview_injection_writes_audit():
 
 def test_approval_approve_writes_audit():
     from app.main import get_approval_store, get_audit_store, reset_runtime_for_test
+
     reset_runtime_for_test()
 
     store = get_approval_store()
@@ -163,6 +166,7 @@ def test_approval_approve_writes_audit():
 
 def test_approval_reject_writes_audit():
     from app.main import get_approval_store, get_audit_store, reset_runtime_for_test
+
     reset_runtime_for_test()
 
     store = get_approval_store()
@@ -210,6 +214,7 @@ def test_resume_payload_tampered_writes_audit():
         mt_pipeline = MultiToolPipeline(gateway, policy_engine=engine, trace_recorder=recorder, approval_store=approval_store, audit_recorder=audit_recorder)
 
         from app.agent.nodes.multitool_planner import MultiToolPlan, MultiToolPlanStep
+
         plan = MultiToolPlan(
             matched=True,
             intent="tamper_audit_test",
@@ -266,6 +271,7 @@ def test_operation_whitelist_blocked_writes_audit():
         mt_pipeline = MultiToolPipeline(gateway, policy_engine=engine, trace_recorder=recorder, approval_store=approval_store, audit_recorder=audit_recorder)
 
         from app.agent.nodes.multitool_planner import MultiToolPlan, MultiToolPlanStep
+
         plan = MultiToolPlan(
             matched=True,
             intent="wl_audit_test",
@@ -284,7 +290,8 @@ def test_operation_whitelist_blocked_writes_audit():
 
 
 def test_audit_api_list_events():
-    from app.main import get_audit_store, reset_runtime_for_test
+    from app.main import reset_runtime_for_test
+
     reset_runtime_for_test()
 
     resp = client.post("/tasks", json={"query": "bypass approval test"})
@@ -301,6 +308,7 @@ def test_audit_api_list_events():
 
 def test_audit_api_get_single_event():
     from app.main import get_audit_store, reset_runtime_for_test
+
     reset_runtime_for_test()
 
     resp = client.post("/tasks", json={"query": "disable policy now"})

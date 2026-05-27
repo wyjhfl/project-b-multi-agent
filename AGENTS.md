@@ -124,3 +124,11 @@
 - 默认 fake/offline，默认 pytest 不调用真实 LLM，真实 LLM 仍为 opt-in 验收。
 - 审计导出默认脱敏，不导出 prompt 原文、密钥原文、连接串密码原文。
 - 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
+
+## v2.8 Controlled Real LLM Pilot 口径
+
+- 当前阶段为 v2.8 受控试点，默认 fake/offline 路径不变。
+- 默认 pytest/CI 不调用真实 LLM，真实 LLM 仅 opt-in 验收。
+- `/llm/preflight` 与 LLM Pilot 页面仅用于配置预检和状态观测，不代表生产验收完成。
+- 审计、日志、导出必须保持脱敏边界：不记录 prompt 原文、不输出密钥原文。
+- 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。

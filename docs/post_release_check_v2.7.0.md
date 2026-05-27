@@ -14,15 +14,16 @@ git rev-parse "v2.7.0^{}"
 
 ## 2. GitHub Release 状态
 
-- 当前未创建 GitHub Release。
-- 本次交接仅完成 tag + release prep + CI 修复，不自动发布 Release 页面。
+- GitHub Release 已手动创建。
+- Release title：`Project B v2.7.0 - Production Security Baseline`
+- Release description 来源：`RELEASE_NOTES_v2.7.0.md`
 
-## 3. 手动创建 GitHub Release 建议
+## 3. 关键提交轨迹
 
-建议在 GitHub Releases 页面手动创建：
-
-- title：`Project B v2.7.0 - Production Security Baseline`
-- description：复制 `RELEASE_NOTES_v2.7.0.md` 内容
+- v2.7.0 tag commit：`2076111cb786df76a941ebf28f550f68f4131147`
+- tag 后 CI 修复 commit：`21ab5f75053427d277c27f7155fbd7f457237fa2`（`ci: validate production compose required envs`）
+- release handoff commit：`47c4ce0`
+- 当前 main 已超前 tag，但 `v2.7.0` tag 不移动。
 
 ## 4. 验证摘要
 
@@ -35,7 +36,7 @@ git rev-parse "v2.7.0^{}"
 
 ## 5. CI 说明（tag 后补丁）
 
-- `v2.7.0` tag 已指向 `2076111cb786df76a941ebf28f550f68f4131147`
+- `v2.7.0` tag 仍指向 `2076111cb786df76a941ebf28f550f68f4131147`
 - tag 后 main 新增 CI workflow 修复 commit：`21ab5f75053427d277c27f7155fbd7f457237fa2`
 - 修复内容仅限 GitHub Actions 的 prod compose config 验证方式：
   1. 缺变量时必须失败（安全语义校验）
