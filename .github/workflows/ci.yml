@@ -63,5 +63,22 @@ jobs:
       - name: Docker compose config (dev)
         run: docker compose config
 
-      - name: Docker compose config (prod override)
+      - name: Docker compose config (prod override missing vars should fail)
+        shell: bash
+        run: |
+          set +e
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml config >/tmp/prod-config-missing.log 2>&1
+          status=$?
+          cat /tmp/prod-config-missing.log
+          if [ "$status" -eq 0 ]; then
+            echo "Expected prod compose config to fail without required variables."
+            exit 1
+          fi
+          grep -E "JWT_SECRET|DATABASE_URL|REDIS_URL|required variable" /tmp/prod-config-missing.log
+
+      - name: Docker compose config (prod override with CI vars)
+        env:
+          JWT_SECRET: ci-test-secret-32-bytes-minimum-value
+          DATABASE_URL: postgresql+psycopg://agent:ci-safe-password@postgres:5432/project_b
+          REDIS_URL: redis://redis:6379/0
         run: docker compose -f docker-compose.yml -f docker-compose.prod.yml config
