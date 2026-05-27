@@ -161,4 +161,67 @@ def test_real_llm_judge_report_generation_with_tmp_dir(monkeypatch: pytest.Monke
     assert "redispassword" not in json_text
     assert "sk-test-key" not in json_text
     assert '"audit_event_id"' in json_text
+    assert '"audit_event_type": "llm_judge_acceptance"' in json_text
     assert '"runtime_metric_keys"' in json_text
+
+
+def test_judge_audit_event_should_be_traceable_and_without_prompt_raw(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("REAL_LLM_API_KEY_ENV", "OPENAI_API_KEY")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-key")
+
+    class _DummyResult:
+        judge_provider = "fallback_fake"
+        score = 0.6
+        passed = False
+        confidence = 0.66
+        fallback_used = True
+        fallback_reason = "llm_unavailable"
+        provider_metadata = {
+            "acceptance_summary": {
+                "provider": "litellm",
+                "model": "gpt-4o-mini",
+                "request_id": "judge-audit-req",
+                "real_call_attempted": True,
+                "real_call_succeeded": False,
+                "fallback_used": True,
+                "fallback_reason": "llm_unavailable",
+                "budget_action": "fallback",
+                "cache_hit": False,
+                "latency_ms": 5.2,
+                "prompt_tokens": 9,
+                "completion_tokens": 4,
+                "total_tokens": 13,
+                "cost": 0.05,
+                "error_type": "ProviderConfigError",
+            }
+        }
+
+    case = build_judge_pilot_case(_DummyResult())
+    assert case.evidence_links.get("audit_event_id", "").startswith("aud_")
+    assert case.evidence_links.get("audit_event_type") == "llm_judge_acceptance"
+    assert case.request_id == "judge-audit-req"
+    assert case.prompt_tokens == 9
+    assert case.completion_tokens == 4
+    assert case.total_tokens == 13
+    assert case.cost == 0.05
+    assert case.fallback_reason == "llm_unavailable"
+    assert case.budget_action == "fallback"
+    assert case.cache_hit is False
+    assert case.detail.get("score") == 0.6
+    assert case.detail.get("passed") is False
+    assert case.detail.get("confidence") == 0.66
+
+    from app.main import get_audit_store
+
+    event = get_audit_store().get_event(case.evidence_links["audit_event_id"])
+    assert event is not None
+    assert event.get("event_type") == "llm_judge_acceptance"
+    detail = event.get("detail") or {}
+    assert detail.get("request_id") == "judge-audit-req"
+    assert detail.get("score") == 0.6
+    assert detail.get("passed") is False
+    assert detail.get("confidence") == 0.66
+    assert "query" not in detail
+    assert "expected" not in detail
+    assert "actual" not in detail
+    assert "rubric" not in detail

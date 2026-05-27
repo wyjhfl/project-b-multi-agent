@@ -79,7 +79,7 @@
 ## 6.1 证据链链接（v2.9 Phase 9.3）
 
 - audit_event_id：
-- audit_event_type（建议 `llm_acceptance`）：
+- audit_event_type（NL2SQL 建议 `llm_acceptance`；Judge 建议 `llm_judge_acceptance`）：
 - runtime_metric_keys（脱敏摘要）：
 - log_request_id：
 - trace_id（如有）：

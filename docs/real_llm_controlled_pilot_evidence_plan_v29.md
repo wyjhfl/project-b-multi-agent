@@ -82,6 +82,7 @@
 - 已串联 NL2SQL、LLMJudge、审计与指标，形成单次试点完整证据链。
 - 报告新增 evidence_links / observability（脱敏摘要），支持按 request_id 关联检索。
 - runtime metrics 仅记录安全摘要字段，不包含 prompt 与密钥原文。
+- 已完成 Phase 9.3 P0 cleanup：Judge evidence_links 不再是占位字段，写入可追溯 `llm_judge_acceptance` 审计事件。
 
 ### Phase 9.4：pilot evidence review API 或前端只读入口
 

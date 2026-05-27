@@ -76,6 +76,62 @@ def _latest_llm_acceptance_event(event_type: str, request_id: str) -> dict[str, 
     return {"audit_event_id": "", "audit_event_type": event_type, "log_request_id": request_id}
 
 
+def _record_judge_acceptance_event(
+    *,
+    request_id: str,
+    provider: str,
+    model: str,
+    judge_provider: str,
+    summary: dict[str, Any],
+    result: Any,
+) -> dict[str, Any]:
+    detail = {
+        "request_id": request_id,
+        "provider": provider,
+        "model": model,
+        "judge_provider": judge_provider,
+        "real_call_attempted": _normalize_bool(summary.get("real_call_attempted")),
+        "real_call_succeeded": _normalize_bool(summary.get("real_call_succeeded")),
+        "fallback_used": _normalize_bool(getattr(result, "fallback_used", False) or summary.get("fallback_used")),
+        "fallback_reason": str(getattr(result, "fallback_reason", "") or summary.get("fallback_reason") or ""),
+        "budget_action": str(summary.get("budget_action") or ""),
+        "cache_hit": _normalize_bool(summary.get("cache_hit")),
+        "prompt_tokens": int(summary.get("prompt_tokens", 0) or 0),
+        "completion_tokens": int(summary.get("completion_tokens", 0) or 0),
+        "total_tokens": int(summary.get("total_tokens", 0) or 0),
+        "cost": float(summary.get("cost", 0.0) or 0.0),
+        "latency_ms": float(summary.get("latency_ms", 0.0) or 0.0),
+        "error_type": str(summary.get("error_type") or ""),
+        "score": float(getattr(result, "score", 0.0) or 0.0),
+        "passed": bool(getattr(result, "passed", False)),
+        "confidence": float(getattr(result, "confidence", 0.0) or 0.0),
+    }
+    try:
+        from app.main import get_audit_recorder
+
+        event = get_audit_recorder().record(
+            event_type="llm_judge_acceptance",
+            action="judge_smoke",
+            outcome="success" if _normalize_bool(summary.get("real_call_succeeded")) else "fallback",
+            severity="info",
+            reason=detail.get("fallback_reason") or detail.get("error_type") or "",
+            detail=detail,
+        )
+        if event is not None:
+            return {
+                "audit_event_id": event.event_id,
+                "audit_event_type": event.event_type,
+                "log_request_id": request_id,
+            }
+    except Exception:
+        pass
+    return {
+        "audit_event_id": "",
+        "audit_event_type": "llm_judge_acceptance",
+        "log_request_id": request_id,
+    }
+
+
 def build_nl2sql_pilot_case(payload: dict[str, Any]) -> PilotReportCase:
     summary = dict(payload.get("acceptance_summary") or {})
     provider_metadata = dict(payload.get("provider_metadata") or {})
@@ -150,7 +206,14 @@ def build_judge_pilot_case(result: Any) -> PilotReportCase:
         or summary.get("error_type")
         or "unknown"
     )
-    evidence_links = _latest_llm_acceptance_event("llm_acceptance", request_id)
+    evidence_links = _record_judge_acceptance_event(
+        request_id=request_id,
+        provider=provider_name,
+        model=model_name,
+        judge_provider=str(getattr(result, "judge_provider", "") or ""),
+        summary=summary,
+        result=result,
+    )
     metrics_snapshot = _runtime_metrics_snapshot_safe()
 
     return PilotReportCase(

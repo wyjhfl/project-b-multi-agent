@@ -139,3 +139,4 @@
 - v2.9 Phase 9.2 已完成 opt-in smoke 自动生成脱敏报告（NL2SQL/Judge），可通过 `REAL_LLM_PILOT_REPORT_DIR` 覆盖输出目录。
 - 试点报告默认脱敏，不包含 prompt 原文与密钥原文；默认 pytest/CI 不生成真实外网报告。
 - v2.9 Phase 9.3 已完成 NL2SQL/Judge/audit/metrics 证据串联，报告包含 evidence_links 与 observability 脱敏摘要。
+- v2.9 Phase 9.3 P0 cleanup 已完成 Judge audit evidence link 收口：Judge 证据链接必须可追溯，或明确标记未记录。

@@ -124,3 +124,4 @@
 - [ ] 可通过 `REAL_LLM_PILOT_REPORT_DIR` 覆盖报告输出目录
 - [ ] 已完成 Phase 9.3：NL2SQL/Judge/audit/metrics 证据串联（evidence_links + observability）
 - [ ] evidence_links 与 metrics snapshot 仅保留脱敏摘要，不包含 prompt 原文与密钥原文
+- [ ] Judge evidence_links 必须可追溯（`llm_judge_acceptance`）或明确标记未记录（非空语义说明）
