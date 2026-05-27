@@ -135,3 +135,5 @@
 - 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
 - v2.8.0 GitHub Release 已由用户手动创建，tag 保持不变。
 - 下一阶段推荐进入 v2.9 Real LLM Controlled Pilot Evidence（受控试点证据归档）。
+- v2.9 Phase 9.1 已完成 pilot report schema + report writer，默认输出 `docs/reports/real_llm_pilot/`。
+- 试点报告默认脱敏，不包含 prompt 原文与密钥原文；Phase 9.2 再接入 opt-in smoke 自动生成报告。

@@ -63,10 +63,12 @@
 
 ## 5. 阶段拆分（建议）
 
-### Phase 9.1：pilot report schema + report writer
+### Phase 9.1：pilot report schema + report writer（已完成）
 
-- 定义统一证据 schema。
-- 提供报告写入器（结构化 JSON + Markdown 摘要）。
+- 已定义统一证据 schema（`PilotReportSummary` / `PilotReportCase` / `PilotReportArtifact`）。
+- 已提供报告写入器（结构化 JSON + Markdown 摘要），默认输出目录 `docs/reports/real_llm_pilot/`。
+- 报告默认脱敏：不包含 prompt 原文与密钥原文。
+- 默认不执行真实 LLM；Phase 9.2 再接入 opt-in smoke 自动生成报告。
 
 ### Phase 9.2：opt-in smoke 自动生成脱敏报告
 

@@ -113,3 +113,11 @@
 
 - [ ] v2.8.0 GitHub Release 已手动创建并记录（tag 不移动）
 - [ ] 下一阶段进入 v2.9 Real LLM Controlled Pilot Evidence 规划与实施
+
+## 14. v2.9 Phase 9.1（pilot report schema + report writer）检查
+
+- [ ] 已实现统一试点报告模型（PilotReportSummary / PilotReportCase / PilotReportArtifact）
+- [ ] 已实现 JSON 与 Markdown 报告写入器，默认目录 `docs/reports/real_llm_pilot/`
+- [ ] 报告默认脱敏：不包含 prompt 原文与密钥原文
+- [ ] 默认不执行真实 LLM，默认 pytest/CI 不调用真实 LLM
+- [ ] Phase 9.2 再接入 opt-in smoke 自动生成报告
