@@ -207,3 +207,5 @@ def test_real_llm_smoke_report_generation_with_tmp_dir(monkeypatch: pytest.Monke
     assert "Bearer secret" not in json_text
     assert "dbpassword" not in json_text
     assert "sk-test-key" not in json_text
+    assert '"audit_event_id"' in json_text
+    assert '"runtime_metric_keys"' in json_text

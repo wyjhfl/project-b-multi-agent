@@ -56,7 +56,7 @@ def _record_llm_acceptance_event(action: str, payload: dict[str, Any]) -> None:
     }
 
     try:
-        _get_audit_recorder().record(
+        event = _get_audit_recorder().record(
             event_type="llm_acceptance",
             action=action,
             outcome=outcome,
@@ -64,6 +64,12 @@ def _record_llm_acceptance_event(action: str, payload: dict[str, Any]) -> None:
             reason=summary.get("fallback_reason") or summary.get("error_type") or "",
             detail=detail,
         )
+        if event is not None:
+            payload["evidence_links"] = {
+                "audit_event_id": event.event_id,
+                "audit_event_type": event.event_type,
+                "log_request_id": detail.get("request_id", ""),
+            }
     except Exception:
         pass
 
@@ -92,6 +98,7 @@ class PreviewResponse(BaseModel):
     provider_metadata: dict | None = None
     budget_status: dict | None = None
     acceptance_summary: dict | None = None
+    evidence_links: dict | None = None
 
 
 @router.post("/preview", response_model=PreviewResponse)
@@ -205,6 +212,7 @@ class ExecuteResponse(BaseModel):
     provider_metadata: dict | None = None
     budget_status: dict | None = None
     acceptance_summary: dict | None = None
+    evidence_links: dict | None = None
 
 
 def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, input_guard: dict | None = None):
@@ -236,6 +244,7 @@ def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, 
         provider_metadata=result.get("provider_metadata"),
         budget_status=result.get("budget_status"),
         acceptance_summary=result.get("acceptance_summary"),
+        evidence_links=result.get("evidence_links"),
     )
 
 
@@ -295,4 +304,5 @@ async def execute_nl2sql(req: ExecuteRequest):
         provider_metadata=result.get("provider_metadata"),
         budget_status=result.get("budget_status"),
         acceptance_summary=result.get("acceptance_summary"),
+        evidence_links=result.get("evidence_links"),
     )

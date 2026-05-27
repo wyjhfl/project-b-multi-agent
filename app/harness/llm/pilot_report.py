@@ -64,6 +64,17 @@ PILOT_EVIDENCE_SAFE_KEYS = {
     "fallback_reason",
     "error_type",
     "outcome",
+    "audit_event_id",
+    "audit_event_type",
+    "runtime_metric_keys",
+    "log_request_id",
+    "trace_id",
+    "report_artifacts",
+    "evidence_notes",
+    "score",
+    "passed",
+    "confidence",
+    "judge_provider",
 }
 _DSN_SCHEME_PATTERN = re.compile(r"^(postgresql(?:\+psycopg)?|redis)$", re.IGNORECASE)
 
@@ -92,11 +103,17 @@ class PilotReportCase:
     error_type: str
     outcome: str
     warnings: list[str] = field(default_factory=list)
+    evidence_links: dict[str, Any] = field(default_factory=dict)
+    observability: dict[str, Any] = field(default_factory=dict)
+    evidence_notes: list[str] = field(default_factory=list)
     detail: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["warnings"] = list(self.warnings)
+        payload["evidence_notes"] = list(self.evidence_notes)
+        payload["evidence_links"] = sanitize_pilot_report_payload(dict(self.evidence_links or {}))
+        payload["observability"] = sanitize_pilot_report_payload(dict(self.observability or {}))
         payload["detail"] = sanitize_pilot_report_payload(dict(self.detail or {}))
         return payload
 
@@ -139,6 +156,9 @@ class PilotReportSummary:
     error_type: str
     outcome: str
     warnings: list[str] = field(default_factory=list)
+    evidence_links: dict[str, Any] = field(default_factory=dict)
+    observability: dict[str, Any] = field(default_factory=dict)
+    evidence_notes: list[str] = field(default_factory=list)
     cases: list[PilotReportCase] = field(default_factory=list)
     artifacts: list[PilotReportArtifact] = field(default_factory=list)
 
@@ -170,8 +190,12 @@ class PilotReportSummary:
             "error_type": self.error_type,
             "outcome": self.outcome,
             "warnings": list(self.warnings),
+            "evidence_links": sanitize_pilot_report_payload(dict(self.evidence_links or {})),
+            "observability": sanitize_pilot_report_payload(dict(self.observability or {})),
+            "evidence_notes": list(self.evidence_notes),
             "cases": [case.to_dict() for case in self.cases],
             "artifacts": [artifact.to_dict() for artifact in self.artifacts],
+            "report_artifacts": [artifact.to_dict() for artifact in self.artifacts],
         }
 
 
@@ -322,6 +346,9 @@ def build_pilot_report(
         error_type=primary.error_type,
         outcome=primary.outcome,
         warnings=list(primary.warnings),
+        evidence_links=dict(primary.evidence_links or {}),
+        observability=dict(primary.observability or {}),
+        evidence_notes=list(primary.evidence_notes or []),
         cases=cases,
         artifacts=[],
     )
@@ -406,7 +433,12 @@ def write_pilot_report_markdown(
         f"- cost: {payload.get('cost', 0)}",
         f"- error_type: {payload.get('error_type', '')}",
         "",
-        "## 3. 案例明细",
+        "## 3. 证据链摘要",
+        f"- evidence_links: {json.dumps(payload.get('evidence_links', {}), ensure_ascii=False)}",
+        f"- runtime_metric_keys: {json.dumps((payload.get('observability', {}) or {}).get('runtime_metric_keys', []), ensure_ascii=False)}",
+        f"- evidence_notes: {', '.join(payload.get('evidence_notes', [])) if payload.get('evidence_notes') else '无'}",
+        "",
+        "## 4. 案例明细",
     ]
 
     for index, case in enumerate(payload.get("cases", []), start=1):
@@ -420,6 +452,8 @@ def write_pilot_report_markdown(
                 f"- budget_action: {case.get('budget_action', '')}",
                 f"- error_type: {case.get('error_type', '')}",
                 f"- warnings: {', '.join(case.get('warnings', [])) if case.get('warnings') else '无'}",
+                f"- evidence_links: {json.dumps(case.get('evidence_links', {}), ensure_ascii=False)}",
+                f"- runtime_metric_keys: {json.dumps((case.get('observability', {}) or {}).get('runtime_metric_keys', []), ensure_ascii=False)}",
                 f"- detail_redacted: {json.dumps(case.get('detail', {}), ensure_ascii=False)}",
                 "",
             ]
@@ -427,7 +461,7 @@ def write_pilot_report_markdown(
 
     lines.extend(
         [
-            "## 4. 边界声明",
+            "## 5. 边界声明",
             "- 本报告仅用于受控试点证据归档，不等于真实 LLM 生产验收完成。",
             "- 默认 fake/offline 路径与默认 pytest/CI 行为不受影响。",
             "- 报告已执行脱敏：不包含 prompt 原文、密钥原文、数据库密码原文。",

@@ -3,6 +3,7 @@
 import json
 from datetime import datetime, timezone
 
+from app.harness.llm.pilot_evidence import collect_llm_runtime_evidence_snapshot
 from app.harness.llm.pilot_report import (
     REDACTED_PROMPT_PLACEHOLDER,
     PilotReportCase,
@@ -38,6 +39,17 @@ def _build_case(**overrides):
         "error_type": "",
         "outcome": "success",
         "warnings": [],
+        "evidence_links": {
+            "audit_event_id": "aud_001",
+            "audit_event_type": "llm_acceptance",
+            "log_request_id": "req-v91",
+        },
+        "observability": {
+            "runtime_metric_keys": ["llm_budget", "llm_cache"],
+            "llm_budget": {"enabled": False},
+            "llm_cache": {"enabled": True},
+        },
+        "evidence_notes": ["nl2sql_pilot_evidence"],
         "detail": {
             "query": "原始 query 文本",
             "messages": [{"role": "user", "content": "原始 prompt 文本"}],
@@ -65,6 +77,7 @@ def test_schema_can_build_minimum_success_report():
     assert payload["provider"] == "litellm"
     assert payload["real_call_succeeded"] is True
     assert payload["cases"][0]["outcome"] == "success"
+    assert payload["evidence_links"]["audit_event_id"] == "aud_001"
 
 
 def test_failure_cases_can_be_recorded():
@@ -251,6 +264,31 @@ def test_markdown_should_include_controlled_pilot_boundary(tmp_path):
     assert "opt-in" in text
     assert "not production acceptance" in text
     assert "no raw prompt / no secrets" in text
+    assert "evidence_links" in text
+
+
+def test_collect_runtime_evidence_snapshot_redacted():
+    snapshot = collect_llm_runtime_evidence_snapshot(
+        {
+            "llm_budget": {
+                "enabled": True,
+                "scope": "daily",
+                "window_start": "2026-05-27T00:00:00+00:00",
+                "window_end": "2026-05-27T23:59:59+00:00",
+                "total_cost": 1.23,
+                "soft_limit": 2.0,
+                "hard_limit": 3.0,
+                "database_url": "postgresql://user:dbpassword@localhost:5432/db",
+            },
+            "llm_cache": {"enabled": True, "size": 2, "ttl_seconds": 3600, "hit_count": 1, "miss_count": 3},
+            "prompt": "原始 prompt",
+        }
+    )
+    text = json.dumps(snapshot, ensure_ascii=False)
+    assert "dbpassword" not in text
+    assert "原始 prompt" not in text
+    assert snapshot["llm_budget"]["enabled"] is True
+    assert snapshot["llm_cache"]["size"] == 2
 
 
 def test_build_report_should_reject_empty_cases():

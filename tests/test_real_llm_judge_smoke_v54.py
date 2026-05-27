@@ -160,3 +160,5 @@ def test_real_llm_judge_report_generation_with_tmp_dir(monkeypatch: pytest.Monke
     assert "sid=abc" not in json_text
     assert "redispassword" not in json_text
     assert "sk-test-key" not in json_text
+    assert '"audit_event_id"' in json_text
+    assert '"runtime_metric_keys"' in json_text

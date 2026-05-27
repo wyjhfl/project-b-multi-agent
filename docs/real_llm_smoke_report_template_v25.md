@@ -76,6 +76,15 @@
 - 初步归因（配置/网络/模型/响应结构）：
 - 修复建议：
 
+## 6.1 证据链链接（v2.9 Phase 9.3）
+
+- audit_event_id：
+- audit_event_type（建议 `llm_acceptance`）：
+- runtime_metric_keys（脱敏摘要）：
+- log_request_id：
+- trace_id（如有）：
+- report_artifacts（JSON/Markdown 路径）：
+
 ## 7. LLMJudge 结果（opt-in）
 
 - judge_provider：

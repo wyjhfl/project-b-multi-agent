@@ -751,3 +751,4 @@ project-b-multi-agent/
 - v2.9 Phase 9.1 已完成：pilot report schema + report writer（JSON/Markdown），默认目录 `docs/reports/real_llm_pilot/`。
 - v2.9 Phase 9.2 已完成：opt-in smoke 自动生成脱敏报告（NL2SQL/Judge），默认目录 `docs/reports/real_llm_pilot/`，可通过 `REAL_LLM_PILOT_REPORT_DIR` 覆盖。
 - 报告默认脱敏，不包含 prompt 原文与密钥原文；默认不执行真实 LLM，默认 pytest/CI 不生成真实外网报告。
+- v2.9 Phase 9.3 已完成：NL2SQL/Judge/audit/metrics 证据串联，报告新增 evidence_links 与 observability 脱敏摘要，可按 request_id 追溯。

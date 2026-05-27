@@ -214,3 +214,28 @@ def test_metrics_runtime_contains_llm_budget_cache_summary(monkeypatch):
     assert "llm_cache" in payload
     assert "enabled" in payload["llm_budget"]
     assert "enabled" in payload["llm_cache"]
+
+
+def test_nl2sql_preview_should_expose_evidence_links(monkeypatch):
+    monkeypatch.setattr(settings, "llm_budget_enabled", False)
+    monkeypatch.setattr(settings, "llm_cache_enabled", False)
+    reset_runtime_for_test()
+
+    provider = _CountingProvider()
+    monkeypatch.setattr("app.services.nl2sql_pipeline.create_provider", lambda *_args, **_kwargs: provider)
+
+    response = client.post(
+        "/nl2sql/preview",
+        json={
+            "query": "今天GMV多少",
+            "generator": "llm",
+            "provider": "litellm",
+            "fallback_to_mock": False,
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    links = payload.get("evidence_links") or {}
+    assert links.get("audit_event_id", "").startswith("aud_")
+    assert links.get("audit_event_type") == "llm_acceptance"
+    assert links.get("log_request_id") == "req-v53"
