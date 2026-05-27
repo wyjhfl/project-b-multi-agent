@@ -186,3 +186,6 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 保持默认 fake/offline，不接真实外部 MCP 作为默认依赖。
 - v2.8.0 tag 与 GitHub Release 已发布且不移动；main 持续向 v2.9.0 演进。
 - v3.0 Phase 10.1 已建立执行记录模板：`docs/real_llm_pilot_execution_log_v30.md`，当前记录为待手动 opt-in 执行。
+- v3.0 Phase 10.2 已建立部署演练与回滚记录：`docs/production_deployment_drill_v30.md`（本地/内网试点模拟，不等于公网生产上线）。
+- 回滚策略以 `prod_down.ps1` 停止 prod compose、恢复默认 compose 路径、清理临时环境变量为主。
+- 真实 LLM 与真实外部 MCP 默认关闭（`REAL_LLM_ACCEPTANCE_ENABLED=false`、`MCP_MODE=fake`）。

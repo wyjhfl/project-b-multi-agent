@@ -140,3 +140,4 @@
 - 下一阶段进入 v3.0 生产落地最终阶段规划。
 - v3.0 规划文档：`docs/v3_final_production_landing_plan.md`。
 - v3.0 Phase 10.1 已建立执行记录模板：`docs/real_llm_pilot_execution_log_v30.md`（本轮待手动 opt-in）。
+- v3.0 Phase 10.2 已建立部署演练与回滚记录：`docs/production_deployment_drill_v30.md`（本地/内网试点模拟）。

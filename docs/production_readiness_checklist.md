@@ -140,3 +140,13 @@
 - [ ] 环境不齐全时记录 skipped，不伪造成功报告
 - [ ] 不提交 API key/token/client_secret，不记录 prompt 原文
 - [ ] 默认 fake/offline 与默认 pytest/CI 行为保持不变
+
+## 17. v3.0 Phase 10.2（生产部署演练与回滚）检查
+
+- [ ] 已建立演练记录文档：`docs/production_deployment_drill_v30.md`
+- [ ] `docker compose -f docker-compose.yml -f docker-compose.prod.yml config` 缺变量按预期失败
+- [ ] 注入临时合法 `JWT_SECRET`/`DATABASE_URL`/`REDIS_URL` 后 prod compose config 通过
+- [ ] `scripts/prod_config_check.ps1` 在 development 为通过或 warning 通过
+- [ ] `scripts/prod_config_check.ps1` 在 production 缺配置时失败
+- [ ] `scripts/prod_config_check.ps1` 在 production 临时合法配置时通过
+- [ ] 回滚步骤明确：停止 prod compose、恢复默认 compose、清理临时环境变量、不删用户数据
