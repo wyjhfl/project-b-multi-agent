@@ -22,7 +22,7 @@
   - `network_check_allowed` / `network_check_requested` / `network_check_executed`
   - `checks` / `warnings` / `errors`
 - 默认不联网；仅当显式开关允许且配置完整时才执行 `network_check=true`。
-- 当 preflight 或 acceptance 开关关闭时，状态应为 `disabled`，不阻断默认离线路径。
+- 当 preflight 或 acceptance 开关关闭时，状态为 `disabled`，不阻断默认离线路径。
 
 ### 3.2 Acceptance Summary 统一口径
 
@@ -81,3 +81,11 @@
 - 不宣称公网生产可直接上线。
 - 不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
 - 不宣称真实外部 MCP 生产验收完成。
+
+## 7. 发布边界与版本关系（v2.8.0 release prep）
+
+- v2.7.0 tag 与 GitHub Release 已发布，tag 固定在 `2076111cb786df76a941ebf28f550f68f4131147`。
+- 当前 main 超前 v2.7.0 tag，v2.8.0 作为后续版本准备。
+- v2.8.0 仅表示 Controlled Real LLM Pilot 阶段交付，不等于真实 LLM 生产验收完成。
+- 默认 fake/offline 路径保持不变，默认 pytest/CI 不调用真实 LLM。
+- 本阶段不接真实外部 MCP 作为默认依赖，不宣称公网生产可直接上线。

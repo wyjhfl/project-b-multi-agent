@@ -1,4 +1,4 @@
-# 部署运行手册（v2.7.0 / Production Security Baseline）
+﻿# 部署运行手册（v2.8.0 / Controlled Real LLM Pilot）
 
 ## 1. 适用范围
 
@@ -176,15 +176,11 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 当前日志为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
 - 审计导出默认使用字段白名单与脱敏边界，不导出 prompt 原文及密钥原文。
 
-## v2.8 Controlled Real LLM Pilot 运行补充
+## 10. v2.8.0 release prep 口径补充
 
-- 默认保持 `REAL_LLM_ACCEPTANCE_ENABLED=false`、`REAL_LLM_PREFLIGHT_ENABLED=false`、`REAL_LLM_SMOKE_ENABLED=false`。
-- 仅在受控验收窗口显式开启：
-  - `REAL_LLM_SMOKE_ENABLED=true`
-  - `REAL_LLM_ACCEPTANCE_ENABLED=true`
-  - `REAL_LLM_PREFLIGHT_ENABLED=true`
-  - `REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`
-  - `REAL_LLM_MODEL=<明确模型>`
-  - `REAL_LLM_API_KEY_ENV=<密钥环境变量名>`
-- 推荐先执行 `/llm/preflight`，确认 `api_key_present=true` 与 `network_check_allowed=true`。
-- 真实 LLM 验收后应补齐 smoke 报告，记录 request_id/fallback_reason/budget_action/cache_hit/cost。
+- v2.8.0 定位为 Controlled Real LLM Pilot（受控试点），不是生产验收完成声明。
+- `/llm/preflight` 与前端 `/llm` 页面用于配置预检与状态观测，不代表真实 LLM 生产验收完成。
+- acceptance_summary 已统一字段：provider/model、real_call_attempted、real_call_succeeded、fallback_reason、tokens/cost、budget_action、cache_hit、request_id、error_type、warnings。
+- 真实 LLM smoke 仅 opt-in，不进入默认 pytest/CI；本轮 release prep 未执行真实外网 LLM smoke。
+- 保持默认 fake/offline，不接真实外部 MCP 作为默认依赖。
+- v2.7.0 tag 与 GitHub Release 已发布且不移动；main 持续向 v2.8.0 演进。

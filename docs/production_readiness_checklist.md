@@ -1,4 +1,4 @@
-# 生产就绪检查清单（v2.7.0 / Production Security Baseline）
+﻿# 生产就绪检查清单（v2.8.0 / Controlled Real LLM Pilot）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -89,7 +89,7 @@
 - [ ] 完整公网生产安全基线（当前已完成 Phase 7.1/7.2/7.3/7.4/7.5：CORS、安全响应头、request size limit、rate limit、basic abuse guard、结构化日志脱敏、审计留存与导出边界、OIDC 最小接入骨架与配置预检）
 - [ ] 多实例一致性限流（当前仅进程内内存限流）
 
-## v2.8 Controlled Real LLM Pilot 验收检查
+## 11. v2.8 Controlled Real LLM Pilot 验收检查
 
 - [ ] 默认 `REAL_LLM_ACCEPTANCE_ENABLED=false`、`REAL_LLM_PREFLIGHT_ENABLED=false`、`REAL_LLM_SMOKE_ENABLED=false`
 - [ ] `/llm/preflight` 返回结构化字段，且不泄漏 API key 原文
@@ -98,3 +98,13 @@
 - [ ] 审计导出不包含 prompt 原文与密钥原文
 - [ ] 真实 LLM smoke 报告已归档（opt-in）
 - [ ] 未宣称真实 LLM 生产验收完成
+
+## 12. v2.8.0 release prep 补充检查
+
+- [ ] 当前后端全量基线为 730 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
+- [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
+- [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
+- [ ] 审计导出继续保持白名单 + 脱敏，不导出 prompt 原文与密钥原文
+- [ ] 真实 LLM smoke 仍为 opt-in，本轮 release prep 未执行真实外网 LLM smoke
+- [ ] 不宣称真实 LLM 生产验收完成，不宣称公网生产可直接上线

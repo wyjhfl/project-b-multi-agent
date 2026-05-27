@@ -30,6 +30,7 @@
 | **v2.5.0** | Real LLM Optional Acceptance Pack | Phase 5.1 provider preflight / Phase 5.2 opt-in real LLM smoke / Phase 5.3 token/cost/budget/cache/fallback 验收 / Phase 5.4 LLMJudge opt-in smoke / Phase 5.5 文档收口与 release prep；默认 fake/offline，默认测试不调用真实 LLM |
 | **v2.6.0** | Phase 6.0 Engineering Readiness | 部署门禁（deployment guard）/ 生产模板（.env.production.example + compose override）/ prod 脚本 / CI 工程化增强；定位企业内网试点准生产可投入使用；默认离线路径不变 |
 | **v2.7.0** | Production Security Baseline | Phase 7.1 CORS + 安全响应头 / Phase 7.2 request size limit + rate limit + basic abuse guard / Phase 7.3 结构化日志与脱敏 / Phase 7.4 审计留存与 JSONL 导出边界 / Phase 7.5 OIDC/SSO 最小接入骨架与配置预检；默认 fake/offline，默认测试不调用真实 LLM |
+| **v2.8.0** | Controlled Real LLM Pilot | `/llm/preflight` 状态观测 + 前端 `/llm` 页面 / acceptance_summary 统一字段 / budget-cache-fallback 行为收敛 / LLMJudge opt-in 收敛 / 审计日志指标联动；默认 fake/offline，默认 pytest/CI 不调用真实 LLM |
 
 ## Known Pitfalls
 
@@ -103,10 +104,10 @@
 
 ## v3.0 生产路线说明（当前阶段）
 
-- v3.0 采用分阶段推进，当前处于第二阶段：v2.7 / Production Security Baseline 能力增强。
+- v3.0 采用分阶段推进，当前处于第三阶段：v2.8 / Controlled Real LLM Pilot（受控试点）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前 v2.7.0 回归基线：727 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前 v2.8.0 回归基线：730 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -125,7 +126,7 @@
 - 审计导出默认脱敏，不导出 prompt 原文、密钥原文、连接串密码原文。
 - 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
 
-## v2.8 Controlled Real LLM Pilot 口径
+## v2.8.0 Controlled Real LLM Pilot 口径
 
 - 当前阶段为 v2.8 受控试点，默认 fake/offline 路径不变。
 - 默认 pytest/CI 不调用真实 LLM，真实 LLM 仅 opt-in 验收。
