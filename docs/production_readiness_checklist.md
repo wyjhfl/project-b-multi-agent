@@ -184,3 +184,11 @@
 - [ ] release review 覆盖 scope / changed modules / verification matrix / security & operational boundary / known limitations / Go-No-Go
 - [ ] 默认 fake/offline 与默认 pytest/CI 不调用真实 LLM 行为保持不变
 - [ ] 本轮未执行真实外网 LLM
+
+## 21. v3.1 Productization Enhancement 规划入口
+
+- [ ] 已建立 v3.1 规划文档：`docs/v3_1_productization_enhancement_plan.md`
+- [ ] v3.0.0 GitHub Release 已完成并记录，`v3.0.0` tag 保持不变
+- [ ] v3.1 不改当前发布版本号（当前仍为 3.0.0）
+- [ ] v3.1 仍保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM
+- [ ] v3.1 仍保持边界：不宣称公网生产直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成

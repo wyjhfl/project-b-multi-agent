@@ -767,3 +767,4 @@ project-b-multi-agent/
 - 当前进入 v3.0.0 release prep：`RELEASE_NOTES_v3.0.0.md`、`docs/release_review_v3.0_final_production_landing.md`。
 - v3.0.0 GitHub Release 已由用户手动创建，v3.0.0 tag 保持不变。
 - 下一阶段建议进入 v3.1 或后续产品化增强规划（继续保持不宣称公网直上与不宣称真实 LLM 生产验收完成边界）。
+- v3.1 规划已开启：`docs/v3_1_productization_enhancement_plan.md`（不改版本号，当前仍为 3.0.0）。
