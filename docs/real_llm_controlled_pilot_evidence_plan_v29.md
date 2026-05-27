@@ -108,3 +108,10 @@
 - 不宣称公网生产可直接上线。
 - 不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
 - 不宣称真实外部 MCP 生产验收完成。
+
+## 8. v2.9.0 release prep 收口说明
+
+- v2.9.0 release prep 聚焦版本同步、文档口径收口与验证，不新增真实外网 LLM 执行。
+- release review 与 release notes 覆盖 Phase 9.1~9.4 与 P0 cleanup 完成状态。
+- v2.8.0 tag 与 GitHub Release 已发布，main 超前 tag 属于 v2.9.0 后续演进，不移动既有 tag。
+- 当前回归基线为 750 passed, 4 skipped（如后续全量验证变化，以实际结果为准）。

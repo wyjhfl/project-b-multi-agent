@@ -1,4 +1,4 @@
-# 生产就绪检查清单（v2.8.0 / Controlled Real LLM Pilot）
+# 生产就绪检查清单（v2.9.0 / Real LLM Controlled Pilot Evidence）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -99,7 +99,7 @@
 - [ ] 真实 LLM smoke 报告已归档（opt-in）
 - [ ] 未宣称真实 LLM 生产验收完成
 
-## 12. v2.8.0 release prep 补充检查
+## 12. v2.9.0 release prep 补充检查
 
 - [ ] 当前后端全量基线为 750 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
@@ -114,7 +114,7 @@
 - [ ] v2.8.0 GitHub Release 已手动创建并记录（tag 不移动）
 - [ ] 下一阶段进入 v2.9 Real LLM Controlled Pilot Evidence 规划与实施
 
-## 14. v2.9 Phase 9.1（pilot report schema + report writer）检查
+## 14. v2.9 Phase 9.1~9.4 交付检查
 
 - [ ] 已实现统一试点报告模型（PilotReportSummary / PilotReportCase / PilotReportArtifact）
 - [ ] 已实现 JSON 与 Markdown 报告写入器，默认目录 `docs/reports/real_llm_pilot/`

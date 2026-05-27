@@ -31,6 +31,7 @@
 | **v2.6.0** | Phase 6.0 Engineering Readiness | 部署门禁（deployment guard）/ 生产模板（.env.production.example + compose override）/ prod 脚本 / CI 工程化增强；定位企业内网试点准生产可投入使用；默认离线路径不变 |
 | **v2.7.0** | Production Security Baseline | Phase 7.1 CORS + 安全响应头 / Phase 7.2 request size limit + rate limit + basic abuse guard / Phase 7.3 结构化日志与脱敏 / Phase 7.4 审计留存与 JSONL 导出边界 / Phase 7.5 OIDC/SSO 最小接入骨架与配置预检；默认 fake/offline，默认测试不调用真实 LLM |
 | **v2.8.0** | Controlled Real LLM Pilot | `/llm/preflight` 状态观测 + 前端 `/llm` 页面 / acceptance_summary 统一字段 / budget-cache-fallback 行为收敛 / LLMJudge opt-in 收敛 / 审计日志指标联动；默认 fake/offline，默认 pytest/CI 不调用真实 LLM |
+| **v2.9.0** | Real LLM Controlled Pilot Evidence | Phase 9.1~9.4：试点报告 schema/writer、opt-in smoke 自动生成脱敏报告、NL2SQL/Judge/audit/metrics 证据串联、pilot evidence 只读 API 与前端只读入口；默认 fake/offline，默认 pytest/CI 不调用真实 LLM |
 
 ## Known Pitfalls
 
@@ -104,7 +105,7 @@
 
 ## v3.0 生产路线说明（当前阶段）
 
-- v3.0 采用分阶段推进，当前处于第三阶段：v2.8 / Controlled Real LLM Pilot（受控试点）。
+- v3.0 采用分阶段推进，当前处于第三阶段：v2.9 / Real LLM Controlled Pilot Evidence（受控试点证据）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
 - 当前回归基线：750 passed, 4 skipped（默认 real_llm 用例 skip）。
@@ -126,18 +127,12 @@
 - 审计导出默认脱敏，不导出 prompt 原文、密钥原文、连接串密码原文。
 - 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
 
-## v2.8.0 Controlled Real LLM Pilot 口径
+## v2.9.0 Real LLM Controlled Pilot Evidence 口径
 
-- 当前阶段为 v2.8 受控试点，默认 fake/offline 路径不变。
+- 当前阶段为 v2.9 受控试点证据，默认 fake/offline 路径不变。
 - 默认 pytest/CI 不调用真实 LLM，真实 LLM 仅 opt-in 验收。
-- `/llm/preflight` 与 LLM Pilot 页面仅用于配置预检和状态观测，不代表生产验收完成。
+- `/llm/preflight` 与 LLM Pilot 页面用于配置预检和状态观测；`/llm/pilot/reports` 提供只读证据审查入口。
 - 审计、日志、导出必须保持脱敏边界：不记录 prompt 原文、不输出密钥原文。
 - 不宣称公网生产可直接上线，不宣称生产级 SSO/OIDC、多租户、复杂 BI 已完成。
 - v2.8.0 GitHub Release 已由用户手动创建，tag 保持不变。
-- 下一阶段推荐进入 v2.9 Real LLM Controlled Pilot Evidence（受控试点证据归档）。
-- v2.9 Phase 9.1 已完成 pilot report schema + report writer，默认输出 `docs/reports/real_llm_pilot/`。
-- v2.9 Phase 9.2 已完成 opt-in smoke 自动生成脱敏报告（NL2SQL/Judge），可通过 `REAL_LLM_PILOT_REPORT_DIR` 覆盖输出目录。
-- 试点报告默认脱敏，不包含 prompt 原文与密钥原文；默认 pytest/CI 不生成真实外网报告。
-- v2.9 Phase 9.3 已完成 NL2SQL/Judge/audit/metrics 证据串联，报告包含 evidence_links 与 observability 脱敏摘要。
-- v2.9 Phase 9.3 P0 cleanup 已完成 Judge audit evidence link 收口：Judge 证据链接必须可追溯，或明确标记未记录。
-- v2.9 Phase 9.4 已完成 pilot evidence 只读查看入口（后端 API + 前端只读区域），不触发真实 LLM 执行。
+- v2.9.0 已完成 Phase 9.1~9.4 与 P0 cleanup，形成完整受控试点证据闭环。

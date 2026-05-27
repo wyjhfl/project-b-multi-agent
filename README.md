@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-730%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.8.0-green)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-750%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v2.9.0-green)]()
 
 ---
 
@@ -493,6 +493,7 @@ python -m pytest -q
 | **v2.6.0** | Phase 6.0 Engineering Readiness | 部署门禁（deployment guard）/ 生产模板（.env.production.example + compose override）/ prod 脚本 / CI 工程化增强；定位企业内网试点准生产可投入使用；默认离线路径不变 |
 | **v2.7.0** | Production Security Baseline | Phase 7.1 CORS + 安全响应头 / Phase 7.2 request size limit + rate limit + basic abuse guard / Phase 7.3 结构化日志与脱敏 / Phase 7.4 审计留存与 JSONL 导出边界 / Phase 7.5 OIDC/SSO 最小接入骨架与配置预检；默认 fake/offline，默认测试不调用真实 LLM |
 | **v2.8.0** | Controlled Real LLM Pilot | `/llm/preflight` 状态观测 + 前端 `/llm` 试点页 / acceptance_summary 统一口径 / budget-cache-fallback 行为收敛 / LLMJudge opt-in 收敛 / 审计日志指标联动；默认 fake/offline，默认 pytest/CI 不调用真实 LLM |
+| **v2.9.0** | Real LLM Controlled Pilot Evidence | Phase 9.1~9.4：试点报告 schema/writer、opt-in smoke 自动生成脱敏报告、NL2SQL/Judge/audit/metrics 证据串联、pilot evidence 只读 API 与前端只读入口；默认 fake/offline，默认 pytest/CI 不调用真实 LLM |
 
 ---
 
@@ -696,9 +697,9 @@ project-b-multi-agent/
 - 启用权限试点需显式设置：`AUTH_ENABLED=true`、`RBAC_ENABLED=true`。
 - 当前仅做试点级权限说明与页面收敛，不实现生产登录系统。
 
-### v2.8.0 阶段定位
+### v2.9.0 阶段定位
 
-- 当前阶段目标为“Controlled Real LLM Pilot（受控试点）能力交付”。
+- 当前阶段目标为“Real LLM Controlled Pilot Evidence（受控试点证据）能力交付”。
 - 默认开发/演示路径保持不变，仍可离线运行。
 - 生产形态通过 `docker-compose.prod.yml` override 与 `scripts/prod_*.ps1` 执行。
 - v2.7 Phase 7.1 已实现 CORS 与安全响应头基线：development 默认允许 `http://localhost:3000`，production 需显式配置允许来源且禁止 `*`。
@@ -709,7 +710,7 @@ project-b-multi-agent/
 
 ### v3.0 生产路线（当前处于第三阶段）
 
-- v3.0 生产路线分阶段推进，当前处于第三阶段：**v2.8 / Controlled Real LLM Pilot（受控试点）**。
+- v3.0 生产路线分阶段推进，当前处于第三阶段：**v2.9 / Real LLM Controlled Pilot Evidence（受控试点证据）**。
 - 默认开发模板继续使用 `docker-compose.yml`（离线演示友好，auth/rbac 默认关闭）。
 - 生产 override 模板使用 `docker-compose.yml + docker-compose.prod.yml`（启用生产门禁所需配置约束）。
 - 推荐运维脚本：
@@ -735,22 +736,17 @@ project-b-multi-agent/
 - 角色映射仅允许 `admin/operator/viewer/auditor`，未命中回退 `viewer`。
 - 当前仅为最小接入骨架与配置预检，不宣称生产级 SSO/OIDC 已完成。
 
-## v2.8.0 Controlled Real LLM Pilot（当前阶段）
+## v2.9.0 Real LLM Controlled Pilot Evidence（当前阶段）
 
-- 当前进入 v2.8 受控试点阶段，默认路径仍为 fake/offline。
+- 当前进入 v2.9 受控试点证据阶段，默认路径仍为 fake/offline。
 - 默认 pytest 与默认 CI 不调用真实 LLM；真实 LLM smoke 仅 opt-in 验收。
-- 新增 LLM Pilot 页面与 `/llm/preflight` 状态收敛，用于配置预检与可观测，不用于生产放开。
+- 已提供 `/llm/pilot/reports` 只读审查 API 与前端 LLM 页 Pilot Evidence 只读区域，用于受控试点证据查看。
 - 验收摘要统一字段：provider/model、real_call_attempted、fallback_reason、tokens/cost、budget_action、cache_hit、request_id、error_type。
-- 审计导出默认脱敏，不导出 prompt 原文、API key/token/password/secret/数据库密码原文。
+- 审计导出与试点报告均默认脱敏，不导出 prompt 原文、API key/token/password/secret/数据库密码原文。
 - 不宣称真实 LLM 生产验收完成，不宣称公网生产可直接上线。
 
-### v2.8.0 发布后状态
+### v2.8.0 与 v2.9.0 版本关系
 
 - v2.8.0 GitHub Release 已由用户手动创建（tag 不移动）。
-- 下一阶段推荐进入 **v2.9 Real LLM Controlled Pilot Evidence**，优先完成真实 LLM 受控试点证据归档闭环。
-- v2.9 Phase 9.1 已完成：pilot report schema + report writer（JSON/Markdown），默认目录 `docs/reports/real_llm_pilot/`。
-- v2.9 Phase 9.2 已完成：opt-in smoke 自动生成脱敏报告（NL2SQL/Judge），默认目录 `docs/reports/real_llm_pilot/`，可通过 `REAL_LLM_PILOT_REPORT_DIR` 覆盖。
-- 报告默认脱敏，不包含 prompt 原文与密钥原文；默认不执行真实 LLM，默认 pytest/CI 不生成真实外网报告。
-- v2.9 Phase 9.3 已完成：NL2SQL/Judge/audit/metrics 证据串联，报告新增 evidence_links 与 observability 脱敏摘要，可按 request_id 追溯。
-- v2.9 Phase 9.3 P0 cleanup 已完成：Judge evidence_links 对应可追溯 `llm_judge_acceptance` 审计事件，不再只是字段占位。
-- v2.9 Phase 9.4 已完成：提供 Pilot Evidence 只读查看 API 与前端只读入口（不执行真实 LLM，不展示 prompt/key 原文）。
+- 当前 main 已进入 v2.9.0 release prep，包含 Phase 9.1~9.4 全部交付与 P0 cleanup。
+- v2.9.0 仍保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；本轮未执行真实外网 LLM。

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-b-multi-agent"
-version = "2.8.0"
+version = "2.9.0"
 description = "Harness-native 运营中台 Agent"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,7 +18,7 @@ dependencies = [
     "alembic>=1.13.0",
     "psycopg[binary]>=3.1.0",
     "redis>=5.0.0",
-    "PyJWT>=2.8.0",
+    "PyJWT>=2.9.0",
     "passlib[bcrypt]>=1.7.4",
     "email-validator>=2.1.0",
 ]
