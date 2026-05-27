@@ -8,9 +8,11 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
+RAW_PROMPT_TEXT = "原始 prompt 文本"
+RAW_QUERY_TEXT = "原始 query 文本"
 
 
-def _write_report(base: Path, report_id: str, *, prompt_text: str = "原始 prompt 文本") -> None:
+def _write_report(base: Path, report_id: str, *, prompt_text: str = RAW_PROMPT_TEXT) -> None:
     payload = {
         "report_id": report_id,
         "generated_at": "2026-05-27T00:00:00+00:00",
@@ -34,7 +36,7 @@ def _write_report(base: Path, report_id: str, *, prompt_text: str = "原始 prom
         "api_key": "sk-test-secret",
         "detail": {
             "prompt": prompt_text,
-            "query": "原始 query 文本",
+            "query": RAW_QUERY_TEXT,
             "password": "db-password",
             "database_url": "postgresql://user:dbpassword@localhost:5432/db",
             "redis_url": "redis://:redispassword@localhost:6379/0",
@@ -75,7 +77,7 @@ def test_report_detail_should_be_redacted(monkeypatch, tmp_path):
     assert payload["prompt_tokens"] == 11
     assert payload["detail"]["prompt"] == "[REDACTED_PROMPT]"
     assert "sk-test-secret" not in text
-    assert "原始 query 文本" not in text
+    assert RAW_QUERY_TEXT not in text
     assert "db-password" not in text
     assert "dbpassword" not in text
     assert "redispassword" not in text
@@ -93,7 +95,7 @@ def test_markdown_should_not_leak_sensitive_text(monkeypatch, tmp_path):
     response = client.get("/llm/pilot/reports/pilot-report-3/markdown")
     assert response.status_code == 200
     text = response.text
-    assert "原始 prompt 文本" not in text
+    assert RAW_PROMPT_TEXT not in text
     assert "sk-test-secret" not in text
     assert "dbpassword" not in text
 

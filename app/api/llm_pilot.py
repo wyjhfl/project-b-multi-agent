@@ -15,6 +15,9 @@ from app.harness.llm.pilot_report import DEFAULT_PILOT_REPORT_DIR, sanitize_pilo
 router = APIRouter(prefix="/llm/pilot", tags=["llm_pilot"])
 
 _REPORT_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
+_MARKDOWN_BOUNDARY_HEADER = "## 边界声明"
+_MARKDOWN_BOUNDARY_LINE_1 = "- 只读查看，不会触发真实 LLM 调用。"
+_MARKDOWN_BOUNDARY_LINE_2 = "- 内容已脱敏，不包含 prompt 原文与密钥原文。"
 
 
 def _get_report_dir() -> Path:
@@ -58,9 +61,9 @@ def _build_markdown_preview(payload: dict[str, Any]) -> str:
         f"- audit_event_id: {evidence_links.get('audit_event_id', '')}",
         f"- audit_event_type: {evidence_links.get('audit_event_type', '')}",
         "",
-        "## 边界声明",
-        "- 只读查看，不会触发真实 LLM 调用。",
-        "- 内容已脱敏，不包含 prompt 原文与密钥原文。",
+        _MARKDOWN_BOUNDARY_HEADER,
+        _MARKDOWN_BOUNDARY_LINE_1,
+        _MARKDOWN_BOUNDARY_LINE_2,
     ]
     return "\n".join(lines)
 
