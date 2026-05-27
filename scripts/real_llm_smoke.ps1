@@ -41,6 +41,10 @@ if ([string]::IsNullOrWhiteSpace($apiKeyEnvName)) {
 }
 $apiKeyValue = (Get-Item -Path ("Env:" + $apiKeyEnvName) -ErrorAction SilentlyContinue).Value
 $baseUrlMasked = Mask-Text $env:REAL_LLM_BASE_URL
+$reportDir = ($env:REAL_LLM_PILOT_REPORT_DIR ?? "").Trim()
+if ([string]::IsNullOrWhiteSpace($reportDir)) {
+  $reportDir = "docs/reports/real_llm_pilot"
+}
 
 $missingConfig = @()
 if ([string]::IsNullOrWhiteSpace($model)) { $missingConfig += "REAL_LLM_MODEL" }
@@ -48,6 +52,7 @@ if ([string]::IsNullOrWhiteSpace($apiKeyEnvName)) { $missingConfig += "REAL_LLM_
 if ([string]::IsNullOrWhiteSpace($apiKeyValue)) { $missingConfig += ("env:" + $apiKeyEnvName) }
 
 Write-Host "[real_llm_smoke] provider=$($env:REAL_LLM_PROVIDER ?? 'litellm') model=$model base_url=$baseUrlMasked api_key_env=$apiKeyEnvName api_key_present=$([string]::IsNullOrWhiteSpace($apiKeyValue) -eq $false)" -ForegroundColor Cyan
+Write-Host "[real_llm_smoke] pilot_report_dir=$reportDir (可通过 REAL_LLM_PILOT_REPORT_DIR 覆盖)" -ForegroundColor Cyan
 
 if ($missingConfig.Count -gt 0) {
   Write-Host "[real_llm_smoke] skip: 配置不完整 -> $($missingConfig -join ', ')" -ForegroundColor Yellow
@@ -59,3 +64,4 @@ python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q
 python -m pytest tests/test_real_llm_judge_smoke_v54.py -m real_llm -q
 
 Write-Host "[real_llm_smoke] 已完成。请在报告中记录 request_id/fallback_reason/budget_action/cache_hit/cost。" -ForegroundColor Green
+Write-Host "[real_llm_smoke] 报告输出目录：$reportDir" -ForegroundColor Green

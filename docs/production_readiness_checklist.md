@@ -120,4 +120,5 @@
 - [ ] 已实现 JSON 与 Markdown 报告写入器，默认目录 `docs/reports/real_llm_pilot/`
 - [ ] 报告默认脱敏：不包含 prompt 原文与密钥原文
 - [ ] 默认不执行真实 LLM，默认 pytest/CI 不调用真实 LLM
-- [ ] Phase 9.2 再接入 opt-in smoke 自动生成报告
+- [ ] 已完成 Phase 9.2：opt-in smoke（NL2SQL/Judge）自动生成脱敏报告
+- [ ] 可通过 `REAL_LLM_PILOT_REPORT_DIR` 覆盖报告输出目录

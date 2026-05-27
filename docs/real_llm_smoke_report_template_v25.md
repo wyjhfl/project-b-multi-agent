@@ -9,6 +9,7 @@
 - 执行人：
 - 执行环境（本地 / CI job 名称）：
 - 代码版本（commit hash）：
+- 报告目录（默认 `docs/reports/real_llm_pilot/`，可由 `REAL_LLM_PILOT_REPORT_DIR` 覆盖）：
 
 ## 2. 配置摘要（脱敏）
 

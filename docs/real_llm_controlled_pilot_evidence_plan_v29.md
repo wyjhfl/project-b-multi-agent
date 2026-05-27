@@ -71,10 +71,11 @@
 - 已完成 Phase 9.1 P0 cleanup：修复“证据字段保真 + 敏感字段脱敏”，避免 token/cost/api_key_present 等证据字段被误脱敏。
 - 默认不执行真实 LLM；Phase 9.2 再接入 opt-in smoke 自动生成报告。
 
-### Phase 9.2：opt-in smoke 自动生成脱敏报告
+### Phase 9.2：opt-in smoke 自动生成脱敏报告（已完成）
 
-- 在 opt-in smoke 流程中自动生成脱敏报告。
-- 保持默认关闭，不影响默认测试与 CI。
+- 已在 opt-in smoke（NL2SQL/Judge）流程中自动生成脱敏报告（JSON + Markdown）。
+- 默认输出目录 `docs/reports/real_llm_pilot/`，可通过 `REAL_LLM_PILOT_REPORT_DIR` 覆盖。
+- 保持默认关闭，不影响默认测试与 CI，不会默认触发真实外网 LLM。
 
 ### Phase 9.3：NL2SQL / Judge / audit / metrics 证据串联
 
