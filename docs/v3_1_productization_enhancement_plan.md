@@ -57,6 +57,13 @@
   - 总览页面可稳定展示核心摘要；
   - 空数据/异常分支有可读提示，不泄露敏感信息。
 
+当前状态（2026-05-27）：
+
+- 已落地后端只读聚合接口：`GET /operations/summary`
+- 已落地前端只读入口：`/operations`
+- 汇总字段覆盖：health/version、deployment check 摘要、runtime metrics、tasks/approvals 计数、audit 最近事件、pilot reports/demo evidence 摘要
+- 空目录与空数据返回可读空状态，不触发写操作，不触发真实 LLM
+
 ### Phase 11.3：真实 LLM opt-in 实测执行与报告归档（P1）
 
 - 目标：

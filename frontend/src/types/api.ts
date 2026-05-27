@@ -393,3 +393,88 @@ export interface LlmPilotReportDetail {
   [key: string]: unknown;
 }
 
+export interface OperationsSummary {
+  generated_at: string;
+  mode: string;
+  health: {
+    status: string;
+    service: string;
+    version: string;
+    storage_backend?: string;
+    auth_enabled?: boolean;
+    rbac_enabled?: boolean;
+    redis?: Record<string, unknown>;
+  };
+  deployment: {
+    ok: boolean;
+    environment: string;
+    error_count: number;
+    warning_count: number;
+    errors: string[];
+    warnings: string[];
+    check_count: number;
+  };
+  runtime_metrics: RuntimeSummary & {
+    llm_budget?: Record<string, unknown>;
+    llm_cache?: Record<string, unknown>;
+  };
+  task_approval: {
+    task_count: number;
+    approval_count: number;
+    pending_approval_count: number;
+    task_status_counts: Record<string, number>;
+    recent_tasks: Array<{
+      task_id: string;
+      status: string;
+      mode: string;
+      created_at: string;
+    }>;
+    recent_approvals: Array<{
+      approval_id: string;
+      task_id: string;
+      status: string;
+      risk_level: string;
+      tool_name: string;
+      requested_at: string;
+    }>;
+  };
+  audit: {
+    event_count: number;
+    recent_events: Array<{
+      event_id: string;
+      event_type: string;
+      created_at: string;
+      actor: string;
+      outcome: string;
+      severity: string;
+      task_id: string;
+      request_id: string;
+      summary: string;
+      detail_redacted: Record<string, unknown>;
+    }>;
+  };
+  pilot_reports: {
+    report_dir: string;
+    directory_exists: boolean;
+    total_reports: number;
+    reports: Array<{
+      report_id: string;
+      generated_at: string;
+      scenario: string;
+      outcome: string;
+      request_id: string;
+      fallback_used: boolean;
+      cost: number;
+      total_tokens: number;
+      audit_event_id: string;
+      name: string;
+    }>;
+  };
+  demo_evidence: {
+    mode: string;
+    runbook_path: string;
+    script_path: string;
+    tip: string;
+  };
+}
+

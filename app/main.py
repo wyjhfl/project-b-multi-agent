@@ -419,6 +419,7 @@ from app.api.oidc import router as oidc_router
 from app.api.llm_acceptance import router as llm_acceptance_router
 from app.api.llm_pilot import router as llm_pilot_router
 from app.api.deployment import router as deployment_router
+from app.api.operations import router as operations_router
 
 app.include_router(tasks_router)
 app.include_router(nl2sql_router)
@@ -440,6 +441,7 @@ app.include_router(oidc_router)
 app.include_router(llm_acceptance_router)
 app.include_router(llm_pilot_router)
 app.include_router(deployment_router)
+app.include_router(operations_router)
 
 
 @app.get("/health")

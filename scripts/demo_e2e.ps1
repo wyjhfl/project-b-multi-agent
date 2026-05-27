@@ -54,6 +54,7 @@ $checks = @(
   @{ name = "audit"; url = "$BaseUrl/audit/events?limit=5" },
   @{ name = "metrics"; url = "$BaseUrl/metrics/runtime" },
   @{ name = "pilot_reports"; url = "$BaseUrl/llm/pilot/reports" },
+  @{ name = "operations_summary"; url = "$BaseUrl/operations/summary" },
   @{ name = "nl2sql_preview"; url = "$BaseUrl/nl2sql/preview" }
 )
 

@@ -72,8 +72,9 @@ powershell -ExecutionPolicy Bypass -File scripts/demo_e2e.ps1
   - `/audit/events`
   - `/metrics/runtime`
   - `/llm/pilot/reports`
+  - `/operations/summary`
   - `/nl2sql/preview`（mock/fake）
-- 并输出前端访问提示（`http://localhost:3000`）。
+- 并输出前端访问提示（`http://localhost:3000`），可进入 `/operations` 查看只读运营总览。
 
 ## 6. 演示数据范围（seed）
 

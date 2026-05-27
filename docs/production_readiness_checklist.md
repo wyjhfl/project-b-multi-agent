@@ -202,3 +202,13 @@
 - [ ] 脚本默认 fake/offline，不调用真实外网 LLM，不依赖真实外部 MCP
 - [ ] 服务未启动时在线 smoke 明确 `status=skipped`，不误报成功
 - [ ] 本阶段不改版本号、不打 tag、不创建 Release
+
+## 23. v3.1 Phase 11.2（只读运营总览 Dashboard）检查
+
+- [ ] 已新增只读运营总览后端接口：`GET /operations/summary`
+- [ ] 已新增前端只读入口：`/operations`
+- [ ] 总览覆盖 health/version、deployment、runtime metrics、tasks/approvals、audit、pilot reports/demo evidence 摘要
+- [ ] 不提供真实 LLM 调用按钮、不提供密钥输入、不提供写操作/删除操作
+- [ ] pilot report 目录不存在时返回空状态，不报 500
+- [ ] 汇总响应保持脱敏边界：不返回 prompt 原文、密钥/token/password/DSN 密码
+- [ ] 默认 fake/offline 与默认 pytest/CI 不调用真实 LLM 行为保持不变

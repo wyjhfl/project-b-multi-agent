@@ -96,6 +96,9 @@ export default async function DashboardPage() {
           <Link className="button secondary" href="/llm">
             LLM Pilot
           </Link>
+          <Link className="button secondary" href="/operations">
+            运营总览
+          </Link>
         </div>
       </section>
 

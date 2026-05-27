@@ -8,6 +8,7 @@ import {
   Boxes,
   ClipboardCheck,
   Database,
+  Gauge,
   LayoutDashboard,
   ListChecks,
   Radar,
@@ -69,6 +70,10 @@ export default function RootLayout({
               <Link href="/llm" className="nav-link">
                 <BrainCircuit size={16} />
                 <span>LLM Pilot</span>
+              </Link>
+              <Link href="/operations" className="nav-link">
+                <Gauge size={16} />
+                <span>运营总览</span>
               </Link>
               <Link href="/observability" className="nav-link">
                 <Radar size={16} />

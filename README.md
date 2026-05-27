@@ -772,3 +772,7 @@ project-b-multi-agent/
   - `scripts/demo_seed_data.py`
   - `scripts/demo_e2e.ps1`
   - `docs/demo_e2e_runbook_v31.md`
+- v3.1 Phase 11.2 已落地只读运营总览入口：
+  - 后端只读聚合 API：`GET /operations/summary`
+  - 前端只读页面：`/operations`
+  - 汇总 health/deployment/metrics/audit/tasks/approvals/pilot reports/demo evidence，且保持脱敏边界
