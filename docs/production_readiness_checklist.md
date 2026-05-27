@@ -132,3 +132,11 @@
 - [ ] v2.9.0 GitHub Release 已手动创建并记录（tag 不移动）
 - [ ] 下一阶段进入 v3.0 Final Production Landing 规划与实施
 - [ ] 已建立 v3.0 规划文档：`docs/v3_final_production_landing_plan.md`
+
+## 16. v3.0 Phase 10.1（真实 LLM 受控试点实测报告归档）检查
+
+- [ ] 已建立执行记录模板：`docs/real_llm_pilot_execution_log_v30.md`
+- [ ] 仅在显式 opt-in 环境变量齐全时执行真实 LLM smoke
+- [ ] 环境不齐全时记录 skipped，不伪造成功报告
+- [ ] 不提交 API key/token/client_secret，不记录 prompt 原文
+- [ ] 默认 fake/offline 与默认 pytest/CI 行为保持不变

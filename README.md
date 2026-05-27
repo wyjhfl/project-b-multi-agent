@@ -753,3 +753,4 @@ project-b-multi-agent/
 - v2.9.0 GitHub Release 已由用户手动创建（tag 不移动）。
 - 下一阶段建议进入 v3.0 生产落地最终阶段规划。
 - v3.0 规划文档：`docs/v3_final_production_landing_plan.md`。
+- v3.0 Phase 10.1 已建立执行记录模板：`docs/real_llm_pilot_execution_log_v30.md`（本轮未执行真实外网 LLM，待手动 opt-in）。
