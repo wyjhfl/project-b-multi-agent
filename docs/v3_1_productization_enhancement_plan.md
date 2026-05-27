@@ -144,6 +144,14 @@
 - 完成标准：
   - 发布材料完整、口径一致、边界声明准确。
 
+当前状态（2026-05-27）：
+
+- 已进入 v3.1.0 release prep：
+  - `RELEASE_NOTES_v3.1.0.md`
+  - `docs/release_review_v3.1_productization_enhancement.md`
+- 本轮聚焦版本同步、发布文档、口径收口与验证基线更新，不打 tag、不创建 GitHub Release。
+- 预期全量基线为 `754 passed, 4 skipped`（如复跑变化，以实测为准）。
+
 ## 4. 推荐优先级
 
 - P0：Phase 11.1 + 11.2（优先提升产品演示与验收效率）

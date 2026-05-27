@@ -169,7 +169,7 @@ def test_runtime_snapshot_section_failure_not_500():
 
 
 def test_app_version_updated():
-    assert app.version == "3.0.0"
+    assert app.version == "3.1.0"
 
 
 def test_health_has_rbac_enabled_field():
@@ -179,7 +179,7 @@ def test_health_has_rbac_enabled_field():
     resp = client.get("/health")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["version"] == "3.0.0"
+    assert data["version"] == "3.1.0"
     assert "rbac_enabled" in data
 
 

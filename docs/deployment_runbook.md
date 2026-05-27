@@ -1,4 +1,4 @@
-# 部署运行手册（v3.0.0 release prep / Final Production Landing）
+# 部署运行手册（v3.1.0 release prep / Productization Enhancement）
 
 ## 1. 适用范围
 
@@ -181,7 +181,7 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 当前日志为应用层 stdout JSON，生产集中采集仍需接入外部日志系统。
 - 审计导出默认使用字段白名单与脱敏边界，不导出 prompt 原文及密钥原文。
 
-## 10. v3.0.0 release prep 口径补充
+## 10. v3.0.0 release prep 口径补充（历史归档）
 
 - v3.0.0 定位为 Final Production Landing（企业内网试点/准生产演示落地阶段），不是公网生产直接上线声明。
 - v3.0.0 已完成 Phase 10.1~10.4：
@@ -201,3 +201,17 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
   - `docs/operations_troubleshooting_index_v31.md`
   - `docs/backup_restore_checklist_v31.md`
 - Go/No-Go 口径：企业内网试点/准生产演示 Go；公网生产直接上线 No-Go；多租户/复杂 BI/完整生产级 SSO 声明 No-Go。
+
+## 11. v3.1.0 release prep 口径补充（当前）
+
+- v3.1.0 定位为 Productization Enhancement（企业内网试点后的产品化增强），不是公网生产直接上线声明。
+- v3.1.0 已完成 Phase 11.1~11.5：
+  - 11.1 离线 demo seed + demo_e2e 脚本
+  - 11.2 只读运营总览 `/operations` + `/operations/summary`
+  - 11.3 真实 LLM opt-in 执行记录（本轮 skipped，未执行真实外网 LLM）
+  - 11.4 OIDC/SSO 最小真实 IdP 配置演练文档
+  - 11.5 运维排障索引 + 备份恢复清单
+- 默认 fake/offline，默认 pytest/CI 不调用真实 LLM；本轮 release prep 未执行真实外网 LLM。
+- v3.0.0 tag 与 GitHub Release 已发布且不移动；main 当前为 v3.1.0 release prep 演进。
+- 本轮仅做版本同步、发布文档与验证收口，不打 tag、不创建 GitHub Release。
+- 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
