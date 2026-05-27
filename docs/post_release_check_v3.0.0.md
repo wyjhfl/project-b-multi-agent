@@ -6,13 +6,14 @@
 - tag message：`Project B v3.0.0 - Final Production Landing`
 - tag object（`git rev-parse v3.0.0`）：`daaa65fa36a37067165c326c6dc071c5160acf54`
 - dereferenced commit（`git rev-parse "v3.0.0^{}"`）：`fa5b07b3ffb373d2f1060f38b6ef0a4d31b5194d`
-- HEAD（`git rev-parse HEAD`）：`fa5b07b3ffb373d2f1060f38b6ef0a4d31b5194d`
+- HEAD（`git rev-parse HEAD`）：`a12c0960996be7a6a23bb5a2f2ceacd84f4b371c`
 - v2.9.0 dereferenced commit（`git rev-parse "v2.9.0^{}"`）：`eccc9708b493af25d30ac6e5da08cdd92f461d48`
 
 一致性结论：
 
-- `HEAD == v3.0.0^{}`（一致）
+- `v3.0.0^{}` 固定指向 `fa5b07b3ffb373d2f1060f38b6ef0a4d31b5194d`（未移动）
 - v2.9.0 tag 保持不变（未移动）
+- 当前 `main` 超前 `v3.0.0` tag，属于发布后文档收口提交（不移动 tag）。
 
 ## 2. 远端 tag 校验
 
@@ -28,7 +29,10 @@ git ls-remote --tags origin v3.0.0
 
 ## 3. GitHub Release 状态
 
-- 当前状态：**尚未创建 GitHub Release**（本交接文档仅准备手动发布信息）。
+- 当前状态：**GitHub Release 已由用户手动创建**。
+- Release title：`Project B v3.0.0 - Final Production Landing`
+- Release notes 来源：`RELEASE_NOTES_v3.0.0.md`
+- v3.0.0 tag 未移动，保持指向 `fa5b07b3ffb373d2f1060f38b6ef0a4d31b5194d`。
 
 ## 4. 手动创建 GitHub Release 信息
 
@@ -57,5 +61,5 @@ git ls-remote --tags origin v3.0.0
 
 ## 7. 下一步建议
 
-1. 手动创建 v3.0.0 GitHub Release（按本文件第 4 节信息）。
-2. Release 创建后补一条文档提交，记录“GitHub Release 已创建”。
+1. 进入 v3.1 或后续产品化增强规划（保持默认 fake/offline 与安全边界）。
+2. 后续 release 收口继续沿用“tag 固定 + 文档追记”的方式，不在收口提交中移动历史 tag。

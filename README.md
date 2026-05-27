@@ -765,3 +765,5 @@ project-b-multi-agent/
 - v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`（runbook 级演练，不引入复杂运维平台）。
 - v3.0 Phase 10.4 已建立安全复核与 Go/No-Go 评审：`docs/security_go_no_go_review_v30.md`（建议企业内网试点 Go，公网直上 No-Go）。
 - 当前进入 v3.0.0 release prep：`RELEASE_NOTES_v3.0.0.md`、`docs/release_review_v3.0_final_production_landing.md`。
+- v3.0.0 GitHub Release 已由用户手动创建，v3.0.0 tag 保持不变。
+- 下一阶段建议进入 v3.1 或后续产品化增强规划（继续保持不宣称公网直上与不宣称真实 LLM 生产验收完成边界）。

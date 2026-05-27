@@ -144,3 +144,5 @@
 - v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`（runbook 级演练，不引入复杂运维平台）。
 - v3.0 Phase 10.4 已建立安全复核与 Go/No-Go 评审：`docs/security_go_no_go_review_v30.md`（企业内网试点/准生产演示 Go，公网生产直上 No-Go）。
 - 当前进入 v3.0.0 release prep：`RELEASE_NOTES_v3.0.0.md`、`docs/release_review_v3.0_final_production_landing.md`。
+- v3.0.0 GitHub Release 已由用户手动创建，tag 保持不变。
+- 下一阶段进入 v3.1 或后续产品化增强规划，继续保持默认 fake/offline 与边界声明不变。
