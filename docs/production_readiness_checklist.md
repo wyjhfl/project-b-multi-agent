@@ -291,3 +291,14 @@
 - [ ] observability metadata is exposed in `/operations/summary` (runbook paths + default dirs + last known counts)
 - [ ] UI keeps boundary hints: fake/offline default, no real LLM call, no secret plaintext
 - [ ] long path strings can wrap without layout break
+
+## 32. v3.2 Phase 12.4（Failure diagnostics pack）检查
+
+- [ ] 已新增诊断 runbook：`docs/failure_diagnostics_pack_v32.md`
+- [ ] 已新增只读诊断脚本：`scripts/failure_diagnostics.py`
+- [ ] 默认输出目录：`docs/reports/failure_diagnostics/`（支持 `--output-dir` 覆盖）
+- [ ] 输出包含 JSON + Markdown，且不包含 prompt/query/raw_prompt/sql_prompt 原文
+- [ ] 输出不包含 key/token/client_secret/password/JWT_SECRET/DATABASE_URL/REDIS_URL 明文
+- [ ] 覆盖场景：compose、prod 缺变量、deployment check、operations unavailable、demo/acceptance skipped、pilot reports 为空、audit export 403、OIDC secret env 缺失、real LLM opt-in skipped
+- [ ] 服务不可用时标记 skipped，不误报 success
+- [ ] 脚本保持只读，不写业务数据、不删除用户数据、不修改环境变量

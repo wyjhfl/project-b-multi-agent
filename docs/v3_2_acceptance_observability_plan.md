@@ -133,3 +133,11 @@ Phase 12.2 current status (2026-05-28):
 - explicit empty/error/skipped states added for service unavailable, no reports, no audit events, and skipped online checks.
 - backend `/operations/summary` read-only metadata extended with acceptance/demo runbook paths and default artifact/snapshot directories.
 - boundary maintained: read-only only, fake/offline default, no real LLM call, no secret output.
+
+Phase 12.4 current status (2026-05-28):
+
+- diagnostics runbook added: `docs/failure_diagnostics_pack_v32.md`
+- read-only diagnostics script added: `scripts/failure_diagnostics.py`
+- output: JSON + Markdown, default directory `docs/reports/failure_diagnostics/`
+- covers compose / deployment guard / OIDC / audit export / demo_e2e skipped / acceptance snapshot skipped / pilot reports empty / real LLM opt-in skipped
+- service unavailable is marked skipped without false success; no write/delete operation

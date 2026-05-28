@@ -807,3 +807,9 @@ project-b-multi-agent/
   - `/operations` read-only overview now highlights health/deployment/metrics/tasks/approvals/audit/pilot reports/demo evidence with clearer empty/error/skipped states.
   - Adds read-only hints for acceptance snapshot and demo artifact bundle runbooks + default artifact/snapshot directories.
   - Boundary kept: fake/offline default, no real LLM call, no secrets, no public-production claim.
+- v3.2 Phase 12.4 added Failure Diagnostics Pack:
+  - runbook: `docs/failure_diagnostics_pack_v32.md`
+  - script: `scripts/failure_diagnostics.py` (read-only diagnostics, JSON + Markdown output)
+  - default output dir: `docs/reports/failure_diagnostics/`
+  - covers compose/deployment guard/OIDC/audit export/demo_e2e skipped/acceptance snapshot skipped/pilot reports empty/real LLM opt-in skipped
+  - service unavailable is marked skipped without false success; no write/delete operation

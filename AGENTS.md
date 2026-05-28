@@ -176,3 +176,9 @@
     - `snapshot_default_dir`
     - `last_known_report_counts`
   - no write/delete action added, no real LLM trigger, no secret exposure.
+- v3.2 Phase 12.4 added Failure Diagnostics Pack:
+  - runbook: `docs/failure_diagnostics_pack_v32.md`
+  - script: `scripts/failure_diagnostics.py`
+  - output: JSON + Markdown, default `docs/reports/failure_diagnostics/`
+  - scenarios include compose/deployment guard/OIDC/audit export/demo_e2e skipped/acceptance snapshot skipped/pilot reports empty/real LLM opt-in skipped
+  - read-only only, no write/delete operation, no real external LLM execution
