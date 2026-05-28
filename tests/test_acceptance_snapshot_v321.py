@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.acceptance_snapshot import build_acceptance_snapshot
+from scripts.acceptance_snapshot import REDACTED_PROMPT_PLACEHOLDER, build_acceptance_snapshot
 
 
 def test_acceptance_snapshot_generates_json_and_markdown(tmp_path: Path):
@@ -30,6 +30,31 @@ def test_acceptance_snapshot_generates_json_and_markdown(tmp_path: Path):
     assert "boundary_declarations" in payload
 
 
+def test_acceptance_snapshot_preserves_evidence_metrics(tmp_path: Path):
+    summary = build_acceptance_snapshot(output_dir=tmp_path, base_url="http://127.0.0.1:65530")
+    payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
+
+    runtime_metrics = payload["runtime_metrics_summary"]
+    for key in (
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "total_prompt_tokens",
+        "total_completion_tokens",
+        "token_usage_count",
+        "total_cost",
+    ):
+        value = runtime_metrics.get(key, 0)
+        assert value != REDACTED_PROMPT_PLACEHOLDER
+        assert isinstance(value, (int, float))
+
+    op_runtime_metrics = payload["operations_summary"]["runtime_metrics"]
+    for key in ("total_prompt_tokens", "total_completion_tokens", "total_cost"):
+        value = op_runtime_metrics.get(key, 0)
+        assert value != REDACTED_PROMPT_PLACEHOLDER
+        assert isinstance(value, (int, float))
+
+
 def test_acceptance_snapshot_redacts_sensitive_content(tmp_path: Path):
     summary = build_acceptance_snapshot(output_dir=tmp_path, base_url="http://127.0.0.1:65530")
     json_text = Path(summary["json_path"]).read_text(encoding="utf-8")
@@ -37,15 +62,16 @@ def test_acceptance_snapshot_redacts_sensitive_content(tmp_path: Path):
     merged = json_text + "\n" + md_text
 
     forbidden = [
-        "原始 prompt 文本",
-        "原始 query 文本",
         "raw_prompt",
         "sql_prompt",
         "sk-",
         "client_secret",
+        "password",
         "JWT_SECRET=",
         "DATABASE_URL=",
         "REDIS_URL=",
+        "postgresql://user:secret@",
+        "redis://:password@",
     ]
     for raw in forbidden:
         assert raw not in merged

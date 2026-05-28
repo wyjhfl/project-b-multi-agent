@@ -179,10 +179,23 @@ _SAFE_TOKEN_KEYS = {
     "total_completion_tokens",
     "token_usage_count",
 }
+_EVIDENCE_SAFE_KEYS = _SAFE_TOKEN_KEYS | {
+    "cost",
+    "total_cost",
+    "request_id",
+    "cache_hit",
+    "budget_action",
+    "fallback_reason",
+    "latency_ms",
+    "status",
+    "outcome",
+}
 
 
 def _sanitize_key_value(key: str, value: Any) -> Any:
     key_lower = key.lower()
+    if key_lower in _EVIDENCE_SAFE_KEYS:
+        return _sanitize_snapshot_payload(value)
     if any(marker in key_lower for marker in _PROMPT_KEY_MARKERS):
         return REDACTED_PROMPT_PLACEHOLDER
     if any(marker in key_lower for marker in _SENSITIVE_KEY_MARKERS) and key_lower not in _SAFE_TOKEN_KEYS:
