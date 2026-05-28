@@ -105,10 +105,10 @@
 
 ## v3.1 产品化增强路线说明（当前）
 
-- v3.1 采用分阶段推进，Phase 11.1~11.5 已完成，当前处于 v3.1.0 release prep。
+- v3.1 采用分阶段推进，Phase 11.1~11.5 已完成（历史阶段）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前回归基线：754 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前回归基线：768 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -147,7 +147,7 @@
 - v3.1.0 GitHub Release 已由用户手动创建，tag 保持不变。
 - v3.1 发布材料归档：`RELEASE_NOTES_v3.1.0.md`、`docs/release_review_v3.1_productization_enhancement.md`、`docs/post_release_check_v3.1.0.md`。
 - v3.1 规划文档：`docs/v3_1_productization_enhancement_plan.md`（v3.1.0 发布后，main 可继续文档收口演进）。
-- v3.2 规划文档：`docs/v3_2_acceptance_observability_plan.md`（当前版本仍为 3.1.0，不改版本号、不打 tag、不创建 Release）。
+- v3.2 规划文档：`docs/v3_2_acceptance_observability_plan.md`（当前进入 v3.2.0 release prep，不打 tag、不创建 Release）。
 - v3.2 Phase 12.1 已新增 Acceptance Snapshot：
   - `scripts/acceptance_snapshot.py`
   - `docs/acceptance_snapshot_runbook_v32.md`
@@ -186,3 +186,7 @@
   - execution log: `docs/real_llm_optional_retry_log_v32.md`
   - current round recorded `status=skipped` when required opt-in env is incomplete
   - no fake success report; no real external LLM execution without explicit opt-in
+- v3.2.0 release prep materials:
+  - `RELEASE_NOTES_v3.2.0.md`
+  - `docs/release_review_v3.2_acceptance_observability.md`
+  - main 超前 `v3.1.0` tag 属于 v3.2.0 prep；本轮不打 tag、不创建 GitHub Release

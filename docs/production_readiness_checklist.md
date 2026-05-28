@@ -1,4 +1,4 @@
-# 生产就绪检查清单（v3.1.0 release prep / Productization Enhancement）
+# 生产就绪检查清单（v3.2.0 release prep / Acceptance & Observability Enhancement）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -101,7 +101,7 @@
 
 ## 12. v2.9.0 release prep 补充检查
 
-- [ ] 当前后端全量基线为 754 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] 当前后端全量基线为 768 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
 - [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
 - [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
@@ -189,7 +189,7 @@
 
 - [ ] 已建立 v3.1 规划文档：`docs/v3_1_productization_enhancement_plan.md`
 - [ ] v3.0.0 GitHub Release 已完成并记录，`v3.0.0` tag 保持不变
-- [ ] 当前已进入 v3.1.0 release prep，版本号同步为 3.1.0
+- [ ] v3.1.0 历史 release prep 已完成并发布
 - [ ] v3.1 仍保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM
 - [ ] v3.1 仍保持边界：不宣称公网生产直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成
 
@@ -240,7 +240,7 @@
 - [ ] 备份恢复检查清单已覆盖 sqlite / postgres / redis 模板与恢复后验证命令
 - [ ] 文档示例仅使用占位符，不包含真实凭据
 
-## 27. v3.1.0 release prep 收口检查（当前）
+## 27. v3.1.0 release prep 收口检查（历史）
 
 - [ ] 版本号已同步到 3.1.0（pyproject / app.version / health.version / stdio fallback / tests 断言）
 - [ ] 已新增 `RELEASE_NOTES_v3.1.0.md`
@@ -311,3 +311,16 @@
 - [ ] 本轮如 skipped，必须明确“未生成真实外网 pilot report”
 - [ ] 若执行成功，报告仍需保持脱敏边界（不含 prompt 原文/密钥原文/DSN 密码）
 - [ ] 不改版本号、不打 tag、不创建 Release、不移动 `v3.1.0` / `v3.0.0` tag
+
+## 34. v3.2.0 release prep 收口检查（当前）
+
+- [ ] 版本号已同步到 3.2.0（pyproject / app.version / health.version / stdio fallback / tests 断言 / snapshot & diagnostics 版本字段）
+- [ ] 已新增 `RELEASE_NOTES_v3.2.0.md`
+- [ ] 已新增 `docs/release_review_v3.2_acceptance_observability.md`
+- [ ] release notes 覆盖 Phase 12.1~12.5 与 cleanup 条目（token metrics 保真、ArtifactDir 目录约束）
+- [ ] release review 覆盖 scope / changed modules / verification matrix / security & operational boundary / known limitations / Go-No-Go
+- [ ] 默认 fake/offline 与默认 pytest/CI 不调用真实 LLM 行为保持不变
+- [ ] 本轮未执行真实外网 LLM
+- [ ] `v3.1.0`/`v3.0.0` tag 与对应 GitHub Release 已完成且不移动
+- [ ] 当前 main 超前 `v3.1.0` tag 属于 v3.2.0 release prep
+- [ ] 本轮不打 `v3.2.0` tag、不创建 v3.2.0 GitHub Release

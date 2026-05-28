@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-754%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.1.0--prep-yellow)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-768%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.2.0--prep-yellow)]()
 
 ---
 
@@ -444,7 +444,7 @@ python -m pytest -q
 > 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
 > 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
 
-当前基线：**754 passed, 4 skipped**，覆盖全部模块：
+当前基线：**768 passed, 4 skipped**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -658,7 +658,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 754 passed, 4 skipped（默认 real_llm 用例 skip） |
+| **测试** | pytest + httpx | 768 passed, 4 skipped（默认 real_llm 用例 skip） |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -719,12 +719,12 @@ project-b-multi-agent/
   - `powershell -ExecutionPolicy Bypass -File scripts/prod_smoke.ps1`
   - `powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1`
 
-### v3.1.0 发布后收口（当前）
+### v3.1.0 发布后收口（历史）
 
 - v3.1.0 Productization Enhancement 已发布完成（tag 与 GitHub Release 已完成，tag 保持不变）。
 - Phase 11.1~11.5 已完成文档化收口：离线 demo seed 与 E2E 演示脚本、只读运营总览、真实 LLM opt-in 执行记录（本轮 skipped）、OIDC 最小真实 IdP 演练、运维排障索引与备份恢复清单。
 - 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，本轮未执行真实外网 LLM。
-- 当前全量基线：`754 passed, 4 skipped`。
+- 当前全量基线：`768 passed, 4 skipped`。
 
 ### 仍保持的边界
 
@@ -760,7 +760,7 @@ project-b-multi-agent/
 - v2.9.0 GitHub Release 已由用户手动创建（tag 不移动）。
 - v3.0.0 Final Production Landing 已发布完成（tag 与 GitHub Release 均已完成且保持不变）。
 - v3.0.0 阶段保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；未将真实外网 LLM 纳入默认流程。
-- 当前 main 进入 v3.1.0 Productization Enhancement release prep，聚焦 Phase 11.1~11.5 收口与发布材料归档。
+- 当前 main 超前 `v3.1.0` tag，进入 v3.2.0 Acceptance & Observability Enhancement release prep。
 - v3.0 规划文档：`docs/v3_final_production_landing_plan.md`。
 - v3.0 Phase 10.1 已建立执行记录模板：`docs/real_llm_pilot_execution_log_v30.md`（本轮未执行真实外网 LLM，待手动 opt-in）。
 - v3.0 Phase 10.2 已建立生产部署演练与回滚记录：`docs/production_deployment_drill_v30.md`（本地/内网试点模拟，不等于公网生产上线）。
@@ -789,7 +789,7 @@ project-b-multi-agent/
 - v3.1.0 发布材料：`RELEASE_NOTES_v3.1.0.md`、`docs/release_review_v3.1_productization_enhancement.md`、`docs/post_release_check_v3.1.0.md`。
 - v3.0.0 / v3.1.0 tag 与对应 GitHub Release 已完成且保持不变；main 超前 tag 属于发布后文档收口。
 - 后续建议进入 v3.2 或下一阶段路线规划（持续保持边界：不宣称公网直上、不宣称真实 LLM 生产验收完成）。
-- v3.2 规划已开启：`docs/v3_2_acceptance_observability_plan.md`（当前版本仍为 3.1.0，不改版本号、不打 tag、不创建 Release）。
+- v3.2 规划与收口文档：`docs/v3_2_acceptance_observability_plan.md`（当前版本为 3.2.0 release prep，不打 tag、不创建 Release）。
 - v3.2 Phase 12.1 已新增 Acceptance Snapshot 能力：
   - 脚本：`scripts/acceptance_snapshot.py`
   - runbook：`docs/acceptance_snapshot_runbook_v32.md`
@@ -817,3 +817,7 @@ project-b-multi-agent/
   - execution log: `docs/real_llm_optional_retry_log_v32.md`
   - this round status: `skipped` (missing opt-in env, no real external LLM executed)
   - no real-external pilot report generated in this round
+- v3.2.0 release prep artifacts:
+  - `RELEASE_NOTES_v3.2.0.md`
+  - `docs/release_review_v3.2_acceptance_observability.md`
+  - note: v3.2.0 tag not created, GitHub Release not created in this round

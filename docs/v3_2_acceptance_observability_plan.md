@@ -5,7 +5,7 @@
 - v3.2 定位：**Acceptance & Observability Enhancement**。
 - 目标：增强企业内网试点后的验收闭环、可观测性、演示证据归档、故障自检体验。
 - 不改变既有发布事实：`v3.1.0` / `v3.0.0` tag 与对应 GitHub Release 保持不变。
-- 当前版本仍为 `3.1.0`（本轮不改版本号）。
+- 当前版本进入 `3.2.0 release prep`（本轮不打 tag、不创建 Release）。
 
 ## 2. 边界声明
 
@@ -148,3 +148,11 @@ Phase 12.5 current status (2026-05-28):
 - current round result: `skipped` (required opt-in env not fully provided)
 - no real external LLM execution, no fake success report
 - waiting for user-provided complete opt-in environment before retry
+
+Phase 12.6 current status (2026-05-28):
+
+- release notes added: `RELEASE_NOTES_v3.2.0.md`
+- release review added: `docs/release_review_v3.2_acceptance_observability.md`
+- version synced to 3.2.0 in app/runtime tests and scripts
+- current verification baseline: `768 passed, 4 skipped`
+- note: this round does not create `v3.2.0` tag and does not create GitHub Release

@@ -1,4 +1,4 @@
-# 部署运行手册（v3.1.0 release prep / Productization Enhancement）
+# 部署运行手册（v3.2.0 release prep / Acceptance & Observability Enhancement）
 
 ## 1. 适用范围
 
@@ -202,16 +202,16 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
   - `docs/backup_restore_checklist_v31.md`
 - Go/No-Go 口径：企业内网试点/准生产演示 Go；公网生产直接上线 No-Go；多租户/复杂 BI/完整生产级 SSO 声明 No-Go。
 
-## 11. v3.1.0 release prep 口径补充（当前）
+## 11. v3.2.0 release prep 口径补充（当前）
 
-- v3.1.0 定位为 Productization Enhancement（企业内网试点后的产品化增强），不是公网生产直接上线声明。
-- v3.1.0 已完成 Phase 11.1~11.5：
-  - 11.1 离线 demo seed + demo_e2e 脚本
-  - 11.2 只读运营总览 `/operations` + `/operations/summary`
-  - 11.3 真实 LLM opt-in 执行记录（本轮 skipped，未执行真实外网 LLM）
-  - 11.4 OIDC/SSO 最小真实 IdP 配置演练文档
-  - 11.5 运维排障索引 + 备份恢复清单
+- v3.2.0 定位为 Acceptance & Observability Enhancement（企业内网试点验收闭环与可观测性增强），不是公网生产直接上线声明。
+- v3.2.0 已完成 Phase 12.1~12.5：
+  - 12.1 Acceptance snapshot（含 token metrics 证据字段保真修复）
+  - 12.2 `/operations` 只读 observability polish
+  - 12.3 Demo artifact bundle（含 ArtifactDir 产物目录约束修复）
+  - 12.4 Failure diagnostics pack
+  - 12.5 optional real LLM evidence retry（本轮 skipped，未执行真实外网 LLM）
 - 默认 fake/offline，默认 pytest/CI 不调用真实 LLM；本轮 release prep 未执行真实外网 LLM。
-- v3.0.0 tag 与 GitHub Release 已发布且不移动；main 当前为 v3.1.0 release prep 演进。
+- `v3.1.0`/`v3.0.0` tag 与对应 GitHub Release 已完成且不移动；main 当前为 v3.2.0 release prep 演进。
 - 本轮仅做版本同步、发布文档与验证收口，不打 tag、不创建 GitHub Release。
 - 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
