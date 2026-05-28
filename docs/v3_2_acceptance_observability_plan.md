@@ -127,3 +127,9 @@ Phase 12.3 current status (2026-05-28):
 - unified artifacts: `demo_e2e_summary.json`, `online_smoke_result.json`, `seed_summary.json`, `pilot_report_index.json`, acceptance snapshot
 - when service is unavailable, online smoke is marked skipped and bundle status is `completed_with_skipped_online_checks`
 
+Phase 12.2 current status (2026-05-28):
+
+- frontend `/operations` polished for clearer acceptance readability and operations scanability.
+- explicit empty/error/skipped states added for service unavailable, no reports, no audit events, and skipped online checks.
+- backend `/operations/summary` read-only metadata extended with acceptance/demo runbook paths and default artifact/snapshot directories.
+- boundary maintained: read-only only, fake/offline default, no real LLM call, no secret output.

@@ -309,3 +309,8 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+.path-break {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}

@@ -803,3 +803,7 @@ project-b-multi-agent/
   - runbook: `docs/demo_artifact_bundle_runbook_v32.md`
   - each run creates a timestamped artifact folder with `demo_e2e_summary.json` / `online_smoke_result.json` / `seed_summary.json` / `pilot_report_index.json` / acceptance snapshot
   - when service is unavailable, online smoke is marked skipped and does not report false success
+- v3.2 Phase 12.2 operations observability polish completed:
+  - `/operations` read-only overview now highlights health/deployment/metrics/tasks/approvals/audit/pilot reports/demo evidence with clearer empty/error/skipped states.
+  - Adds read-only hints for acceptance snapshot and demo artifact bundle runbooks + default artifact/snapshot directories.
+  - Boundary kept: fake/offline default, no real LLM call, no secrets, no public-production claim.

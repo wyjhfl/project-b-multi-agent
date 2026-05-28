@@ -470,6 +470,16 @@ export interface OperationsSummary {
       name: string;
     }>;
   };
+  observability: {
+    acceptance_snapshot_runbook_path: string;
+    demo_artifact_runbook_path: string;
+    artifact_default_dir: string;
+    snapshot_default_dir: string;
+    last_known_report_counts: {
+      pilot_reports: number;
+      audit_recent_events: number;
+    };
+  };
   demo_evidence: {
     mode: string;
     runbook_path: string;

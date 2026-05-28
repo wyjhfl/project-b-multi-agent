@@ -15,6 +15,11 @@ from app.harness.llm.pilot_report import DEFAULT_PILOT_REPORT_DIR, sanitize_pilo
 
 router = APIRouter(prefix="/operations", tags=["operations"])
 
+ACCEPTANCE_SNAPSHOT_RUNBOOK_PATH = "docs/acceptance_snapshot_runbook_v32.md"
+DEMO_ARTIFACT_RUNBOOK_PATH = "docs/demo_artifact_bundle_runbook_v32.md"
+ARTIFACT_DEFAULT_DIR = "docs/reports/demo_artifacts"
+SNAPSHOT_DEFAULT_DIR = "docs/reports/acceptance_snapshots"
+
 
 def _get_task_store():
     from app.main import get_task_store
@@ -202,6 +207,11 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     health = await health_check()
     deployment = run_deployment_checks().model_dump()
 
+    runtime_metrics = _collect_runtime_metrics_summary()
+    task_approval = _collect_task_approval_summary()
+    audit = _collect_audit_summary()
+    pilot_reports = _collect_pilot_report_summary()
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "mode": "read_only",
@@ -215,14 +225,24 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
             "warnings": deployment.get("warnings", []),
             "check_count": len(deployment.get("checks", [])),
         },
-        "runtime_metrics": _collect_runtime_metrics_summary(),
-        "task_approval": _collect_task_approval_summary(),
-        "audit": _collect_audit_summary(),
-        "pilot_reports": _collect_pilot_report_summary(),
+        "runtime_metrics": runtime_metrics,
+        "task_approval": task_approval,
+        "audit": audit,
+        "pilot_reports": pilot_reports,
+        "observability": {
+            "acceptance_snapshot_runbook_path": ACCEPTANCE_SNAPSHOT_RUNBOOK_PATH,
+            "demo_artifact_runbook_path": DEMO_ARTIFACT_RUNBOOK_PATH,
+            "artifact_default_dir": ARTIFACT_DEFAULT_DIR,
+            "snapshot_default_dir": SNAPSHOT_DEFAULT_DIR,
+            "last_known_report_counts": {
+                "pilot_reports": int(pilot_reports.get("total_reports", 0) or 0),
+                "audit_recent_events": int(audit.get("event_count", 0) or 0),
+            },
+        },
         "demo_evidence": {
             "mode": "fake_offline_default",
             "runbook_path": "docs/demo_e2e_runbook_v31.md",
             "script_path": "scripts/demo_e2e.ps1",
-            "tip": "可使用 demo_e2e 脚本准备离线演示数据；服务未启动时在线检查会返回 skipped。",
+            "tip": "Use demo_e2e script for offline evidence generation. If service is unavailable, online checks are skipped without false success.",
         },
     }

@@ -283,3 +283,11 @@
 - [ ] calls acceptance snapshot and records snapshot json/md paths
 - [ ] when service is unavailable, online smoke is skipped without false success
 - [ ] output remains sanitized: no prompt/query/raw_prompt/sql_prompt raw text and no secret plaintext
+
+## 31. v3.2 Phase 12.2 (Operations observability polish) checks
+
+- [ ] `/operations` keeps read-only behavior and does not add write/delete actions
+- [ ] empty states are explicit: service unavailable / no reports / no audit events / skipped online checks
+- [ ] observability metadata is exposed in `/operations/summary` (runbook paths + default dirs + last known counts)
+- [ ] UI keeps boundary hints: fake/offline default, no real LLM call, no secret plaintext
+- [ ] long path strings can wrap without layout break

@@ -167,3 +167,12 @@
   - `docs/demo_artifact_bundle_runbook_v32.md`
   - artifact includes seed/online smoke/operations summary (when available)/pilot report index/acceptance snapshot
   - default fake/offline; when service is unavailable online smoke is skipped without false success
+- v3.2 Phase 12.2 read-only operations observability polish complete:
+  - frontend `/operations` enhanced for acceptance readability, empty/error/skipped state clarity, and long-path wrapping.
+  - backend `/operations/summary` now includes read-only observability metadata:
+    - `acceptance_snapshot_runbook_path`
+    - `demo_artifact_runbook_path`
+    - `artifact_default_dir`
+    - `snapshot_default_dir`
+    - `last_known_report_counts`
+  - no write/delete action added, no real LLM trigger, no secret exposure.

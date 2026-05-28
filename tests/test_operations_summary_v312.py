@@ -27,7 +27,7 @@ def _write_report(base: Path, report_id: str) -> None:
         "total_tokens": 12,
         "cost": 0.06,
         "detail": {
-            "prompt": "原始 prompt 文本",
+            "prompt": "raw_prompt_text",
             "api_key": "sk-secret",
             "password": "db-password",
             "database_url": "postgresql://user:dbpassword@localhost:5432/db",
@@ -48,11 +48,15 @@ def test_operations_summary_should_return_empty_states_when_report_dir_missing(m
     assert response.status_code == 200
     data = response.json()
     assert data["mode"] == "read_only"
+    assert data["observability"]["acceptance_snapshot_runbook_path"] == "docs/acceptance_snapshot_runbook_v32.md"
+    assert data["observability"]["demo_artifact_runbook_path"] == "docs/demo_artifact_bundle_runbook_v32.md"
+    assert data["observability"]["artifact_default_dir"] == "docs/reports/demo_artifacts"
+    assert data["observability"]["snapshot_default_dir"] == "docs/reports/acceptance_snapshots"
     assert data["pilot_reports"]["directory_exists"] is False
     assert data["pilot_reports"]["total_reports"] == 0
     assert data["pilot_reports"]["reports"] == []
     text = json.dumps(data, ensure_ascii=False)
-    for raw in ("sk-secret", "dbpassword", "redispassword", "原始 prompt 文本"):
+    for raw in ("sk-secret", "dbpassword", "redispassword", "raw_prompt_text"):
         assert raw not in text
 
 
@@ -76,7 +80,7 @@ def test_operations_summary_should_include_safe_aggregates(monkeypatch, tmp_path
         task_id="task_ops_1",
         tool_name="demo_tool",
         action="demo_action",
-        payload={"query": "原始 query 文本", "token": "approval-token"},
+        payload={"query": "raw_query_text", "token": "approval-token"},
     )
 
     audit_store = get_audit_store()
@@ -84,7 +88,7 @@ def test_operations_summary_should_include_safe_aggregates(monkeypatch, tmp_path
         AuditEvent(
             event_type="ops_summary_test",
             action="view_operations",
-            detail={"prompt": "原始 prompt 文本", "token": "audit-token", "request_id": "req-aud-001"},
+            detail={"prompt": "raw_prompt_text", "token": "audit-token", "request_id": "req-aud-001"},
         )
     )
 
@@ -106,6 +110,8 @@ def test_operations_summary_should_include_safe_aggregates(monkeypatch, tmp_path
     assert data["runtime_metrics"]["total_prompt_tokens"] >= 21
     assert data["runtime_metrics"]["total_cost"] >= 0.11
     assert data["audit"]["event_count"] >= 1
+    assert data["observability"]["last_known_report_counts"]["pilot_reports"] >= 1
+    assert data["observability"]["last_known_report_counts"]["audit_recent_events"] >= 1
     assert "[REDACTED_PROMPT]" in text
-    for raw in ("原始 prompt 文本", "sk-secret", "dbpassword", "redispassword", "approval-token", "audit-token"):
+    for raw in ("raw_prompt_text", "sk-secret", "dbpassword", "redispassword", "approval-token", "audit-token"):
         assert raw not in text
