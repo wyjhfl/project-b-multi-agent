@@ -252,3 +252,12 @@
 - [ ] v3.0.0 tag 与 GitHub Release 已完成且不移动
 - [ ] 当前 main 超前 `v3.0.0` tag 属于 v3.1.0 release prep
 - [ ] 本轮不打 tag、不创建 GitHub Release
+
+## 28. v3.2 Acceptance & Observability Enhancement 规划入口
+
+- [ ] 已建立 v3.2 规划文档：`docs/v3_2_acceptance_observability_plan.md`
+- [ ] v3.1.0 GitHub Release 已完成并记录，`v3.1.0` / `v3.0.0` tag 保持不变
+- [ ] 当前版本仍为 `3.1.0`（本阶段不改版本号）
+- [ ] v3.2 规划保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM
+- [ ] v3.2 规划保持边界：不宣称公网生产直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成
+- [ ] 推荐优先级：P0（12.1+12.3）、P1（12.2+12.4）、P2（12.5+12.6）
