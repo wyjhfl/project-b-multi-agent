@@ -261,3 +261,14 @@
 - [ ] v3.2 规划保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM
 - [ ] v3.2 规划保持边界：不宣称公网生产直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成
 - [ ] 推荐优先级：P0（12.1+12.3）、P1（12.2+12.4）、P2（12.5+12.6）
+
+## 29. v3.2 Phase 12.1（Acceptance snapshot 一键生成）检查
+
+- [ ] 已新增脚本：`scripts/acceptance_snapshot.py`
+- [ ] 已新增 runbook：`docs/acceptance_snapshot_runbook_v32.md`
+- [ ] 默认输出目录：`docs/reports/acceptance_snapshots/`
+- [ ] 输出包含 JSON + Markdown
+- [ ] 快照覆盖 health/deployment/operations/metrics/audit/pilot reports/demo evidence 摘要
+- [ ] 脱敏边界满足：不含 prompt/query/raw_prompt/sql_prompt 原文，不含 key/token/client_secret/password/JWT_SECRET/DATABASE_URL/REDIS_URL 明文
+- [ ] 服务未启动时在线检查标记 skipped，不误报 success
+- [ ] 默认 fake/offline，不触发真实 LLM，不写业务数据

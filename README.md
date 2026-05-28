@@ -790,3 +790,8 @@ project-b-multi-agent/
 - v3.0.0 / v3.1.0 tag 与对应 GitHub Release 已完成且保持不变；main 超前 tag 属于发布后文档收口。
 - 后续建议进入 v3.2 或下一阶段路线规划（持续保持边界：不宣称公网直上、不宣称真实 LLM 生产验收完成）。
 - v3.2 规划已开启：`docs/v3_2_acceptance_observability_plan.md`（当前版本仍为 3.1.0，不改版本号、不打 tag、不创建 Release）。
+- v3.2 Phase 12.1 已新增 Acceptance Snapshot 能力：
+  - 脚本：`scripts/acceptance_snapshot.py`
+  - runbook：`docs/acceptance_snapshot_runbook_v32.md`
+  - 输出：`docs/reports/acceptance_snapshots/*.json` + `*.md`
+  - 默认 fake/offline，不触发真实 LLM；服务未启动时在线检查标记 skipped

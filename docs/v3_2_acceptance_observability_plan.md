@@ -33,6 +33,14 @@
 - 完成标准：
   - 一条命令可生成脱敏快照；失败/跳过状态可追踪且不误报成功。
 
+当前状态（2026-05-28）：
+
+- 已新增脚本：`scripts/acceptance_snapshot.py`
+- 已新增 runbook：`docs/acceptance_snapshot_runbook_v32.md`
+- 默认输出目录：`docs/reports/acceptance_snapshots/`
+- 支持输出目录覆盖参数，输出 JSON + Markdown
+- 服务未启动时在线检查标记 skipped，仍可生成 offline snapshot
+
 ### Phase 12.2：前端 Observability polish（P1）
 
 - 目标：
