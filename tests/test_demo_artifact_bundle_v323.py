@@ -145,3 +145,35 @@ def test_demo_artifact_bundle_records_acceptance_snapshot_paths(tmp_path: Path):
         "completed_with_skipped_online_checks",
         "completed_with_partial_online_checks",
     }
+
+
+def test_demo_artifact_bundle_uses_pilot_report_dir_override(tmp_path: Path):
+    pilot_dir = tmp_path / "pilot_reports_local"
+    pilot_dir.mkdir(parents=True, exist_ok=True)
+
+    report_payload = {
+        "report_id": "demo-bundle-report-1",
+        "generated_at": "2026-05-28T00:00:00+00:00",
+        "scenario": "demo",
+        "outcome": "success",
+        "request_id": "req-demo-1",
+        "fallback_used": False,
+        "cost": 0.01,
+        "total_tokens": 123,
+        "evidence_links": {"audit_event_id": "audit-1"},
+    }
+    (pilot_dir / "demo_report.json").write_text(json.dumps(report_payload, ensure_ascii=False), encoding="utf-8")
+
+    summary = build_demo_artifact_bundle(
+        artifact_dir=tmp_path,
+        base_url="http://127.0.0.1:65530",
+        seed_summary={"status": "ok", "pilot_report_dir": str(pilot_dir)},
+        online_smoke_result={"status": "skipped", "reason": "service_unavailable", "checks": {}},
+        pilot_report_dir=str(pilot_dir),
+    )
+
+    run_dir = Path(summary["artifact_run_dir"])
+    payload = json.loads((run_dir / "demo_e2e_summary.json").read_text(encoding="utf-8"))
+    assert payload["pilot_report_index"]["report_dir"] == str(pilot_dir)
+    assert payload["pilot_report_index"]["total_reports"] >= 1
+    assert (run_dir / "pilot_report_index.json").exists()

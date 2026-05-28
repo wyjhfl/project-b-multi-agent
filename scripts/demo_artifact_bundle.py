@@ -102,6 +102,64 @@ def _read_json(path: Path) -> dict[str, Any]:
         raise ValueError(f"JSON payload must be dict: {path}")
     return payload
 
+def _load_report_json(path: Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return sanitize_pilot_report_payload(payload)
+
+
+def _collect_pilot_report_summary_from_dir(report_dir: Path) -> dict[str, Any]:
+    if not report_dir.exists() or not report_dir.is_dir():
+        return {
+            "report_dir": str(report_dir),
+            "directory_exists": False,
+            "total_reports": 0,
+            "reports": [],
+        }
+
+    reports: list[dict[str, Any]] = []
+    for path in sorted(report_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+        if not path.is_file() or path.suffix.lower() != ".json":
+            continue
+
+        payload = _load_report_json(path)
+        if not payload:
+            continue
+
+        evidence_links = payload.get("evidence_links") or {}
+        if not evidence_links and payload.get("cases"):
+            first_case = payload["cases"][0] if isinstance(payload["cases"], list) and payload["cases"] else {}
+            if isinstance(first_case, dict):
+                evidence_links = first_case.get("evidence_links") or {}
+
+        reports.append(
+            {
+                "report_id": payload.get("report_id") or path.stem,
+                "generated_at": payload.get("generated_at", ""),
+                "scenario": payload.get("scenario", ""),
+                "outcome": payload.get("outcome", ""),
+                "request_id": payload.get("request_id", ""),
+                "fallback_used": bool(payload.get("fallback_used", False)),
+                "cost": float(payload.get("cost", 0.0) or 0.0),
+                "total_tokens": int(payload.get("total_tokens", 0) or 0),
+                "audit_event_id": str(evidence_links.get("audit_event_id") or ""),
+                "name": path.name,
+            }
+        )
+        if len(reports) >= 10:
+            break
+
+    return {
+        "report_dir": str(report_dir),
+        "directory_exists": True,
+        "total_reports": len(reports),
+        "reports": reports,
+    }
+
 
 def _build_run_dir(output_dir: str | Path | None, run_dir: str | Path | None = None) -> tuple[Path, str, str]:
     generated_at = _utc_now_iso()
@@ -148,6 +206,7 @@ def build_demo_artifact_bundle(
     seed_summary: dict[str, Any] | None,
     online_smoke_result: dict[str, Any],
     artifact_run_dir: str | Path | None = None,
+    pilot_report_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     run_dir, generated_at, _short_commit = _build_run_dir(artifact_dir, artifact_run_dir)
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
@@ -161,7 +220,19 @@ def build_demo_artifact_bundle(
 
     operations_summary = _extract_operations_status(online_smoke_result, run_dir)
 
-    pilot_index_payload = _collect_pilot_report_summary()
+    resolved_report_dir: Path | None = None
+    if pilot_report_dir:
+        resolved_report_dir = Path(pilot_report_dir)
+    elif isinstance(seed_payload, dict):
+        seed_report_dir = str(seed_payload.get("pilot_report_dir") or "").strip()
+        if seed_report_dir:
+            resolved_report_dir = Path(seed_report_dir)
+
+    if resolved_report_dir is not None:
+        pilot_index_payload = _collect_pilot_report_summary_from_dir(resolved_report_dir)
+    else:
+        pilot_index_payload = _collect_pilot_report_summary()
+
     pilot_index_path = _write_json(run_dir / "pilot_report_index.json", pilot_index_payload)
 
     online_status = str(online_smoke_result.get("status") or "unknown")
@@ -224,6 +295,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed-input", required=False)
     parser.add_argument("--online-input", required=True)
     parser.add_argument("--artifact-run-dir", required=False)
+    parser.add_argument("--pilot-report-dir", required=False)
     return parser
 
 
@@ -238,6 +310,7 @@ def main() -> int:
         seed_summary=seed_payload,
         online_smoke_result=online_payload,
         artifact_run_dir=args.artifact_run_dir,
+        pilot_report_dir=args.pilot_report_dir,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"bundle_summary_path={summary['summary_path']}")
