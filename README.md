@@ -795,3 +795,11 @@ project-b-multi-agent/
   - runbook：`docs/acceptance_snapshot_runbook_v32.md`
   - 输出：`docs/reports/acceptance_snapshots/*.json` + `*.md`
   - 默认 fake/offline，不触发真实 LLM；服务未启动时在线检查标记 skipped
+
+
+- v3.2 Phase 12.3 added Demo artifact bundle:
+  - script: `scripts/demo_e2e.ps1` (supports `-ArtifactDir`, default `docs/reports/demo_artifacts/`)
+  - helper: `scripts/demo_artifact_bundle.py`
+  - runbook: `docs/demo_artifact_bundle_runbook_v32.md`
+  - each run creates a timestamped artifact folder with `demo_e2e_summary.json` / `online_smoke_result.json` / `seed_summary.json` / `pilot_report_index.json` / acceptance snapshot
+  - when service is unavailable, online smoke is marked skipped and does not report false success

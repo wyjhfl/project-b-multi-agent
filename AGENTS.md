@@ -159,3 +159,11 @@
 - v3.1 Phase 11.4 已新增 OIDC 演练文档：`docs/oidc_minimal_idp_drill_v31.md`（最小真实 IdP 配置演练，不等于生产级 SSO/OIDC 完成）。
 - v3.1 Phase 11.5 已新增运维文档：`docs/operations_troubleshooting_index_v31.md`、`docs/backup_restore_checklist_v31.md`（文档化排障与备份恢复，不删除用户数据）。
 - v3.1 发布后边界：不移动/删除/重建既有 tag；不宣称公网生产可直接上线、不宣称真实 LLM 生产验收已完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成；后续建议进入 v3.2 或下一阶段路线规划。
+
+
+- v3.2 Phase 12.3 added Demo artifact bundle:
+  - `scripts/demo_e2e.ps1` (supports `-ArtifactDir`, default `docs/reports/demo_artifacts/`)
+  - `scripts/demo_artifact_bundle.py`
+  - `docs/demo_artifact_bundle_runbook_v32.md`
+  - artifact includes seed/online smoke/operations summary (when available)/pilot report index/acceptance snapshot
+  - default fake/offline; when service is unavailable online smoke is skipped without false success

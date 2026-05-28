@@ -116,3 +116,15 @@ powershell -ExecutionPolicy Bypass -File scripts/demo_e2e.ps1
 - 真实 LLM 仅 opt-in，不在本 runbook 默认路径执行。
 - 不提交密钥，不输出 token/password/DSN 密码原文。
 - 不宣称公网生产可直接上线。
+
+## v3.2 Phase 12.3 add-on (Demo artifact bundle)
+
+- command supports `-ArtifactDir`:
+  - `powershell -ExecutionPolicy Bypass -File scripts/demo_e2e.ps1 -ArtifactDir docs/reports/demo_artifacts`
+- each run creates a timestamped folder and writes:
+  - `demo_e2e_summary.json`
+  - `online_smoke_result.json`
+  - `seed_summary.json`
+  - `pilot_report_index.json`
+  - `acceptance_snapshot/*.json` and `*.md`
+- see details: `docs/demo_artifact_bundle_runbook_v32.md`

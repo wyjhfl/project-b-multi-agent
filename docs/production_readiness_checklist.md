@@ -272,3 +272,14 @@
 - [ ] 脱敏边界满足：不含 prompt/query/raw_prompt/sql_prompt 原文，不含 key/token/client_secret/password/JWT_SECRET/DATABASE_URL/REDIS_URL 明文
 - [ ] 服务未启动时在线检查标记 skipped，不误报 success
 - [ ] 默认 fake/offline，不触发真实 LLM，不写业务数据
+
+
+## 30. v3.2 Phase 12.3 (Demo artifact bundle) checks
+
+- [ ] `scripts/demo_e2e.ps1` supports `-ArtifactDir`, default `docs/reports/demo_artifacts/`
+- [ ] each run creates a timestamped artifact subdirectory
+- [ ] generates `demo_e2e_summary.json`, `online_smoke_result.json`, `seed_summary.json`
+- [ ] generates `pilot_report_index.json` with pilot report dir and total count
+- [ ] calls acceptance snapshot and records snapshot json/md paths
+- [ ] when service is unavailable, online smoke is skipped without false success
+- [ ] output remains sanitized: no prompt/query/raw_prompt/sql_prompt raw text and no secret plaintext

@@ -117,3 +117,13 @@
 - **P0**：12.1 + 12.3
 - **P1**：12.2 + 12.4
 - **P2**：12.5 + 12.6
+
+
+Phase 12.3 current status (2026-05-28):
+
+- `scripts/demo_e2e.ps1` enhanced with `-ArtifactDir`, default `docs/reports/demo_artifacts/`
+- helper added: `scripts/demo_artifact_bundle.py`
+- runbook added: `docs/demo_artifact_bundle_runbook_v32.md`
+- unified artifacts: `demo_e2e_summary.json`, `online_smoke_result.json`, `seed_summary.json`, `pilot_report_index.json`, acceptance snapshot
+- when service is unavailable, online smoke is marked skipped and bundle status is `completed_with_skipped_online_checks`
+
