@@ -141,3 +141,10 @@ Phase 12.4 current status (2026-05-28):
 - output: JSON + Markdown, default directory `docs/reports/failure_diagnostics/`
 - covers compose / deployment guard / OIDC / audit export / demo_e2e skipped / acceptance snapshot skipped / pilot reports empty / real LLM opt-in skipped
 - service unavailable is marked skipped without false success; no write/delete operation
+
+Phase 12.5 current status (2026-05-28):
+
+- optional retry log added: `docs/real_llm_optional_retry_log_v32.md`
+- current round result: `skipped` (required opt-in env not fully provided)
+- no real external LLM execution, no fake success report
+- waiting for user-provided complete opt-in environment before retry

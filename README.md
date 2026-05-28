@@ -813,3 +813,7 @@ project-b-multi-agent/
   - default output dir: `docs/reports/failure_diagnostics/`
   - covers compose/deployment guard/OIDC/audit export/demo_e2e skipped/acceptance snapshot skipped/pilot reports empty/real LLM opt-in skipped
   - service unavailable is marked skipped without false success; no write/delete operation
+- v3.2 Phase 12.5 optional real LLM evidence retry:
+  - execution log: `docs/real_llm_optional_retry_log_v32.md`
+  - this round status: `skipped` (missing opt-in env, no real external LLM executed)
+  - no real-external pilot report generated in this round

@@ -302,3 +302,12 @@
 - [ ] 覆盖场景：compose、prod 缺变量、deployment check、operations unavailable、demo/acceptance skipped、pilot reports 为空、audit export 403、OIDC secret env 缺失、real LLM opt-in skipped
 - [ ] 服务不可用时标记 skipped，不误报 success
 - [ ] 脚本保持只读，不写业务数据、不删除用户数据、不修改环境变量
+
+## 33. v3.2 Phase 12.5（Optional real LLM evidence retry）检查
+
+- [ ] 已新增执行记录：`docs/real_llm_optional_retry_log_v32.md`
+- [ ] 仅在 opt-in 必需变量齐全时执行真实外网 LLM
+- [ ] 必需变量缺失时记录 `status=skipped`，不伪造成功
+- [ ] 本轮如 skipped，必须明确“未生成真实外网 pilot report”
+- [ ] 若执行成功，报告仍需保持脱敏边界（不含 prompt 原文/密钥原文/DSN 密码）
+- [ ] 不改版本号、不打 tag、不创建 Release、不移动 `v3.1.0` / `v3.0.0` tag

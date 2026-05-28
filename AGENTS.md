@@ -182,3 +182,7 @@
   - output: JSON + Markdown, default `docs/reports/failure_diagnostics/`
   - scenarios include compose/deployment guard/OIDC/audit export/demo_e2e skipped/acceptance snapshot skipped/pilot reports empty/real LLM opt-in skipped
   - read-only only, no write/delete operation, no real external LLM execution
+- v3.2 Phase 12.5 optional real LLM evidence retry:
+  - execution log: `docs/real_llm_optional_retry_log_v32.md`
+  - current round recorded `status=skipped` when required opt-in env is incomplete
+  - no fake success report; no real external LLM execution without explicit opt-in
