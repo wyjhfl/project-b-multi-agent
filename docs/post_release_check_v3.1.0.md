@@ -1,4 +1,4 @@
-# v3.1.0 发布交接检查（手动 GitHub Release 前）
+# v3.1.0 发布交接检查（Release 已创建）
 
 ## 1) Tag 信息
 
@@ -18,9 +18,14 @@ git ls-remote --tags origin v3.1.0
 
 ## 2) GitHub Release 状态
 
-- 当前状态：**尚未创建 v3.1.0 GitHub Release**（需手动创建）。
+- 当前状态：**v3.1.0 GitHub Release 已由用户手动创建**。
+- Release title：`Project B v3.1.0 - Productization Enhancement`
+- Release notes 来源：`RELEASE_NOTES_v3.1.0.md`
+- `v3.1.0` tag 未移动。
+- 本轮未执行真实外网 LLM。
+- 当前 `main` 超前 `v3.1.0` tag 属于发布后文档收口。
 
-## 3) 手动创建 Release 信息
+## 3) 手动创建 Release 信息（归档）
 
 - Tag: `v3.1.0`
 - Title: `Project B v3.1.0 - Productization Enhancement`
@@ -47,6 +52,6 @@ git ls-remote --tags origin v3.1.0
 
 ## 6) 下一步
 
-1. 手动创建 `v3.1.0` GitHub Release。
-2. Release 创建后补一条 `release-created` 文档提交（仅收口记录，不改 tag）。
-3. 之后 `main` 超前 `v3.1.0` tag 属于发布后文档收口与后续规划演进。
+1. 保持 `v3.1.0` / `v3.0.0` tag 不变，继续发布后文档收口。
+2. 进入 v3.2 或下一阶段路线规划。
+3. 若补充发布后记录，仅做文档提交，不改 tag 与业务逻辑。

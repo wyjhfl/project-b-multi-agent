@@ -708,9 +708,9 @@ project-b-multi-agent/
 - v2.7 Phase 7.4 已实现审计留存策略与 JSONL 导出边界：默认脱敏，不导出 prompt 原文和密钥原文。
 - v2.7 Phase 7.5 已实现 OIDC/SSO 最小接入骨架与配置预检：默认关闭，不依赖真实外部 IdP。
 
-### v3.1 产品化增强路线（当前为 release prep）
+### v3.1 产品化增强路线（发布后收口）
 
-- v3.1 产品化增强路线分阶段推进，Phase 11.1~11.5 已完成，当前处于 **v3.1.0 release prep**。
+- v3.1 产品化增强路线分阶段推进，Phase 11.1~11.5 已完成，**v3.1.0 tag 与 GitHub Release 已完成**。
 - 默认开发模板继续使用 `docker-compose.yml`（离线演示友好，auth/rbac 默认关闭）。
 - 生产 override 模板使用 `docker-compose.yml + docker-compose.prod.yml`（启用生产门禁所需配置约束）。
 - 推荐运维脚本：
@@ -719,9 +719,9 @@ project-b-multi-agent/
   - `powershell -ExecutionPolicy Bypass -File scripts/prod_smoke.ps1`
   - `powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1`
 
-### v3.1.0 release prep（当前）
+### v3.1.0 发布后收口（当前）
 
-- 当前处于 v3.1.0 Productization Enhancement release prep 阶段（未打 tag、未创建 GitHub Release）。
+- v3.1.0 Productization Enhancement 已发布完成（tag 与 GitHub Release 已完成，tag 保持不变）。
 - Phase 11.1~11.5 已完成文档化收口：离线 demo seed 与 E2E 演示脚本、只读运营总览、真实 LLM opt-in 执行记录（本轮 skipped）、OIDC 最小真实 IdP 演练、运维排障索引与备份恢复清单。
 - 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，本轮未执行真实外网 LLM。
 - 当前全量基线：`754 passed, 4 skipped`。
@@ -786,6 +786,6 @@ project-b-multi-agent/
   - 运维排障索引：`docs/operations_troubleshooting_index_v31.md`
   - 备份恢复检查清单：`docs/backup_restore_checklist_v31.md`
   - 以 runbook/checklist 为主，不引入破坏性清理流程，不删除用户数据
-- 当前进入 v3.1.0 release prep：`RELEASE_NOTES_v3.1.0.md`、`docs/release_review_v3.1_productization_enhancement.md`。
-- v3.0.0 tag 与 GitHub Release 已完成且保持不变；main 超前 tag 属于 v3.1.0 release prep。
-- 本轮不打 tag、不创建 GitHub Release、不执行真实外网 LLM。
+- v3.1.0 发布材料：`RELEASE_NOTES_v3.1.0.md`、`docs/release_review_v3.1_productization_enhancement.md`、`docs/post_release_check_v3.1.0.md`。
+- v3.0.0 / v3.1.0 tag 与对应 GitHub Release 已完成且保持不变；main 超前 tag 属于发布后文档收口。
+- 后续建议进入 v3.2 或下一阶段路线规划（持续保持边界：不宣称公网直上、不宣称真实 LLM 生产验收完成）。

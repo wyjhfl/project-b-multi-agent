@@ -144,11 +144,12 @@
 - v3.0 Phase 10.3 已建立运维监控与备份恢复演练记录：`docs/operations_monitoring_backup_drill_v30.md`（runbook 级演练，不引入复杂运维平台）。
 - v3.0 Phase 10.4 已建立安全复核与 Go/No-Go 评审：`docs/security_go_no_go_review_v30.md`（企业内网试点/准生产演示 Go，公网生产直上 No-Go）。
 - v3.0.0 GitHub Release 已由用户手动创建，tag 保持不变（历史发布事实）。
-- 当前进入 v3.1.0 release prep：`RELEASE_NOTES_v3.1.0.md`、`docs/release_review_v3.1_productization_enhancement.md`。
-- v3.1 规划文档：`docs/v3_1_productization_enhancement_plan.md`（当前版本进入 3.1.0 release prep，不打 tag、不创建 Release）。
+- v3.1.0 GitHub Release 已由用户手动创建，tag 保持不变。
+- v3.1 发布材料归档：`RELEASE_NOTES_v3.1.0.md`、`docs/release_review_v3.1_productization_enhancement.md`、`docs/post_release_check_v3.1.0.md`。
+- v3.1 规划文档：`docs/v3_1_productization_enhancement_plan.md`（v3.1.0 发布后，main 可继续文档收口演进）。
 - v3.1 Phase 11.1 已完成离线演示 seed 与 E2E 脚本：`scripts/demo_seed_data.py`、`scripts/demo_e2e.ps1`、`docs/demo_e2e_runbook_v31.md`。
 - v3.1 Phase 11.2 已完成只读运营总览：后端 `GET /operations/summary` + 前端 `/operations`（只读、脱敏、不触发真实 LLM）。
 - v3.1 Phase 11.3 已新增执行记录：`docs/real_llm_pilot_execution_log_v31.md`（本轮 opt-in 变量缺失，status=skipped，未执行真实外网 LLM）。
 - v3.1 Phase 11.4 已新增 OIDC 演练文档：`docs/oidc_minimal_idp_drill_v31.md`（最小真实 IdP 配置演练，不等于生产级 SSO/OIDC 完成）。
 - v3.1 Phase 11.5 已新增运维文档：`docs/operations_troubleshooting_index_v31.md`、`docs/backup_restore_checklist_v31.md`（文档化排障与备份恢复，不删除用户数据）。
-- v3.1.0 release prep 边界：本轮不打 tag、不创建 GitHub Release、不执行真实外网 LLM；不宣称公网生产可直接上线、不宣称真实 LLM 生产验收已完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成。
+- v3.1 发布后边界：不移动/删除/重建既有 tag；不宣称公网生产可直接上线、不宣称真实 LLM 生产验收已完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成；后续建议进入 v3.2 或下一阶段路线规划。
