@@ -823,3 +823,7 @@ project-b-multi-agent/
   - historical note: release prep round did not create tag/Release in that step
 - v3.2.0 tag and GitHub Release are now completed (manual Release by user); tag remains unchanged.
 - Next recommended direction: move into v3.3 or next-stage planning while keeping current boundaries.
+- v3.3 planning is now opened:
+  - `docs/v3_3_operational_automation_governance_plan.md`
+  - scope: operational automation + governance workflow convergence (read-only first)
+  - current app version remains `3.2.0`; no new tag/release in this planning step

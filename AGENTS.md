@@ -192,3 +192,6 @@
   - main 超前 `v3.1.0` tag 属于 v3.2.0 prep（历史阶段描述）
 - v3.2.0 GitHub Release 已由用户手动创建，`v3.2.0` tag 保持不变。
 - 后续建议进入 v3.3 或下一阶段路线规划；继续保持边界：不宣称公网直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
+- v3.3 规划文档已开启：`docs/v3_3_operational_automation_governance_plan.md`
+  - 聚焦 v3.2 既有快照/产物/诊断/运营总览能力的自动化与治理流程沉淀
+  - 本轮仅规划，不改业务逻辑，不改版本号，不打 tag，不创建 Release

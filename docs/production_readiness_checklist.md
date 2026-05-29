@@ -324,3 +324,12 @@
 - [ ] `v3.1.0`/`v3.0.0` tag 与对应 GitHub Release 已完成且不移动
 - [ ] 当前 main 超前 `v3.1.0` tag 属于 v3.2.0 release prep
 - [ ] 本轮不打 `v3.2.0` tag、不创建 v3.2.0 GitHub Release
+
+## 35. v3.3 Operational Automation & Governance 规划入口
+
+- [ ] 已建立 v3.3 规划文档：`docs/v3_3_operational_automation_governance_plan.md`
+- [ ] 已记录 `v3.2.0` GitHub Release 已完成，且 `v3.2.0` / `v3.1.0` / `v3.0.0` tag 保持不变
+- [ ] 当前版本仍为 `3.2.0`（本阶段不改版本号）
+- [ ] v3.3 规划保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM
+- [ ] v3.3 规划保持边界：不宣称公网生产直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成
+- [ ] 推荐优先级：P0（13.1+13.2）、P1（13.3+13.4）、P2（13.5+13.6）
