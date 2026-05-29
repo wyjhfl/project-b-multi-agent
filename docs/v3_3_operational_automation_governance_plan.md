@@ -33,6 +33,14 @@
 - 完成标准：
   - 索引可读、路径可追踪、保留策略边界明确。
 
+当前状态（2026-05-29）：
+
+- 已新增脚本：`scripts/report_index.py`
+- 已新增测试：`tests/test_report_index_v331.py`
+- 已新增 runbook：`docs/report_index_retention_runbook_v33.md`
+- 默认索引输出：`docs/reports/report_index/`
+- 仅列出 stale candidates，不执行删除动作
+
 ### Phase 13.2：Config drift checklist（P0）
 
 - 目标：

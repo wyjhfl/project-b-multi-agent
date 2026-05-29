@@ -333,3 +333,17 @@
 - [ ] v3.3 规划保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM
 - [ ] v3.3 规划保持边界：不宣称公网生产直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC/多租户/复杂 BI 全量完成
 - [ ] 推荐优先级：P0（13.1+13.2）、P1（13.3+13.4）、P2（13.5+13.6）
+
+## 36. v3.3 Phase 13.1（Report index & retention）检查
+
+- [ ] 已新增脚本：`scripts/report_index.py`
+- [ ] 已新增测试：`tests/test_report_index_v331.py`
+- [ ] 已新增 runbook：`docs/report_index_retention_runbook_v33.md`
+- [ ] 默认扫描目录：
+  - `docs/reports/acceptance_snapshots/`
+  - `docs/reports/demo_artifacts/`
+  - `docs/reports/failure_diagnostics/`
+- [ ] 默认输出目录：`docs/reports/report_index/`，支持 `--output-dir` 覆盖
+- [ ] 输出包含 JSON + Markdown，且包含 generated_at/commit/report_type/file_count/latest_path/total_size/stale_candidates/retention_policy
+- [ ] stale candidates 仅列出，不删除文件
+- [ ] 明确保留策略边界：不删除用户数据、不删除报告、不自动清理

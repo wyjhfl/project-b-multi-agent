@@ -195,3 +195,9 @@
 - v3.3 规划文档已开启：`docs/v3_3_operational_automation_governance_plan.md`
   - 聚焦 v3.2 既有快照/产物/诊断/运营总览能力的自动化与治理流程沉淀
   - 本轮仅规划，不改业务逻辑，不改版本号，不打 tag，不创建 Release
+- v3.3 Phase 13.1 已完成（Report index & retention）：
+  - `scripts/report_index.py`
+  - `tests/test_report_index_v331.py`
+  - `docs/report_index_retention_runbook_v33.md`
+  - 默认输出目录：`docs/reports/report_index/`
+  - 只读边界：仅列出 stale candidates，不删除文件

@@ -827,3 +827,9 @@ project-b-multi-agent/
   - `docs/v3_3_operational_automation_governance_plan.md`
   - scope: operational automation + governance workflow convergence (read-only first)
   - current app version remains `3.2.0`; no new tag/release in this planning step
+- v3.3 Phase 13.1 (Report index & retention) completed:
+  - script: `scripts/report_index.py`
+  - test: `tests/test_report_index_v331.py`
+  - runbook: `docs/report_index_retention_runbook_v33.md`
+  - default output: `docs/reports/report_index/`
+  - read-only only: stale candidates are listed, no deletion is executed
