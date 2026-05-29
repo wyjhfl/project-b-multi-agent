@@ -9,7 +9,9 @@
 
 ## 2) GitHub Release 状态
 
-- 当前状态：**尚未创建 GitHub Release**（本轮仅完成 handoff 文档归档）。
+- 当前状态：**已由用户手动创建 GitHub Release**。
+- Release title: `Project B v3.2.0 - Acceptance & Observability Enhancement`
+- Release notes 来源：`RELEASE_NOTES_v3.2.0.md`
 
 ## 3) 手动创建 GitHub Release 信息
 
@@ -35,8 +37,13 @@
 - 不等于真实 LLM 生产验收完成
 - 不等于生产级 SSO/OIDC、多租户、复杂 BI 全量完成
 
-## 6) 下一步
+## 6) 发布后状态与下一步
 
-1. 手动创建 GitHub Release（按上方 Tag/Title/Description）。
-2. Release 创建后补一条 `release-created` 文档提交。
-3. main 后续超前 tag 的提交应仅属于发布后文档收口或下一阶段规划。
+- `v3.2.0` tag 未移动，仍指向 `3c12985d15062328efe5711ee939ca28ba4dbacf`。
+- 本轮及本阶段未执行真实外网 LLM。
+- 当前 main 超前 `v3.2.0` tag 属于发布后文档收口。
+
+下一步建议：
+
+1. 进入 v3.3 或下一阶段路线规划文档。
+2. 继续保持默认 fake/offline 与默认 pytest/CI 不调用真实 LLM 的基线。

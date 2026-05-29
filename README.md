@@ -820,4 +820,6 @@ project-b-multi-agent/
 - v3.2.0 release prep artifacts:
   - `RELEASE_NOTES_v3.2.0.md`
   - `docs/release_review_v3.2_acceptance_observability.md`
-  - note: v3.2.0 tag not created, GitHub Release not created in this round
+  - historical note: release prep round did not create tag/Release in that step
+- v3.2.0 tag and GitHub Release are now completed (manual Release by user); tag remains unchanged.
+- Next recommended direction: move into v3.3 or next-stage planning while keeping current boundaries.

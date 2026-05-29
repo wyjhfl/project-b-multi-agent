@@ -189,4 +189,6 @@
 - v3.2.0 release prep materials:
   - `RELEASE_NOTES_v3.2.0.md`
   - `docs/release_review_v3.2_acceptance_observability.md`
-  - main 超前 `v3.1.0` tag 属于 v3.2.0 prep；本轮不打 tag、不创建 GitHub Release
+  - main 超前 `v3.1.0` tag 属于 v3.2.0 prep（历史阶段描述）
+- v3.2.0 GitHub Release 已由用户手动创建，`v3.2.0` tag 保持不变。
+- 后续建议进入 v3.3 或下一阶段路线规划；继续保持边界：不宣称公网直上、不宣称真实 LLM 生产验收完成、不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
