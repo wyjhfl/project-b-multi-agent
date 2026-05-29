@@ -833,3 +833,9 @@ project-b-multi-agent/
   - runbook: `docs/report_index_retention_runbook_v33.md`
   - default output: `docs/reports/report_index/`
   - read-only only: stale candidates are listed, no deletion is executed
+- v3.3 Phase 13.2 (Config drift checklist) completed:
+  - script: `scripts/config_drift_check.py`
+  - test: `tests/test_config_drift_v332.py`
+  - runbook: `docs/config_drift_checklist_v33.md`
+  - default output: `docs/reports/config_drift/`
+  - read-only only: checks key drift/warnings, no `.env` mutation, no secret value output

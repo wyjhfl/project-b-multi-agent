@@ -347,3 +347,12 @@
 - [ ] 输出包含 JSON + Markdown，且包含 generated_at/commit/report_type/file_count/latest_path/total_size/stale_candidates/retention_policy
 - [ ] stale candidates 仅列出，不删除文件
 - [ ] 明确保留策略边界：不删除用户数据、不删除报告、不自动清理
+
+## 37. v3.3 Phase 13.2（Config drift checklist）检查
+
+- [ ] 已新增脚本：`scripts/config_drift_check.py`
+- [ ] 已新增测试：`tests/test_config_drift_v332.py`
+- [ ] 已新增清单文档：`docs/config_drift_checklist_v33.md`
+- [ ] 默认输出目录：`docs/reports/config_drift/`，支持 `--output-dir` 覆盖
+- [ ] 输出包含 JSON + Markdown，且包含 generated_at/commit/checked_files/missing_in_example/missing_in_production_example/deployment_guard_related/oidc_related/audit_related/real_llm_related/compose_required_env/warnings/boundary_declarations
+- [ ] 只读边界：不修改 `.env` 模板、不读取真实密钥值、不输出密钥明文

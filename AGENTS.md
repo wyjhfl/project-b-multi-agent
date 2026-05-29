@@ -201,3 +201,10 @@
   - `docs/report_index_retention_runbook_v33.md`
   - 默认输出目录：`docs/reports/report_index/`
   - 只读边界：仅列出 stale candidates，不删除文件
+
+- v3.3 Phase 13.2 已完成（Config drift checklist）：
+  - `scripts/config_drift_check.py`
+  - `tests/test_config_drift_v332.py`
+  - `docs/config_drift_checklist_v33.md`
+  - 默认输出目录：`docs/reports/config_drift/`
+  - 只读边界：仅检查模板键漂移与告警，不修改 `.env`，不输出真实密钥值

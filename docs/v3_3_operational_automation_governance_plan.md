@@ -56,6 +56,14 @@
 - 完成标准：
   - 可重复检查 drift 项，输出清晰可审计。
 
+当前状态（2026-05-29）：
+
+- 已新增脚本：`scripts/config_drift_check.py`
+- 已新增测试：`tests/test_config_drift_v332.py`
+- 已新增清单文档：`docs/config_drift_checklist_v33.md`
+- 默认输出目录：`docs/reports/config_drift/`
+- 仅做只读检查：不修改 `.env`，不输出真实密钥值
+
 ### Phase 13.3：Governance policy summary（P1）
 
 - 目标：
@@ -116,3 +124,4 @@
 - **P0**：13.1 + 13.2
 - **P1**：13.3 + 13.4
 - **P2**：13.5 + 13.6
+
