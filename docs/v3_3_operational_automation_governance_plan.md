@@ -101,6 +101,13 @@
 - 完成标准：
   - 产物路径一致、索引一致、无外溢副作用。
 
+当前状态（2026-05-30）：
+
+- 已新增统一文档：`docs/operations_automation_scripts_v33.md`
+- 已新增一致性测试：`tests/test_operations_automation_scripts_v334.py`
+- 已对脚本 summary 返回字段做一致性收口（generated_at/commit/mode/read_only/real_llm_executed/output_dir）
+- 保持只读边界：不删数据、不改 `.env`、不执行真实外网 LLM
+
 ### Phase 13.5：Optional live drill window（P2）
 
 - 目标：
