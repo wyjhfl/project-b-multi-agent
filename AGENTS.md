@@ -228,3 +228,13 @@
 - Script output default: `docs/reports/live_drill_window/` (JSON + Markdown).
 - Read-only boundary: no business-data writes, no `.env` mutation, no user-data deletion, no report auto-cleanup, no real secret value output, no real external LLM execution by default.
 - Status vocabulary: `success / skipped / blocked / partial / failed`; `skipped` must include missing condition list.
+
+## v3.3.0 release prep (current)
+
+- Version synchronized to `3.3.0` for release prep only.
+- Added release-prep artifacts:
+  - `RELEASE_NOTES_v3.3.0.md`
+  - `docs/release_review_v3.3_operational_automation_governance.md`
+- Phase 13.1~13.5 are included in v3.3.0 prep scope.
+- Live drill boundary: read-only precheck; when required real LLM/OIDC conditions are missing, result must be `skipped`.
+- Keep constraints: no real external LLM execution by default, no secret plaintext, no historical tag movement, no v3.3.0 tag/release creation in this round.

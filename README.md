@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-768%2B%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.2.0--prep-yellow)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-788%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.3.0--prep-yellow)]()
 
 ---
 
@@ -860,3 +860,13 @@ project-b-multi-agent/
 - Added test: `tests/test_live_drill_window_v335.py`.
 - Default remains fake/offline; default pytest/CI does not execute real external LLM.
 - Missing opt-in conditions must be recorded as `skipped` (or `partial/blocked` with missing list), never faked as success.
+
+## v3.3.0 release prep (current)
+
+- Current release-prep version is `3.3.0`.
+- v3.3.0 focus: Operational Automation & Governance (Phase 13.1~13.5).
+- Release-prep docs:
+  - `RELEASE_NOTES_v3.3.0.md`
+  - `docs/release_review_v3.3_operational_automation_governance.md`
+- Boundaries remain enforced: fake/offline default, pytest/CI default no real LLM, live drill read-only precheck, missing opt-in => skipped.
+- This round does **not** create v3.3.0 tag and does **not** create GitHub Release.

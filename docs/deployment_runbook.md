@@ -1,4 +1,4 @@
-# 部署运行手册（v3.2.0 release prep / Acceptance & Observability Enhancement）
+# 部署运行手册（v3.3.0 release prep / Operational Automation & Governance）
 
 ## 1. 适用范围
 
@@ -215,3 +215,10 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - `v3.1.0`/`v3.0.0` tag 与对应 GitHub Release 已完成且不移动；main 当前为 v3.2.0 release prep 演进。
 - 本轮仅做版本同步、发布文档与验证收口，不打 tag、不创建 GitHub Release。
 - 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
+
+## 12. v3.3.0 release prep boundary note (current)
+
+- v3.3.0 release prep scope = Operational Automation & Governance closure (Phase 13.1~13.5).
+- Default mode remains fake/offline; default pytest/CI does not call real external LLM.
+- Optional live drill remains read-only precheck; missing opt-in conditions must be recorded as skipped.
+- This round does not create v3.3.0 tag and does not create GitHub Release.

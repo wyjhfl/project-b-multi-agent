@@ -1,4 +1,4 @@
-# 生产就绪检查清单（v3.2.0 release prep / Acceptance & Observability Enhancement）
+# 生产就绪检查清单（v3.3.0 release prep / Operational Automation & Governance）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -384,3 +384,15 @@
 - [ ] Real LLM remains opt-in only; missing required env must be recorded as `skipped` with missing list
 - [ ] OIDC live drill readiness checks are recorded without exposing secret values
 - [ ] Boundary declarations remain explicit: not public production launch approval, not real LLM production acceptance completion, not production-grade SSO/OIDC completion
+
+## 41. v3.3.0 release prep closure checks (current)
+
+- [ ] Version synchronized to 3.3.0 (`pyproject`, FastAPI version, `/health.version`, MCP stdio fallback, script version markers, related tests).
+- [ ] Added `RELEASE_NOTES_v3.3.0.md`.
+- [ ] Added `docs/release_review_v3.3_operational_automation_governance.md`.
+- [ ] Release notes cover Phase 13.1~13.5 and live drill skipped-logic fix.
+- [ ] Release review covers scope / changed modules / verification matrix / boundaries / limitations / Go-No-Go.
+- [ ] Default fake/offline and pytest/CI no-real-LLM boundary remains explicit.
+- [ ] Phase 13.5 this round does not execute real external LLM.
+- [ ] No v3.3.0 tag is created in this round.
+- [ ] No v3.3.0 GitHub Release is created in this round.

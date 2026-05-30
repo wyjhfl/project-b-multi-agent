@@ -146,3 +146,12 @@
 - Added read-only precheck script: `scripts/live_drill_window.py` with default output `docs/reports/live_drill_window/`.
 - Added test: `tests/test_live_drill_window_v335.py`.
 - Kept boundaries: fake/offline default, pytest/CI default no real LLM, opt-in missing conditions recorded as skipped, no secret plaintext output, no destructive actions.
+
+## Phase 13.6 progress update (2026-05-30)
+
+- v3.3.0 release prep has started.
+- Version synchronization target: `3.3.0` (app/runtime/scripts/tests assertions).
+- Added release-prep docs:
+  - `RELEASE_NOTES_v3.3.0.md`
+  - `docs/release_review_v3.3_operational_automation_governance.md`
+- Boundaries unchanged: fake/offline default, pytest/CI default no real LLM, no tag/release creation in this round.
