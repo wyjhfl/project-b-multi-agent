@@ -180,8 +180,6 @@ def _derive_status(*, service_missing: list[str], script_missing: list[str], llm
     if script_missing:
         return "blocked"
     if llm_missing or oidc_missing:
-        if service_missing:
-            return "partial"
         return "skipped"
     if service_missing:
         return "partial"

@@ -61,9 +61,9 @@ If any required condition is missing, the drill result must be `skipped` with ex
 Allowed status words:
 
 - `success`: all required checks passed
-- `skipped`: preconditions missing (must list missing items)
+- `skipped`: any required real LLM/OIDC condition missing (must list missing items)
 - `blocked`: required script/interface missing or hard blocker
-- `partial`: some checks passed, some unavailable (non-blocking)
+- `partial`: required real LLM/OIDC conditions are complete, but service window is unavailable
 - `failed`: check execution attempted but failed unexpectedly
 
 ## 5. Suggested Execution

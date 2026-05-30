@@ -22,17 +22,49 @@ def test_live_drill_generates_json_and_markdown(tmp_path: Path):
     assert payload["mode"] == "fake_offline_default"
 
 
-def test_live_drill_missing_conditions_are_recorded_as_skipped_or_partial(tmp_path: Path, monkeypatch):
+def test_live_drill_missing_opt_in_or_oidc_conditions_returns_skipped(tmp_path: Path, monkeypatch):
     for key in live_drill.REQUIRED_REAL_LLM_ENV:
         monkeypatch.delenv(key, raising=False)
-    monkeypatch.delenv("OIDC_CLIENT_SECRET_ENV", raising=False)
+    for key in live_drill.OIDC_REQUIRED_ENV:
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.delenv("OIDC_CLIENT_SECRET", raising=False)
 
     summary = live_drill.build_live_drill_window_summary(output_dir=tmp_path / "out", base_url="http://127.0.0.1:1")
     payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
 
     assert payload["missing_conditions"]
     assert any("REAL_LLM_SMOKE_ENABLED" in item for item in payload["missing_conditions"])
-    assert summary["status"] in {"skipped", "partial", "blocked"}
+    assert summary["status"] == "skipped"
+
+
+def test_live_drill_only_service_unavailable_returns_partial(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("REAL_LLM_SMOKE_ENABLED", "true")
+    monkeypatch.setenv("REAL_LLM_ACCEPTANCE_ENABLED", "true")
+    monkeypatch.setenv("REAL_LLM_PREFLIGHT_ENABLED", "true")
+    monkeypatch.setenv("REAL_LLM_PREFLIGHT_NETWORK_CHECK", "true")
+    monkeypatch.setenv("REAL_LLM_MODEL", "fake-model")
+    monkeypatch.setenv("REAL_LLM_API_KEY_ENV", "OPENAI_API_KEY")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-placeholder-not-output")
+
+    monkeypatch.setenv("OIDC_ENABLED", "true")
+    monkeypatch.setenv("OIDC_ISSUER_URL", "https://idp.example.com/realms/demo")
+    monkeypatch.setenv("OIDC_CLIENT_ID", "project-b-demo")
+    monkeypatch.setenv("OIDC_CLIENT_SECRET_ENV", "OIDC_CLIENT_SECRET")
+    monkeypatch.setenv("OIDC_CLIENT_SECRET", "placeholder-secret")
+    monkeypatch.setenv("OIDC_REDIRECT_URI", "https://app.example.com/auth/callback")
+
+    summary = live_drill.build_live_drill_window_summary(output_dir=tmp_path / "out", base_url="http://127.0.0.1:1")
+    assert summary["status"] == "partial"
+
+
+def test_live_drill_script_missing_returns_blocked(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(
+        live_drill,
+        "_build_script_readiness",
+        lambda: ([{"script": "scripts/acceptance_snapshot.py", "exists": False}], ["script_missing:scripts/acceptance_snapshot.py"]),
+    )
+    summary = live_drill.build_live_drill_window_summary(output_dir=tmp_path / "out", base_url="http://127.0.0.1:1")
+    assert summary["status"] == "blocked"
 
 
 def test_live_drill_no_secret_plaintext_leak(tmp_path: Path, monkeypatch):
