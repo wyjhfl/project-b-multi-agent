@@ -78,6 +78,14 @@
 - 完成标准：
   - 策略边界集中可查，Go/No-Go 口径一致。
 
+当前状态（2026-05-30）：
+
+- 已新增脚本：`scripts/governance_policy_summary.py`
+- 已新增测试：`tests/test_governance_policy_summary_v333.py`
+- 已新增治理摘要文档：`docs/governance_policy_summary_v33.md`
+- 默认输出目录：`docs/reports/governance_policy/`
+- 仅做只读汇总与归档：不改业务逻辑，不执行真实外网 LLM
+
 ### Phase 13.4：Operations automation script polish（P1）
 
 - 目标：
