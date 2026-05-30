@@ -216,8 +216,8 @@
   - 默认输出目录：`docs/reports/governance_policy/`
   - 只读治理摘要：不写业务数据、不读取真实密钥、不执行真实外网 LLM
 
-- v3.3 Phase 13.4 ????Operations automation script polish??
+- v3.3 Phase 13.4 已完成（Operations automation script polish）：
   - `docs/operations_automation_scripts_v33.md`
   - `tests/test_operations_automation_scripts_v334.py`
-  - ? acceptance/demo artifact/failure diagnostics/report index/config drift/governance ??????????????
-  - ???????????????????????? `.env`???????????????? LLM
+  - 已统一 acceptance/demo artifact/failure diagnostics/report index/config drift/governance 脚本 summary 元字段
+  - 保持只读边界：不删除用户数据、不自动清理报告、不修改 `.env`、不读取/输出真实 secret、不执行真实外网 LLM
