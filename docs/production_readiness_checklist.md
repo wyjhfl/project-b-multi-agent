@@ -396,3 +396,13 @@
 - [ ] Phase 13.5 this round does not execute real external LLM.
 - [ ] No v3.3.0 tag is created in this round.
 - [ ] No v3.3.0 GitHub Release is created in this round.
+
+## 42. v3.4 planning entry checks (current)
+
+- [ ] Planning doc created: `docs/v3_4_pilot_hardening_operator_experience_plan.md`.
+- [ ] v3.4 positioned as Pilot Hardening & Operator Experience.
+- [ ] Current version remains `3.3.0` in planning round.
+- [ ] `v3.3.0` GitHub Release remains completed; historical tags remain unchanged.
+- [ ] Planning round keeps boundaries: fake/offline default, pytest/CI default no real LLM.
+- [ ] No business logic change / no version bump / no tag / no Release creation in this round.
+- [ ] No public production direct-launch claim, no real-LLM production-acceptance-complete claim, no production-grade SSO/OIDC or full multitenancy/complex BI completion claim.

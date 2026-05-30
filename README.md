@@ -885,3 +885,12 @@ project-b-multi-agent/
 - Default fake/offline and default pytest/CI no-real-LLM boundaries remain.
 - main ahead of tag belongs to post-release documentation closure.
 - Next suggested direction: move into v3.4 (or next-stage) roadmap planning.
+
+## v3.4 planning opened (current)
+
+- New plan: `docs/v3_4_pilot_hardening_operator_experience_plan.md`.
+- Positioning: v3.4 = Pilot Hardening & Operator Experience.
+- Current version stays `3.3.0`; this round is planning-only (no business logic changes, no tag, no Release creation).
+- `v3.3.0` GitHub Release remains completed; tag remains unchanged.
+- Boundaries stay unchanged: fake/offline default, pytest/CI default no real LLM, no public-production-direct-launch claim.
+- Recommended next execution entry: Phase 14.1.

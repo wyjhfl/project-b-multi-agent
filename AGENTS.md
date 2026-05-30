@@ -253,3 +253,12 @@
 - Keep boundaries: default fake/offline, default pytest/CI no real LLM, no public production direct-launch claim, no claim of real-LLM production acceptance completion, no claim of production-grade SSO/OIDC or full multitenancy/complex BI completion.
 - main ahead of tag belongs to post-release documentation closure.
 - Next suggested direction: enter v3.4 or next-stage roadmap planning.
+
+## v3.4 planning opened (current)
+
+- Planning doc: `docs/v3_4_pilot_hardening_operator_experience_plan.md`.
+- v3.4 positioning: Pilot Hardening & Operator Experience.
+- Planning-only constraints: no business logic changes, no version bump, no tag, no Release creation.
+- `v3.3.0` GitHub Release stays completed; `v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags remain unchanged.
+- Keep boundaries: default fake/offline, default pytest/CI no real LLM, no real secret plaintext, no public-production-direct-launch claim.
+- Suggested next phase: 14.1 Operator workflow polish.
