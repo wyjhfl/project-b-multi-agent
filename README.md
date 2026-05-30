@@ -839,3 +839,10 @@ project-b-multi-agent/
   - runbook: `docs/config_drift_checklist_v33.md`
   - default output: `docs/reports/config_drift/`
   - read-only only: checks key drift/warnings, no `.env` mutation, no secret value output
+
+- v3.3 Phase 13.3 (Governance policy summary) completed:
+  - script: `scripts/governance_policy_summary.py`
+  - test: `tests/test_governance_policy_summary_v333.py`
+  - governance entry doc: `docs/governance_policy_summary_v33.md`
+  - default output: `docs/reports/governance_policy/`
+  - read-only only: governance summary/report output, no runtime mutation, no real external LLM execution
