@@ -350,9 +350,15 @@ def build_acceptance_snapshot(
 
     return {
         "status": sanitized.get("status", "unknown"),
+        "generated_at": generated_at,
+        "commit": commit,
+        "mode": "fake_offline_default",
+        "read_only": True,
+        "real_llm_executed": False,
         "snapshot_id": snapshot_id,
         "json_path": str(json_path),
         "markdown_path": str(md_path),
+        "output_dir": str(output_root),
         "skipped_count": len(skipped),
         "offline_only": bool(online.get("status") == "skipped"),
     }

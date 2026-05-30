@@ -278,7 +278,13 @@ def build_demo_artifact_bundle(
     summary_path = _write_json(run_dir / "demo_e2e_summary.json", summary)
     return {
         "status": bundle_status,
+        "generated_at": generated_at,
+        "commit": commit,
+        "mode": "fake_offline_default",
+        "read_only": True,
+        "real_llm_executed": False,
         "artifact_run_dir": str(run_dir),
+        "output_dir": str(run_dir.parent if run_dir.parent else run_dir),
         "summary_path": str(summary_path),
         "seed_summary_path": str(seed_path),
         "online_smoke_result_path": str(online_path),

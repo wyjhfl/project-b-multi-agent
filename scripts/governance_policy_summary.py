@@ -233,8 +233,13 @@ def build_governance_policy_summary(*, output_dir: str | Path | None = None) -> 
 
     return {
         "status": "ok",
+        "generated_at": generated_at,
+        "commit": commit,
+        "mode": "fake_offline_default",
+        "real_llm_executed": False,
         "json_path": _to_rel(json_path),
         "markdown_path": _to_rel(md_path),
+        "output_dir": _to_rel(output_root),
         "policy_count": len(payload["policy_items"]),
         "read_only": True,
     }

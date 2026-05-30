@@ -275,8 +275,14 @@ def build_config_drift_report(*, output_dir: str | Path | None = None) -> dict[s
 
     return {
         "status": "ok",
+        "generated_at": generated_at,
+        "commit": commit,
+        "mode": "fake_offline_default",
+        "read_only": True,
+        "real_llm_executed": False,
         "json_path": str(json_path),
         "markdown_path": str(markdown_path),
+        "output_dir": str(output_root),
         "warning_count": len(warnings),
     }
 

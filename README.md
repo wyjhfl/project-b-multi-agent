@@ -846,3 +846,9 @@ project-b-multi-agent/
   - governance entry doc: `docs/governance_policy_summary_v33.md`
   - default output: `docs/reports/governance_policy/`
   - read-only only: governance summary/report output, no runtime mutation, no real external LLM execution
+
+- v3.3 Phase 13.4 (Operations automation script polish) completed:
+  - runbook: `docs/operations_automation_scripts_v33.md`
+  - consistency test: `tests/test_operations_automation_scripts_v334.py`
+  - polished scripts: acceptance/demo artifact/failure diagnostics/report index/config drift/governance summary/demo_e2e
+  - alignment: common summary keys + CLI/default output semantics clarified (read-only boundary preserved)

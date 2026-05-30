@@ -504,9 +504,15 @@ def build_failure_diagnostics(
 
     return {
         "status": "ok",
+        "generated_at": generated_at,
+        "commit": commit,
+        "mode": "fake_offline_default",
+        "read_only": True,
+        "real_llm_executed": False,
         "report_id": report_id,
         "json_path": str(json_path),
         "markdown_path": str(md_path),
+        "output_dir": str(output_root),
     }
 
 
