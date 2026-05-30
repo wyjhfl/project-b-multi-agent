@@ -1,4 +1,4 @@
-# v3.3.0 Release Review ? Operational Automation & Governance
+# v3.3.0 Release Review - Operational Automation & Governance
 
 ## Scope
 
