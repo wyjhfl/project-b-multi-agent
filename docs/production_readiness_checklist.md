@@ -357,11 +357,11 @@
 - [ ] 输出包含 JSON + Markdown，且包含 generated_at/commit/checked_files/missing_in_example/missing_in_production_example/deployment_guard_related/oidc_related/audit_related/real_llm_related/compose_required_env/warnings/boundary_declarations
 - [ ] 只读边界：不修改 `.env` 模板、不读取真实密钥值、不输出密钥明文
 
-## 38. v3.3 Phase 13.3?Governance policy summary???
+## 38. v3.3 Phase 13.3（Governance policy summary）检查
 
-- [ ] ??????`scripts/governance_policy_summary.py`
-- [ ] ??????`tests/test_governance_policy_summary_v333.py`
-- [ ] ??????????`docs/governance_policy_summary_v33.md`
-- [ ] ???????`docs/reports/governance_policy/`??? `--output-dir` ??
-- [ ] ?????? default fake/offline?pytest/CI ?????? LLM?real LLM opt-in skipped ???secret/redaction/OIDC/report retention/config drift/release-tag ??
-- [ ] ???????????????????? tag???? Release???????? LLM
+- [ ] 已新增脚本：`scripts/governance_policy_summary.py`
+- [ ] 已新增测试：`tests/test_governance_policy_summary_v333.py`
+- [ ] 已新增治理摘要文档：`docs/governance_policy_summary_v33.md`
+- [ ] 默认输出目录：`docs/reports/governance_policy/`，支持 `--output-dir` 覆盖
+- [ ] 治理摘要覆盖 default fake/offline、pytest/CI 默认不调用真实 LLM、real LLM opt-in 缺变量 skipped、secret/redaction/OIDC/report retention/config drift/release-tag 边界
+- [ ] 只读边界：不写业务数据、不读取真实密钥、不改业务逻辑、不改版本号、不打 tag、不创建 Release、不执行真实外网 LLM

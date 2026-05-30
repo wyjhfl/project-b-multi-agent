@@ -209,9 +209,9 @@
   - 默认输出目录：`docs/reports/config_drift/`
   - 只读边界：仅检查模板键漂移与告警，不修改 `.env`，不输出真实密钥值
 
-- v3.3 Phase 13.3 ????Governance policy summary??
+- v3.3 Phase 13.3 已完成（Governance policy summary）：
   - `scripts/governance_policy_summary.py`
   - `tests/test_governance_policy_summary_v333.py`
   - `docs/governance_policy_summary_v33.md`
-  - ???????`docs/reports/governance_policy/`
-  - ?????????????????????????????????? LLM
+  - 默认输出目录：`docs/reports/governance_policy/`
+  - 只读治理摘要：不写业务数据、不读取真实密钥、不执行真实外网 LLM
