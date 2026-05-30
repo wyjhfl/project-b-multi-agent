@@ -140,3 +140,9 @@
 - **P1**：13.3 + 13.4
 - **P2**：13.5 + 13.6
 
+### Phase 13.5 progress update (2026-05-30)
+
+- Added runbook: `docs/live_drill_window_v33.md`.
+- Added read-only precheck script: `scripts/live_drill_window.py` with default output `docs/reports/live_drill_window/`.
+- Added test: `tests/test_live_drill_window_v335.py`.
+- Kept boundaries: fake/offline default, pytest/CI default no real LLM, opt-in missing conditions recorded as skipped, no secret plaintext output, no destructive actions.

@@ -852,3 +852,11 @@ project-b-multi-agent/
   - consistency test: `tests/test_operations_automation_scripts_v334.py`
   - polished scripts: acceptance/demo artifact/failure diagnostics/report index/config drift/governance summary/demo_e2e
   - alignment: common summary keys + CLI/default output semantics clarified (read-only boundary preserved)
+
+## v3.3 Phase 13.5 (Optional live drill window)
+
+- Added runbook: `docs/live_drill_window_v33.md`.
+- Added read-only precheck script: `scripts/live_drill_window.py` (default output `docs/reports/live_drill_window/`).
+- Added test: `tests/test_live_drill_window_v335.py`.
+- Default remains fake/offline; default pytest/CI does not execute real external LLM.
+- Missing opt-in conditions must be recorded as `skipped` (or `partial/blocked` with missing list), never faked as success.

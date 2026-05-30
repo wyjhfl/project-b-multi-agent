@@ -221,3 +221,10 @@
   - `tests/test_operations_automation_scripts_v334.py`
   - 已统一 acceptance/demo artifact/failure diagnostics/report index/config drift/governance 脚本 summary 元字段
   - 保持只读边界：不删除用户数据、不自动清理报告、不修改 `.env`、不读取/输出真实 secret、不执行真实外网 LLM
+
+## v3.3 Phase 13.5 Optional live drill window
+
+- Deliverables: `docs/live_drill_window_v33.md`, `scripts/live_drill_window.py`, `tests/test_live_drill_window_v335.py`.
+- Script output default: `docs/reports/live_drill_window/` (JSON + Markdown).
+- Read-only boundary: no business-data writes, no `.env` mutation, no user-data deletion, no report auto-cleanup, no real secret value output, no real external LLM execution by default.
+- Status vocabulary: `success / skipped / blocked / partial / failed`; `skipped` must include missing condition list.
