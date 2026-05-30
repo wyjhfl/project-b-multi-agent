@@ -1,4 +1,4 @@
-# v3.3.0 Post-release Handoff Check (Release Pending)
+# v3.3.0 Post-release Handoff Check (Release Created)
 
 ## 1) Tag snapshot
 
@@ -15,11 +15,9 @@
 
 ## 3) GitHub Release status
 
-- Status: **not created yet**.
-- Manual creation suggestion:
-  - Tag: `v3.3.0`
-  - Title: `Project B v3.3.0 - Operational Automation & Governance`
-  - Description source: `RELEASE_NOTES_v3.3.0.md`
+- Status: **created manually by user**.
+- Release title: `Project B v3.3.0 - Operational Automation & Governance`
+- Release notes source: `RELEASE_NOTES_v3.3.0.md`
 
 ## 4) Verification summary
 
@@ -44,5 +42,16 @@
 
 ## 6) Next step
 
-1. User manually creates GitHub Release.
-2. After release creation, add a follow-up `release-created` documentation commit.
+1. v3.3.0 release-created documentation closure completed in this round.
+2. Next suggested direction: enter v3.4 planning (or the next roadmap stage).
+
+## 7) Release-created closure (this round)
+
+- `v3.3.0^{}` remains `0399b84de5c2232a451d02ef37a8b181d0b01ebe` (tag not moved).
+- Historical tags remain unchanged:
+  - `v3.2.0^{}` = `3c12985d15062328efe5711ee939ca28ba4dbacf`
+  - `v3.1.0^{}` = `4ffb8044ccc0f1fb62c570308c8c9c4c8c46a99a`
+  - `v3.0.0^{}` = `fa5b07b3ffb373d2f1060f38b6ef0a4d31b5194d`
+- No real external LLM executed in this documentation-closure round.
+- Default fake/offline and default pytest/CI no-real-LLM boundary remain unchanged.
+- main ahead of tag is post-release documentation closure only.
