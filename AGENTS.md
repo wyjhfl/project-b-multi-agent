@@ -108,7 +108,7 @@
 - v3.1 采用分阶段推进，Phase 11.1~11.5 已完成（历史阶段）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前回归基线：803 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前回归基线：807 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -303,3 +303,13 @@
 - 覆盖 real LLM、OIDC、external MCP、Postgres、Redis、frontend build/network dependency、deployment guard、audit export/redaction readiness。
 - 仅检查配置存在性与本地可验证条件；仅输出 env name 与 `present=true/false`，不输出真实 secret 值。
 - 不调用真实外网 LLM，不连接真实外部 MCP；缺少 opt-in 条件必须 `skipped`。
+
+## v3.4 Phase 14.5 Pilot handoff checklist polish（当前）
+
+- 已新增交接文档：`docs/pilot_handoff_checklist_v34.md`。
+- 已新增只读生成脚本：`scripts/pilot_handoff_checklist.py`。
+- 已新增测试：`tests/test_pilot_handoff_checklist_v345.py`。
+- 默认输出目录：`docs/reports/pilot_handoff/`。
+- 覆盖 admin/operator/viewer/auditor、RBAC 边界、OIDC 最小演练边界、real LLM opt-in skipped/ready 解释、incident rehearsal、evidence archive manifest、optional integration readiness、backup/restore/checklist、known limitations。
+- Go/No-Go：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
+- 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。

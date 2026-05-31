@@ -101,7 +101,7 @@
 
 ## 12. v2.9.0 release prep 补充检查
 
-- [ ] 当前后端全量基线为 803 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] 当前后端全量基线为 807 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
 - [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
 - [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
@@ -450,3 +450,14 @@
 - [ ] 输出字段覆盖 `generated_at`、`commit`、`version`、`integrations`、`readiness_status`、`missing_conditions`、`skipped_reasons`、`risk_notes`、`recommended_next_actions`、`boundary_declarations`、`read_only`、`real_llm_executed`。
 - [ ] 仅检查配置存在性和本地可验证条件，不读取真实 secret 值，仅输出 env name 与 `present=true/false`。
 - [ ] 不调用真实外网 LLM，不连接真实外部 MCP；缺少真实 opt-in 条件必须 `skipped`。
+
+## 47. v3.4 Phase 14.5 企业内网试点交接清单检查（当前）
+
+- [ ] 已新增交接文档：`docs/pilot_handoff_checklist_v34.md`。
+- [ ] 已新增只读生成脚本：`scripts/pilot_handoff_checklist.py`。
+- [ ] 已新增测试：`tests/test_pilot_handoff_checklist_v345.py`。
+- [ ] 默认输出目录：`docs/reports/pilot_handoff/`。
+- [ ] 覆盖 admin/operator/viewer/auditor、RBAC 边界、OIDC 最小演练边界、real LLM opt-in skipped/ready 解释。
+- [ ] 引用 incident rehearsal、evidence archive manifest、optional integration readiness、backup/restore/checklist 链接。
+- [ ] Go/No-Go 明确：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
+- [ ] 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。

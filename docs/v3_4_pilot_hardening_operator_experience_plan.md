@@ -243,6 +243,7 @@ npm --prefix frontend run build
 - Go/No-Go 结论清晰：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
 - 交接清单可直接指向演练、证据归档、可选集成准备度与备份恢复文档。
 - 已知限制与默认关闭边界明确。
+- 本阶段交付物已落地：`docs/pilot_handoff_checklist_v34.md`、`scripts/pilot_handoff_checklist.py`、`tests/test_pilot_handoff_checklist_v345.py`。
 
 ## Phase 14.6：v3.4.0 release prep（P2）
 

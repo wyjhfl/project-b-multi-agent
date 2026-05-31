@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-803%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.3.0--prep-yellow)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-807%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.3.0--prep-yellow)]()
 
 ---
 
@@ -444,7 +444,7 @@ python -m pytest -q
 > 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
 > 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
 
-当前基线：**803 passed, 4 skipped**，覆盖全部模块：
+当前基线：**807 passed, 4 skipped**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -658,7 +658,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 803 passed, 4 skipped（默认 real_llm 用例 skip） |
+| **测试** | pytest + httpx | 807 passed, 4 skipped（默认 real_llm 用例 skip） |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -724,7 +724,7 @@ project-b-multi-agent/
 - v3.1.0 Productization Enhancement 已发布完成（tag 与 GitHub Release 已完成，tag 保持不变）。
 - Phase 11.1~11.5 已完成文档化收口：离线 demo seed 与 E2E 演示脚本、只读运营总览、真实 LLM opt-in 执行记录（本轮 skipped）、OIDC 最小真实 IdP 演练、运维排障索引与备份恢复清单。
 - 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，本轮未执行真实外网 LLM。
-- 当前全量基线：`803 passed, 4 skipped`。
+- 当前全量基线：`807 passed, 4 skipped`。
 
 ### 仍保持的边界
 
@@ -931,3 +931,12 @@ project-b-multi-agent/
 - 覆盖真实 LLM、OIDC、外部 MCP、Postgres、Redis、前端 build/network dependency、deployment guard、audit export/redaction readiness。
 - 仅输出 env name 与 `present=true/false`，不读取或输出真实 secret 值。
 - 不调用真实外网 LLM，不连接真实外部 MCP；缺少 opt-in 条件必须 `skipped`。
+
+## v3.4 Phase 14.5 企业内网试点交接清单（当前）
+
+- 新增交接文档：`docs/pilot_handoff_checklist_v34.md`。
+- 新增只读生成脚本：`scripts/pilot_handoff_checklist.py`，默认输出 `docs/reports/pilot_handoff/`。
+- 新增测试：`tests/test_pilot_handoff_checklist_v345.py`。
+- 覆盖 admin/operator/viewer/auditor 角色、RBAC 边界、OIDC 最小演练边界、real LLM skipped/ready 解释、演练与证据归档引用、备份恢复链接、已知限制。
+- Go/No-Go：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
+- 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。
