@@ -110,6 +110,7 @@ npm --prefix frontend run build
 - 输出包含 `generated_at`、`commit`、`version`、`mode`、`read_only`、`real_llm_executed`、`scenarios`、`recommended_runbooks`、`missing_conditions`、`status`、`boundary_declarations`、`output_dir`。
 - 状态词限定并解释为 `success`、`skipped`、`blocked`、`partial`、`failed`。
 - 缺少 opt-in 条件时明确 `skipped`，不伪造成成功。
+- 本阶段交付物已落地：`docs/incident_rehearsal_pack_v34.md`、`scripts/incident_rehearsal_pack.py`、`tests/test_incident_rehearsal_pack_v342.py`。
 
 ## Phase 14.3：Evidence archive manifest（P1）
 

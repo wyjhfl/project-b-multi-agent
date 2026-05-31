@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-791%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.3.0--prep-yellow)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-795%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.3.0--prep-yellow)]()
 
 ---
 
@@ -444,7 +444,7 @@ python -m pytest -q
 > 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
 > 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
 
-当前基线：**791 passed, 4 skipped**，覆盖全部模块：
+当前基线：**795 passed, 4 skipped**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -658,7 +658,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 791 passed, 4 skipped（默认 real_llm 用例 skip） |
+| **测试** | pytest + httpx | 795 passed, 4 skipped（默认 real_llm 用例 skip） |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -724,7 +724,7 @@ project-b-multi-agent/
 - v3.1.0 Productization Enhancement 已发布完成（tag 与 GitHub Release 已完成，tag 保持不变）。
 - Phase 11.1~11.5 已完成文档化收口：离线 demo seed 与 E2E 演示脚本、只读运营总览、真实 LLM opt-in 执行记录（本轮 skipped）、OIDC 最小真实 IdP 演练、运维排障索引与备份恢复清单。
 - 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，本轮未执行真实外网 LLM。
-- 当前全量基线：`791 passed, 4 skipped`。
+- 当前全量基线：`795 passed, 4 skipped`。
 
 ### 仍保持的边界
 
@@ -904,3 +904,12 @@ project-b-multi-agent/
 - 覆盖入口：`/operations`、acceptance snapshot、demo artifact bundle、failure diagnostics、report index、config drift、governance summary、live drill window。
 - 每个入口均记录使用时机、默认输出目录、只读边界、真实 LLM 执行边界、失败或 skipped 解释。
 - 保持只读边界：不删除数据、不自动清理报告、不修改 `.env`、不执行真实外网 LLM。
+
+## v3.4 Phase 14.2 故障演练包（当前）
+
+- 新增故障演练文档：`docs/incident_rehearsal_pack_v34.md`。
+- 新增只读演练脚本：`scripts/incident_rehearsal_pack.py`，默认输出 `docs/reports/incident_rehearsal/`。
+- 新增测试：`tests/test_incident_rehearsal_pack_v342.py`。
+- 覆盖服务不可用、compose/prod compose、deployment check、operations、acceptance/demo skipped、failure diagnostics、report index、config drift、governance/live drill、OIDC secret env、real LLM opt-in 缺失等场景。
+- 状态词限定为 `success / skipped / blocked / partial / failed`，缺少 opt-in 条件必须 `skipped`。
+- 保持只读边界：默认不启动服务、不修改环境、不执行真实外网 LLM、不删除数据、不自动清理报告。

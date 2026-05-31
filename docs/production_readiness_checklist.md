@@ -101,7 +101,7 @@
 
 ## 12. v2.9.0 release prep 补充检查
 
-- [ ] 当前后端全量基线为 791 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] 当前后端全量基线为 795 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
 - [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
 - [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
@@ -417,3 +417,14 @@
 - [ ] 每个入口说明使用时机、默认输出目录、是否只读、是否调用真实 LLM、失败或 skipped 状态解释。
 - [ ] 保持只读边界：不删除数据、不自动清理报告、不修改 `.env`、不读取或输出真实 secret 原文、不执行真实外网 LLM。
 - [ ] 本阶段不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+
+## 44. v3.4 Phase 14.2 故障演练包检查（当前）
+
+- [ ] 已新增故障演练文档：`docs/incident_rehearsal_pack_v34.md`。
+- [ ] 已新增只读演练脚本：`scripts/incident_rehearsal_pack.py`。
+- [ ] 已新增测试：`tests/test_incident_rehearsal_pack_v342.py`。
+- [ ] 默认输出目录：`docs/reports/incident_rehearsal/`。
+- [ ] 覆盖 service unavailable、docker compose config failure、prod compose missing required env、deployment check ok=false、operations unavailable/empty、acceptance/demo skipped、failure diagnostics blocked、report index empty/stale、config drift warnings、governance/live drill skipped、OIDC secret env missing、real LLM opt-in missing/skipped。
+- [ ] 输出字段覆盖 `generated_at`、`commit`、`version`、`mode`、`read_only`、`real_llm_executed`、`scenarios`、`recommended_runbooks`、`missing_conditions`、`status`、`boundary_declarations`、`output_dir`。
+- [ ] 状态词限定为 `success / skipped / blocked / partial / failed`。
+- [ ] 默认不启动服务、不修改环境、不执行真实外网 LLM；缺少 opt-in 条件必须 `skipped`。

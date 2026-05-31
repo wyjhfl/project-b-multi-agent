@@ -8,6 +8,7 @@ from scripts.config_drift_check import build_config_drift_report
 from scripts.demo_artifact_bundle import build_demo_artifact_bundle
 from scripts.failure_diagnostics import build_failure_diagnostics
 from scripts.governance_policy_summary import build_governance_policy_summary
+from scripts.incident_rehearsal_pack import build_incident_rehearsal_pack
 from scripts.operator_workflow_index import build_operator_workflow_index
 from scripts.report_index import build_report_index
 
@@ -58,14 +59,20 @@ def test_failure_report_index_config_governance_common_keys(tmp_path: Path):
     drift = build_config_drift_report(output_dir=tmp_path / "config_drift")
     governance = build_governance_policy_summary(output_dir=tmp_path / "governance")
     operator = build_operator_workflow_index(output_dir=tmp_path / "operator_workflow")
+    incident = build_incident_rehearsal_pack(
+        output_dir=tmp_path / "incident_rehearsal",
+        base_url="http://127.0.0.1:65530",
+        run_compose_checks=False,
+    )
 
-    for summary in (failure, report, drift, governance, operator):
+    for summary in (failure, report, drift, governance, operator, incident):
         _assert_common(summary)
 
     assert Path(failure["json_path"]).exists()
     assert Path(report["json_path"]).exists()
     assert Path(drift["json_path"]).exists()
     assert Path(operator["json_path"]).exists()
+    assert Path(incident["json_path"]).exists()
     assert (tmp_path / "governance").exists()
 
     gov_json = Path(governance["json_path"])
