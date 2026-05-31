@@ -200,6 +200,7 @@ npm --prefix frontend run build
 - 输出包含 `generated_at`、`commit`、`version`、`integrations`、`readiness_status`、`missing_conditions`、`skipped_reasons`、`risk_notes`、`recommended_next_actions`、`boundary_declarations`、`read_only`、`real_llm_executed`。
 - 缺少真实 opt-in 条件时明确 `skipped`。
 - 不输出任何 secret 原文。
+- 本阶段交付物已落地：`docs/optional_integration_readiness_matrix_v34.md`、`scripts/optional_integration_readiness.py`、`tests/test_optional_integration_readiness_v344.py`。
 
 ## Phase 14.5：Pilot handoff checklist polish（P2）
 

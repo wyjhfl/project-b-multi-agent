@@ -10,6 +10,7 @@ from scripts.evidence_archive_manifest import build_evidence_archive_manifest
 from scripts.failure_diagnostics import build_failure_diagnostics
 from scripts.governance_policy_summary import build_governance_policy_summary
 from scripts.incident_rehearsal_pack import build_incident_rehearsal_pack
+from scripts.optional_integration_readiness import build_optional_integration_readiness
 from scripts.operator_workflow_index import build_operator_workflow_index
 from scripts.report_index import build_report_index
 
@@ -69,8 +70,9 @@ def test_failure_report_index_config_governance_common_keys(tmp_path: Path):
         output_dir=tmp_path / "evidence_archive",
         evidence_roots={"acceptance_snapshot": tmp_path / "acceptance_empty"},
     )
+    optional = build_optional_integration_readiness(output_dir=tmp_path / "optional_integration")
 
-    for summary in (failure, report, drift, governance, operator, incident, evidence):
+    for summary in (failure, report, drift, governance, operator, incident, evidence, optional):
         _assert_common(summary)
 
     assert Path(failure["json_path"]).exists()
@@ -79,6 +81,7 @@ def test_failure_report_index_config_governance_common_keys(tmp_path: Path):
     assert Path(operator["json_path"]).exists()
     assert Path(incident["json_path"]).exists()
     assert Path(evidence["json_path"]).exists()
+    assert Path(optional["json_path"]).exists()
     assert (tmp_path / "governance").exists()
 
     gov_json = Path(governance["json_path"])

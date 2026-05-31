@@ -108,7 +108,7 @@
 - v3.1 采用分阶段推进，Phase 11.1~11.5 已完成（历史阶段）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前回归基线：799 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前回归基线：803 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -293,3 +293,13 @@
 - 纳入 acceptance/demo/failure/report index/config drift/governance/live drill/operator workflow/incident rehearsal/release review/post release handoff 证据类型。
 - 只记录文件元数据，不读取报告内容，不删除文件，不自动执行 retention 清理，不读取或输出真实 secret 原文。
 - 空目录或缺失目录必须记录为 `skipped` 或 `warning`，不得伪造成成功。
+
+## v3.4 Phase 14.4 Optional integration readiness matrix（当前）
+
+- 已新增准备度矩阵文档：`docs/optional_integration_readiness_matrix_v34.md`。
+- 已新增只读矩阵脚本：`scripts/optional_integration_readiness.py`。
+- 已新增测试：`tests/test_optional_integration_readiness_v344.py`。
+- 默认输出目录：`docs/reports/optional_integration_readiness/`。
+- 覆盖 real LLM、OIDC、external MCP、Postgres、Redis、frontend build/network dependency、deployment guard、audit export/redaction readiness。
+- 仅检查配置存在性与本地可验证条件；仅输出 env name 与 `present=true/false`，不输出真实 secret 值。
+- 不调用真实外网 LLM，不连接真实外部 MCP；缺少 opt-in 条件必须 `skipped`。
