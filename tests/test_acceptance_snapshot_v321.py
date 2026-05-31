@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -19,7 +19,7 @@ def test_acceptance_snapshot_generates_json_and_markdown(tmp_path: Path):
     assert payload["snapshot_id"]
     assert payload["generated_at"]
     assert payload["commit"]
-    assert payload["version"] == "3.3.0"
+    assert payload["version"] == "3.4.0"
     assert "health_summary" in payload
     assert "deployment_summary" in payload
     assert "operations_summary" in payload

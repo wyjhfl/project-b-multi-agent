@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -24,7 +24,7 @@ def test_incident_rehearsal_pack_generates_json_and_markdown(tmp_path: Path):
     payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
     assert payload["generated_at"]
     assert payload["commit"]
-    assert payload["version"] == "3.3.0"
+    assert payload["version"] == "3.4.0"
     assert payload["status_vocabulary"] == STATUS_VOCABULARY
 
 

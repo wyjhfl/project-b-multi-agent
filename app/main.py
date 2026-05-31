@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -386,7 +386,7 @@ def reset_runtime_for_test() -> None:
 
 app = FastAPI(
     title="Project B: Harness-native 运营中台 Agent",
-    version="3.3.0",
+    version="3.4.0",
 )
 
 app.add_middleware(BasicAbuseGuardMiddleware)
@@ -451,7 +451,7 @@ async def health_check():
     return {
         "status": "ok",
         "service": "project-b-multi-agent",
-        "version": "3.3.0",
+        "version": "3.4.0",
         "storage_backend": settings.storage_backend,
         "auth_enabled": settings.auth_enabled,
         "rbac_enabled": settings.rbac_enabled,

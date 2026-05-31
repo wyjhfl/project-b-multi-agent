@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import logging
@@ -35,7 +35,7 @@ def _resolve_client_version() -> str:
     try:
         return metadata.version("project-b-multi-agent")
     except Exception:
-        return "3.3.0"
+        return "3.4.0"
 
 
 class MCPConfigError(RuntimeError):

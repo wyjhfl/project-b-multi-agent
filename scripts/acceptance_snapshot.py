@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import asyncio
@@ -305,7 +305,7 @@ def build_acceptance_snapshot(
         "generated_at": generated_at,
         "status": status,
         "commit": commit,
-        "version": "3.3.0",
+        "version": "3.4.0",
         "environment": {
             "app_env": settings.app_env,
             "mode": "fake_offline_default",

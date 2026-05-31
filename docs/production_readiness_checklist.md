@@ -1,4 +1,4 @@
-# 生产就绪检查清单（v3.3.0 release prep / Operational Automation & Governance）
+# 生产就绪检查清单（v3.4.0 release prep / Pilot Hardening & Operator Experience）
 
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
@@ -401,7 +401,7 @@
 
 - [ ] 已创建规划文档：`docs/v3_4_pilot_hardening_operator_experience_plan.md`。
 - [ ] v3.4 定位为 Pilot Hardening & Operator Experience。
-- [ ] 规划轮次当前版本保持 `3.3.0`。
+- [ ] 版本已在 v3.4.0 release prep 阶段同步为 `3.4.0`。
 - [ ] `v3.3.0` GitHub Release 已完成，历史 tags 保持不变。
 - [ ] 规划轮次保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
 - [ ] 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
@@ -461,3 +461,15 @@
 - [ ] 引用 incident rehearsal、evidence archive manifest、optional integration readiness、backup/restore/checklist 链接。
 - [ ] Go/No-Go 明确：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
 - [ ] 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。
+
+## 48. v3.4.0 release prep 收口检查（当前）
+
+- [ ] 版本号已同步到 3.4.0（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / script version markers / related tests）。
+- [ ] 已新增 `RELEASE_NOTES_v3.4.0.md`。
+- [ ] 已新增 `docs/release_review_v3.4_pilot_hardening_operator_experience.md`。
+- [ ] release notes 覆盖 Phase 14.1~14.5 与 skipped/blocked/partial 状态边界。
+- [ ] release review 覆盖 scope / changed docs/scripts/tests/modules / verification matrix / security/privacy boundary / operational boundary / known limitations / Go-No-Go。
+- [ ] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
+- [ ] 本轮不执行真实外网 LLM。
+- [ ] 本轮不打 `v3.4.0` tag、不创建 GitHub Release、不移动历史 tag。
+- [ ] 可进入 v3.4.0 tag 前最终复核。

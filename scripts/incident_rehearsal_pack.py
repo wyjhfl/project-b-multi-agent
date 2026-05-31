@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -315,7 +315,7 @@ def build_incident_rehearsal_pack(
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.3.0",
+        "version": "3.4.0",
         "mode": "fake_offline_default",
         "read_only": True,
         "real_llm_executed": False,

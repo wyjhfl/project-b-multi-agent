@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-807%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.3.0--prep-yellow)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-807%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.4.0--prep-yellow)]()
 
 ---
 
@@ -890,7 +890,7 @@ project-b-multi-agent/
 
 - 新规划文档：`docs/v3_4_pilot_hardening_operator_experience_plan.md`。
 - v3.4 定位：Pilot Hardening & Operator Experience。
-- 当前版本保持 `3.3.0`；本轮仅做规划，不改业务逻辑、不打 tag、不创建 Release。
+- 当前版本已在 v3.4.0 release prep 阶段同步为 `3.4.0`。
 - `v3.3.0` GitHub Release 已完成，tag 保持不变。
 - 边界保持不变：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
@@ -940,3 +940,12 @@ project-b-multi-agent/
 - 覆盖 admin/operator/viewer/auditor 角色、RBAC 边界、OIDC 最小演练边界、real LLM skipped/ready 解释、演练与证据归档引用、备份恢复链接、已知限制。
 - Go/No-Go：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
 - 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。
+
+## v3.4.0 release prep（当前）
+
+- 当前 release-prep 版本已同步为 `3.4.0`。
+- 新增发布材料：`RELEASE_NOTES_v3.4.0.md`、`docs/release_review_v3.4_pilot_hardening_operator_experience.md`。
+- release notes 覆盖 Phase 14.1~14.5 与 skipped/blocked/partial 状态边界。
+- release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
+- 本轮不打 `v3.4.0` tag，不创建 GitHub Release，不移动历史 tag。
+- 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，本轮未执行真实外网 LLM。

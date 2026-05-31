@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -15,7 +15,7 @@ def test_optional_integration_readiness_generates_matrix(tmp_path: Path):
     assert summary["real_llm_executed"] is False
     assert summary["integration_count"] == 8
     assert Path(summary["markdown_path"]).exists()
-    assert payload["version"] == "3.3.0"
+    assert payload["version"] == "3.4.0"
 
 
 def test_optional_integration_readiness_covers_required_integrations(tmp_path: Path):

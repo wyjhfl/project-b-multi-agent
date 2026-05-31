@@ -313,3 +313,13 @@
 - 覆盖 admin/operator/viewer/auditor、RBAC 边界、OIDC 最小演练边界、real LLM opt-in skipped/ready 解释、incident rehearsal、evidence archive manifest、optional integration readiness、backup/restore/checklist、known limitations。
 - Go/No-Go：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
 - 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。
+
+## v3.4.0 release prep（当前）
+
+- 版本已为 release prep 同步到 `3.4.0`。
+- 已新增 release-prep 产物：
+  - `RELEASE_NOTES_v3.4.0.md`
+  - `docs/release_review_v3.4_pilot_hardening_operator_experience.md`
+- Phase 14.1~14.5 纳入 v3.4.0 prep 范围。
+- 保持约束：默认不执行真实外网 LLM，不输出真实 secret 原文，不移动历史 tag，本轮不创建 v3.4.0 tag/Release。
+- Go/No-Go：可以进入 v3.4.0 tag 前最终复核；本轮不打 tag、不创建 GitHub Release。

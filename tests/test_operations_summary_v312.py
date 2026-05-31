@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -101,7 +101,7 @@ def test_operations_summary_should_include_safe_aggregates(monkeypatch, tmp_path
     data = response.json()
     text = json.dumps(data, ensure_ascii=False)
 
-    assert data["health"]["version"] == "3.3.0"
+    assert data["health"]["version"] == "3.4.0"
     assert data["task_approval"]["task_count"] >= 1
     assert data["task_approval"]["approval_count"] >= 1
     assert data["pilot_reports"]["directory_exists"] is True

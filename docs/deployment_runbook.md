@@ -1,4 +1,4 @@
-# 部署运行手册（v3.3.0 release prep / Operational Automation & Governance）
+# 部署运行手册（v3.4.0 release prep / Pilot Hardening & Operator Experience）
 
 ## 1. 适用范围
 
@@ -216,9 +216,17 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - 本轮仅做版本同步、发布文档与验证收口，不打 tag、不创建 GitHub Release。
 - 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
 
-## 12. v3.3.0 release prep boundary note (current)
+## 12. v3.3.0 release prep 边界说明（历史）
 
 - v3.3.0 release prep scope = Operational Automation & Governance closure (Phase 13.1~13.5).
 - Default mode remains fake/offline; default pytest/CI does not call real external LLM.
 - Optional live drill remains read-only precheck; missing opt-in conditions must be recorded as skipped.
 - This round does not create v3.3.0 tag and does not create GitHub Release.
+
+## 13. v3.4.0 release prep 边界说明（当前）
+
+- v3.4.0 release prep 范围 = Pilot Hardening & Operator Experience 收口（Phase 14.1~14.5）。
+- release-prep 产物：`RELEASE_NOTES_v3.4.0.md` 与 `docs/release_review_v3.4_pilot_hardening_operator_experience.md`。
+- 本轮不创建 v3.4.0 tag，不创建 GitHub Release。
+- 保持默认 fake/offline 路径与默认 pytest/CI 不调用真实 LLM 边界。
+- 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。

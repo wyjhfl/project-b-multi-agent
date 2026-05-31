@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -133,7 +133,7 @@ def build_pilot_handoff_checklist(*, output_dir: str | Path | None = None) -> di
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.3.0",
+        "version": "3.4.0",
         "status": status,
         "mode": "fake_offline_default",
         "read_only": True,

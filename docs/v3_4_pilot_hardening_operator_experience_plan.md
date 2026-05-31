@@ -5,7 +5,7 @@
 - v3.4 = **Pilot Hardening & Operator Experience**。
 - 核心目标：围绕企业内网试点硬化、操作员体验、故障恢复演练、证据归档索引、可选真实集成预检增强推进。
 - 当前阶段仅做路线规划与入口收口，不改业务逻辑、不改版本号、不打 tag、不创建 GitHub Release。
-- 当前版本保持 `3.3.0`，直到 v3.4 release prep 阶段才同步为 `3.4.0`。
+- 当前版本已在 v3.4.0 release prep 阶段同步为 `3.4.0`。
 
 ## 基线与边界
 
@@ -291,6 +291,7 @@ npm --prefix frontend run build
 - release notes 覆盖 Phase 14.1~14.5、状态边界与默认 fake/offline 约束。
 - release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
 - 明确可进入 tag 决策前复核，但本轮不打 tag、不创建 GitHub Release。
+- 本阶段交付物已落地：`RELEASE_NOTES_v3.4.0.md`、`docs/release_review_v3.4_pilot_hardening_operator_experience.md`。
 
 ## 当前规划阶段完成标准
 
