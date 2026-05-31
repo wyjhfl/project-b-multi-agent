@@ -101,7 +101,7 @@
 
 ## 12. v2.9.0 release prep 补充检查
 
-- [ ] 当前后端全量基线为 795 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] 当前后端全量基线为 799 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
 - [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
 - [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
@@ -428,3 +428,14 @@
 - [ ] 输出字段覆盖 `generated_at`、`commit`、`version`、`mode`、`read_only`、`real_llm_executed`、`scenarios`、`recommended_runbooks`、`missing_conditions`、`status`、`boundary_declarations`、`output_dir`。
 - [ ] 状态词限定为 `success / skipped / blocked / partial / failed`。
 - [ ] 默认不启动服务、不修改环境、不执行真实外网 LLM；缺少 opt-in 条件必须 `skipped`。
+
+## 45. v3.4 Phase 14.3 证据归档 Manifest 检查（当前）
+
+- [ ] 已新增证据归档文档：`docs/evidence_archive_manifest_v34.md`。
+- [ ] 已新增只读 manifest 脚本：`scripts/evidence_archive_manifest.py`。
+- [ ] 已新增测试：`tests/test_evidence_archive_manifest_v343.py`。
+- [ ] 默认输出目录：`docs/reports/evidence_archive/`。
+- [ ] 纳入 acceptance snapshots、demo artifacts、failure diagnostics、report index、config drift、governance policy、live drill window、operator workflow、incident rehearsal、release review / post release handoff 文档。
+- [ ] 输出字段覆盖 `generated_at`、`commit`、`version`、`manifest_id`、`evidence_roots`、`evidence_items`、`latest_by_type`、`missing_expected_types`、`total_files`、`total_size_bytes`、`retention_policy`、`boundary_declarations`、`read_only`、`real_llm_executed`。
+- [ ] 只读索引：不删除文件、不读取报告内容、不输出 secret 原文、不自动执行 retention 清理。
+- [ ] 空目录或缺失目录以 `skipped` 或 `warning` 表示，不伪造成成功。

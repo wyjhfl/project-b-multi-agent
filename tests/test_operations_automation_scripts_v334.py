@@ -6,6 +6,7 @@ from pathlib import Path
 from scripts.acceptance_snapshot import build_acceptance_snapshot
 from scripts.config_drift_check import build_config_drift_report
 from scripts.demo_artifact_bundle import build_demo_artifact_bundle
+from scripts.evidence_archive_manifest import build_evidence_archive_manifest
 from scripts.failure_diagnostics import build_failure_diagnostics
 from scripts.governance_policy_summary import build_governance_policy_summary
 from scripts.incident_rehearsal_pack import build_incident_rehearsal_pack
@@ -64,8 +65,12 @@ def test_failure_report_index_config_governance_common_keys(tmp_path: Path):
         base_url="http://127.0.0.1:65530",
         run_compose_checks=False,
     )
+    evidence = build_evidence_archive_manifest(
+        output_dir=tmp_path / "evidence_archive",
+        evidence_roots={"acceptance_snapshot": tmp_path / "acceptance_empty"},
+    )
 
-    for summary in (failure, report, drift, governance, operator, incident):
+    for summary in (failure, report, drift, governance, operator, incident, evidence):
         _assert_common(summary)
 
     assert Path(failure["json_path"]).exists()
@@ -73,6 +78,7 @@ def test_failure_report_index_config_governance_common_keys(tmp_path: Path):
     assert Path(drift["json_path"]).exists()
     assert Path(operator["json_path"]).exists()
     assert Path(incident["json_path"]).exists()
+    assert Path(evidence["json_path"]).exists()
     assert (tmp_path / "governance").exists()
 
     gov_json = Path(governance["json_path"])

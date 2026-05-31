@@ -108,7 +108,7 @@
 - v3.1 采用分阶段推进，Phase 11.1~11.5 已完成（历史阶段）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前回归基线：795 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前回归基线：799 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -283,3 +283,13 @@
 - 覆盖 service unavailable、docker compose config failure、prod compose missing required env、deployment check ok=false、operations unavailable/empty、acceptance/demo skipped、failure diagnostics blocked、report index empty/stale、config drift warnings、governance/live drill skipped、OIDC secret env missing、real LLM opt-in missing/skipped。
 - 状态词：`success / skipped / blocked / partial / failed`；缺少 opt-in 条件必须 `skipped`，不得伪造成成功。
 - 保持只读边界：默认不启动服务、不修改环境变量或 `.env`、不读取或输出真实 secret 原文、不执行真实外网 LLM。
+
+## v3.4 Phase 14.3 Evidence archive manifest（当前）
+
+- 已新增证据归档文档：`docs/evidence_archive_manifest_v34.md`。
+- 已新增只读 manifest 脚本：`scripts/evidence_archive_manifest.py`。
+- 已新增测试：`tests/test_evidence_archive_manifest_v343.py`。
+- 默认输出目录：`docs/reports/evidence_archive/`。
+- 纳入 acceptance/demo/failure/report index/config drift/governance/live drill/operator workflow/incident rehearsal/release review/post release handoff 证据类型。
+- 只记录文件元数据，不读取报告内容，不删除文件，不自动执行 retention 清理，不读取或输出真实 secret 原文。
+- 空目录或缺失目录必须记录为 `skipped` 或 `warning`，不得伪造成成功。

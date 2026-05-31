@@ -155,6 +155,7 @@ npm --prefix frontend run build
 - 输出包含 `generated_at`、`commit`、`version`、`manifest_id`、`evidence_roots`、`evidence_items`、`latest_by_type`、`missing_expected_types`、`total_files`、`total_size_bytes`、`retention_policy`、`boundary_declarations`、`read_only`、`real_llm_executed`。
 - 支持 `--output-dir`。
 - 空目录或缺失目录可解释为 `skipped` 或 warning，不报假成功。
+- 本阶段交付物已落地：`docs/evidence_archive_manifest_v34.md`、`scripts/evidence_archive_manifest.py`、`tests/test_evidence_archive_manifest_v343.py`。
 
 ## Phase 14.4：Optional integration readiness matrix（P1）
 
