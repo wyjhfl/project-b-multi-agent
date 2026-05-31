@@ -65,6 +65,7 @@ npm --prefix frontend run build
 - 操作员入口覆盖 `/operations`、acceptance snapshot、demo artifact bundle、failure diagnostics、report index、config drift、governance summary、live drill window。
 - 每个入口说明使用时机、默认输出目录、是否只读、是否调用真实 LLM、失败或 skipped 状态解释。
 - 只读边界清晰：不删除数据、不自动清理报告、不修改 `.env`、不执行真实外网 LLM。
+- 本阶段交付物已落地：`docs/operator_workflow_polish_v34.md`、`scripts/operator_workflow_index.py`、`tests/test_operator_workflow_index_v341.py`。
 
 ## Phase 14.2：Incident rehearsal pack（P0）
 

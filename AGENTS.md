@@ -108,7 +108,7 @@
 - v3.1 采用分阶段推进，Phase 11.1~11.5 已完成（历史阶段）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前回归基线：768 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前回归基线：791 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -263,3 +263,13 @@
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
 - 建议下一阶段：14.1 Operator workflow polish。
+
+## v3.4 Phase 14.1 Operator workflow polish（当前）
+
+- 已新增操作员工作流文档：`docs/operator_workflow_polish_v34.md`。
+- 已新增只读索引脚本：`scripts/operator_workflow_index.py`。
+- 已新增测试：`tests/test_operator_workflow_index_v341.py`。
+- 默认输出目录：`docs/reports/operator_workflow/`。
+- 覆盖 `/operations`、acceptance snapshot、demo artifact bundle、failure diagnostics、report index、config drift、governance summary、live drill window。
+- 每个入口必须说明使用时机、默认输出目录、是否只读、是否调用真实 LLM、失败或 skipped 状态解释。
+- 保持只读边界：不删除数据、不自动清理报告、不修改 `.env`、不读取或输出真实 secret 原文、不执行真实外网 LLM。

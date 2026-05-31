@@ -101,7 +101,7 @@
 
 ## 12. v2.9.0 release prep 补充检查
 
-- [ ] 当前后端全量基线为 768 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] 当前后端全量基线为 791 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
 - [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
 - [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
@@ -406,3 +406,14 @@
 - [ ] 规划轮次保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
 - [ ] 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
 - [ ] 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
+
+## 43. v3.4 Phase 14.1 操作员工作流收口检查（当前）
+
+- [ ] 已新增操作员工作流文档：`docs/operator_workflow_polish_v34.md`。
+- [ ] 已新增只读索引脚本：`scripts/operator_workflow_index.py`。
+- [ ] 已新增测试：`tests/test_operator_workflow_index_v341.py`。
+- [ ] 默认输出目录：`docs/reports/operator_workflow/`。
+- [ ] 入口覆盖 `/operations`、acceptance snapshot、demo artifact bundle、failure diagnostics、report index、config drift、governance summary、live drill window。
+- [ ] 每个入口说明使用时机、默认输出目录、是否只读、是否调用真实 LLM、失败或 skipped 状态解释。
+- [ ] 保持只读边界：不删除数据、不自动清理报告、不修改 `.env`、不读取或输出真实 secret 原文、不执行真实外网 LLM。
+- [ ] 本阶段不改业务逻辑、不改版本号、不打 tag、不创建 Release。
