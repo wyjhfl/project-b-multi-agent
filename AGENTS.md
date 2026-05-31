@@ -254,11 +254,12 @@
 - main ahead of tag belongs to post-release documentation closure.
 - Next suggested direction: enter v3.4 or next-stage roadmap planning.
 
-## v3.4 planning opened (current)
+## v3.4 路线规划已开启（当前）
 
-- Planning doc: `docs/v3_4_pilot_hardening_operator_experience_plan.md`.
-- v3.4 positioning: Pilot Hardening & Operator Experience.
-- Planning-only constraints: no business logic changes, no version bump, no tag, no Release creation.
-- `v3.3.0` GitHub Release stays completed; `v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags remain unchanged.
-- Keep boundaries: default fake/offline, default pytest/CI no real LLM, no real secret plaintext, no public-production-direct-launch claim.
-- Suggested next phase: 14.1 Operator workflow polish.
+- 规划文档：`docs/v3_4_pilot_hardening_operator_experience_plan.md`。
+- v3.4 定位：Pilot Hardening & Operator Experience。
+- 规划阶段约束：不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- `v3.3.0` GitHub Release 已完成，`v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
+- 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
+- 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
+- 建议下一阶段：14.1 Operator workflow polish。

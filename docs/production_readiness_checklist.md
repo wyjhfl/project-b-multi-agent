@@ -397,12 +397,12 @@
 - [ ] No v3.3.0 tag is created in this round.
 - [ ] No v3.3.0 GitHub Release is created in this round.
 
-## 42. v3.4 planning entry checks (current)
+## 42. v3.4 规划入口检查（当前）
 
-- [ ] Planning doc created: `docs/v3_4_pilot_hardening_operator_experience_plan.md`.
-- [ ] v3.4 positioned as Pilot Hardening & Operator Experience.
-- [ ] Current version remains `3.3.0` in planning round.
-- [ ] `v3.3.0` GitHub Release remains completed; historical tags remain unchanged.
-- [ ] Planning round keeps boundaries: fake/offline default, pytest/CI default no real LLM.
-- [ ] No business logic change / no version bump / no tag / no Release creation in this round.
-- [ ] No public production direct-launch claim, no real-LLM production-acceptance-complete claim, no production-grade SSO/OIDC or full multitenancy/complex BI completion claim.
+- [ ] 已创建规划文档：`docs/v3_4_pilot_hardening_operator_experience_plan.md`。
+- [ ] v3.4 定位为 Pilot Hardening & Operator Experience。
+- [ ] 规划轮次当前版本保持 `3.3.0`。
+- [ ] `v3.3.0` GitHub Release 已完成，历史 tags 保持不变。
+- [ ] 规划轮次保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
+- [ ] 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- [ ] 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。

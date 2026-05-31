@@ -886,11 +886,12 @@ project-b-multi-agent/
 - main ahead of tag belongs to post-release documentation closure.
 - Next suggested direction: move into v3.4 (or next-stage) roadmap planning.
 
-## v3.4 planning opened (current)
+## v3.4 路线规划已开启（当前）
 
-- New plan: `docs/v3_4_pilot_hardening_operator_experience_plan.md`.
-- Positioning: v3.4 = Pilot Hardening & Operator Experience.
-- Current version stays `3.3.0`; this round is planning-only (no business logic changes, no tag, no Release creation).
-- `v3.3.0` GitHub Release remains completed; tag remains unchanged.
-- Boundaries stay unchanged: fake/offline default, pytest/CI default no real LLM, no public-production-direct-launch claim.
-- Recommended next execution entry: Phase 14.1.
+- 新规划文档：`docs/v3_4_pilot_hardening_operator_experience_plan.md`。
+- v3.4 定位：Pilot Hardening & Operator Experience。
+- 当前版本保持 `3.3.0`；本轮仅做规划，不改业务逻辑、不打 tag、不创建 Release。
+- `v3.3.0` GitHub Release 已完成，tag 保持不变。
+- 边界保持不变：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
+- 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
+- 建议下一执行入口：Phase 14.1。
