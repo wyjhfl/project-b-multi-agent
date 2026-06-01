@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-807%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.4.0--prep-yellow)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-807%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.4.0-brightgreen)]()
 
 ---
 
@@ -941,11 +941,27 @@ project-b-multi-agent/
 - Go/No-Go：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
 - 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。
 
-## v3.4.0 release prep（当前）
+## v3.4.0 release prep（历史）
 
-- 当前 release-prep 版本已同步为 `3.4.0`。
+- release-prep 阶段版本已同步为 `3.4.0`。
 - 新增发布材料：`RELEASE_NOTES_v3.4.0.md`、`docs/release_review_v3.4_pilot_hardening_operator_experience.md`。
 - release notes 覆盖 Phase 14.1~14.5 与 skipped/blocked/partial 状态边界。
 - release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
-- 本轮不打 `v3.4.0` tag，不创建 GitHub Release，不移动历史 tag。
-- 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，本轮未执行真实外网 LLM。
+- release prep 当轮未打 `v3.4.0` tag，未创建 GitHub Release，未移动历史 tag。
+- 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，release prep 当轮未执行真实外网 LLM。
+
+## v3.4.0 release-created closure（当前）
+
+- GitHub Release `v3.4.0` 已由用户手动创建。
+- Release 标题：`Project B v3.4.0 - Pilot Hardening & Operator Experience`。
+- Release notes 来源：`RELEASE_NOTES_v3.4.0.md`。
+- tag 保持不变：`v3.4.0^{}` = `868dd76496a08821dbb0a133cb28d0a62a51a5d7`。
+- 历史 tag 保持不变：
+  - `v3.3.0^{}` = `0399b84de5c2232a451d02ef37a8b181d0b01ebe`
+  - `v3.2.0^{}` = `3c12985d15062328efe5711ee939ca28ba4dbacf`
+  - `v3.1.0^{}` = `4ffb8044ccc0f1fb62c570308c8c9c4c8c46a99a`
+  - `v3.0.0^{}` = `fa5b07b3ffb373d2f1060f38b6ef0a4d31b5194d`
+- release-created 文档收口未执行真实外网 LLM。
+- 默认 fake/offline 和默认 pytest/CI 不调用真实 LLM 边界保持不变。
+- main 超前 tag 属于发布后文档收口。
+- 后续建议进入 v3.5 或下一阶段路线规划。

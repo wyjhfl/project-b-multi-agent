@@ -1,4 +1,4 @@
-# v3.4.0 发布交接检查（Tag 已创建，Release 待手动创建）
+# v3.4.0 发布后检查（Release 已创建）
 
 ## 1. Tag 快照
 
@@ -16,12 +16,10 @@
 
 ## 3. GitHub Release 状态
 
-- Status: **尚未创建**。
-- 本轮仅完成 annotated tag 创建与推送，不创建 GitHub Release。
-- 手动 Release 建议：
-  - Tag: `v3.4.0`
-  - Title: `Project B v3.4.0 - Pilot Hardening & Operator Experience`
-  - Description: 使用 `RELEASE_NOTES_v3.4.0.md`
+- Status: **已由用户手动创建**。
+- Release 标题：`Project B v3.4.0 - Pilot Hardening & Operator Experience`
+- Release notes 来源：`RELEASE_NOTES_v3.4.0.md`
+- `v3.4.0` tag 保持不变，未移动、未删除、未重建。
 
 ## 4. 验证摘要
 
@@ -36,19 +34,22 @@
 - `docker compose config`: passed
 - prod compose 缺少 `JWT_SECRET` / `DATABASE_URL` / `REDIS_URL` 时按预期失败，注入临时变量后通过，临时变量已清理
 - frontend `npm run lint` / `npm run build`: passed
+- release-created 文档收口验证：
+  - `tests/test_runtime_hardening_v055.py`: `11 passed`
+  - `docker compose config`: passed
 
 ## 5. 边界声明
 
-- 本轮不执行真实外网 LLM。
+- 本轮 release-created 文档收口未执行真实外网 LLM。
 - 默认路径仍为 fake/offline。
 - 默认 pytest/CI 不调用真实 LLM。
 - v3.4.0 是企业内网试点硬化与操作员体验增强交付，不等于公网生产可直接上线。
 - 不宣称真实 LLM 生产验收已完成。
 - 不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
 - 真实外部 MCP Server、生产级 SSO/OIDC、多租户、复杂 BI 仍需后续专项验收。
+- main 超前 `v3.4.0` tag 属于发布后文档收口。
 
 ## 6. 下一步
 
-1. 用户手动创建 GitHub Release。
-2. GitHub Release 创建后，再更新 `docs/post_release_check_v3.4.0.md`、`README.md`、`AGENTS.md`，记录 release-created 状态。
-3. release-created 文档收口完成后，可进入 v3.5 或下一阶段路线规划。
+1. v3.4.0 release-created 文档收口完成。
+2. 后续可进入 v3.5 或下一阶段路线规划。

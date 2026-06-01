@@ -314,12 +314,28 @@
 - Go/No-Go：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
 - 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。
 
-## v3.4.0 release prep（当前）
+## v3.4.0 release prep（历史）
 
-- 版本已为 release prep 同步到 `3.4.0`。
+- 版本已在 release prep 阶段同步到 `3.4.0`。
 - 已新增 release-prep 产物：
   - `RELEASE_NOTES_v3.4.0.md`
   - `docs/release_review_v3.4_pilot_hardening_operator_experience.md`
 - Phase 14.1~14.5 纳入 v3.4.0 prep 范围。
-- 保持约束：默认不执行真实外网 LLM，不输出真实 secret 原文，不移动历史 tag，本轮不创建 v3.4.0 tag/Release。
-- Go/No-Go：可以进入 v3.4.0 tag 前最终复核；本轮不打 tag、不创建 GitHub Release。
+- 保持约束：默认不执行真实外网 LLM，不输出真实 secret 原文，不移动历史 tag，release prep 当轮不创建 v3.4.0 tag/Release。
+- Go/No-Go：release prep 当轮结论为可以进入 v3.4.0 tag 前最终复核。
+
+## v3.4.0 release-created closure（当前）
+
+- GitHub Release `v3.4.0` 已由用户手动创建。
+- Release 标题：`Project B v3.4.0 - Pilot Hardening & Operator Experience`。
+- Release notes 来源：`RELEASE_NOTES_v3.4.0.md`。
+- tag 保持不变：`v3.4.0^{}` = `868dd76496a08821dbb0a133cb28d0a62a51a5d7`。
+- 历史 tag 保持不变：
+  - `v3.3.0^{}` = `0399b84de5c2232a451d02ef37a8b181d0b01ebe`
+  - `v3.2.0^{}` = `3c12985d15062328efe5711ee939ca28ba4dbacf`
+  - `v3.1.0^{}` = `4ffb8044ccc0f1fb62c570308c8c9c4c8c46a99a`
+  - `v3.0.0^{}` = `fa5b07b3ffb373d2f1060f38b6ef0a4d31b5194d`
+- release-created 文档收口未执行真实外网 LLM。
+- 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
+- main 超前 tag 属于发布后文档收口。
+- 后续建议进入 v3.5 或下一阶段路线规划。
