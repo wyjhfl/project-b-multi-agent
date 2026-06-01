@@ -254,7 +254,7 @@
 - main ahead of tag belongs to post-release documentation closure.
 - Next suggested direction: enter v3.4 or next-stage roadmap planning.
 
-## v3.4 路线规划已开启（当前）
+## v3.4 路线规划（历史）
 
 - 规划文档：`docs/v3_4_pilot_hardening_operator_experience_plan.md`。
 - v3.4 定位：Pilot Hardening & Operator Experience。
@@ -262,9 +262,9 @@
 - `v3.3.0` GitHub Release 已完成，`v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
-- 建议下一阶段：14.1 Operator workflow polish。
+- Phase 14.1~14.6 已完成并进入 v3.4.0 发布收口。
 
-## v3.4 Phase 14.1 Operator workflow polish（当前）
+## v3.4 Phase 14.1 Operator workflow polish（已完成）
 
 - 已新增操作员工作流文档：`docs/operator_workflow_polish_v34.md`。
 - 已新增只读索引脚本：`scripts/operator_workflow_index.py`。
@@ -274,7 +274,7 @@
 - 每个入口必须说明使用时机、默认输出目录、是否只读、是否调用真实 LLM、失败或 skipped 状态解释。
 - 保持只读边界：不删除数据、不自动清理报告、不修改 `.env`、不读取或输出真实 secret 原文、不执行真实外网 LLM。
 
-## v3.4 Phase 14.2 Incident rehearsal pack（当前）
+## v3.4 Phase 14.2 Incident rehearsal pack（已完成）
 
 - 已新增故障演练文档：`docs/incident_rehearsal_pack_v34.md`。
 - 已新增只读演练脚本：`scripts/incident_rehearsal_pack.py`。
@@ -284,7 +284,7 @@
 - 状态词：`success / skipped / blocked / partial / failed`；缺少 opt-in 条件必须 `skipped`，不得伪造成成功。
 - 保持只读边界：默认不启动服务、不修改环境变量或 `.env`、不读取或输出真实 secret 原文、不执行真实外网 LLM。
 
-## v3.4 Phase 14.3 Evidence archive manifest（当前）
+## v3.4 Phase 14.3 Evidence archive manifest（已完成）
 
 - 已新增证据归档文档：`docs/evidence_archive_manifest_v34.md`。
 - 已新增只读 manifest 脚本：`scripts/evidence_archive_manifest.py`。
@@ -294,7 +294,7 @@
 - 只记录文件元数据，不读取报告内容，不删除文件，不自动执行 retention 清理，不读取或输出真实 secret 原文。
 - 空目录或缺失目录必须记录为 `skipped` 或 `warning`，不得伪造成成功。
 
-## v3.4 Phase 14.4 Optional integration readiness matrix（当前）
+## v3.4 Phase 14.4 Optional integration readiness matrix（已完成）
 
 - 已新增准备度矩阵文档：`docs/optional_integration_readiness_matrix_v34.md`。
 - 已新增只读矩阵脚本：`scripts/optional_integration_readiness.py`。
@@ -304,7 +304,7 @@
 - 仅检查配置存在性与本地可验证条件；仅输出 env name 与 `present=true/false`，不输出真实 secret 值。
 - 不调用真实外网 LLM，不连接真实外部 MCP；缺少 opt-in 条件必须 `skipped`。
 
-## v3.4 Phase 14.5 Pilot handoff checklist polish（当前）
+## v3.4 Phase 14.5 Pilot handoff checklist polish（已完成）
 
 - 已新增交接文档：`docs/pilot_handoff_checklist_v34.md`。
 - 已新增只读生成脚本：`scripts/pilot_handoff_checklist.py`。
@@ -324,7 +324,7 @@
 - 保持约束：默认不执行真实外网 LLM，不输出真实 secret 原文，不移动历史 tag，release prep 当轮不创建 v3.4.0 tag/Release。
 - Go/No-Go：release prep 当轮结论为可以进入 v3.4.0 tag 前最终复核。
 
-## v3.4.0 release-created closure（当前）
+## v3.4.0 release-created closure（已完成）
 
 - GitHub Release `v3.4.0` 已由用户手动创建。
 - Release 标题：`Project B v3.4.0 - Pilot Hardening & Operator Experience`。
@@ -339,3 +339,14 @@
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
 - main 超前 tag 属于发布后文档收口。
 - 后续建议进入 v3.5 或下一阶段路线规划。
+
+## v3.5 路线规划已开启（当前）
+
+- 规划文档：`docs/v3_5_controlled_pilot_expansion_plan.md`。
+- v3.5 定位：Controlled Pilot Expansion & Evidence Operations。
+- 规划阶段约束：不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- `v3.4.0` GitHub Release 已完成，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
+- 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
+- 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
+- 建议下一阶段：15.1 Pilot evidence comparison snapshot。

@@ -397,7 +397,7 @@
 - [ ] No v3.3.0 tag is created in this round.
 - [ ] No v3.3.0 GitHub Release is created in this round.
 
-## 42. v3.4 规划入口检查（当前）
+## 42. v3.4 规划入口检查（历史）
 
 - [ ] 已创建规划文档：`docs/v3_4_pilot_hardening_operator_experience_plan.md`。
 - [ ] v3.4 定位为 Pilot Hardening & Operator Experience。
@@ -406,8 +406,7 @@
 - [ ] 规划轮次保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
 - [ ] 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
 - [ ] 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
-
-## 43. v3.4 Phase 14.1 操作员工作流收口检查（当前）
+## 43. v3.4 Phase 14.1 操作员工作流收口检查（已完成）
 
 - [ ] 已新增操作员工作流文档：`docs/operator_workflow_polish_v34.md`。
 - [ ] 已新增只读索引脚本：`scripts/operator_workflow_index.py`。
@@ -418,7 +417,7 @@
 - [ ] 保持只读边界：不删除数据、不自动清理报告、不修改 `.env`、不读取或输出真实 secret 原文、不执行真实外网 LLM。
 - [ ] 本阶段不改业务逻辑、不改版本号、不打 tag、不创建 Release。
 
-## 44. v3.4 Phase 14.2 故障演练包检查（当前）
+## 44. v3.4 Phase 14.2 故障演练包检查（已完成）
 
 - [ ] 已新增故障演练文档：`docs/incident_rehearsal_pack_v34.md`。
 - [ ] 已新增只读演练脚本：`scripts/incident_rehearsal_pack.py`。
@@ -429,7 +428,7 @@
 - [ ] 状态词限定为 `success / skipped / blocked / partial / failed`。
 - [ ] 默认不启动服务、不修改环境、不执行真实外网 LLM；缺少 opt-in 条件必须 `skipped`。
 
-## 45. v3.4 Phase 14.3 证据归档 Manifest 检查（当前）
+## 45. v3.4 Phase 14.3 证据归档 Manifest 检查（已完成）
 
 - [ ] 已新增证据归档文档：`docs/evidence_archive_manifest_v34.md`。
 - [ ] 已新增只读 manifest 脚本：`scripts/evidence_archive_manifest.py`。
@@ -440,7 +439,7 @@
 - [ ] 只读索引：不删除文件、不读取报告内容、不输出 secret 原文、不自动执行 retention 清理。
 - [ ] 空目录或缺失目录以 `skipped` 或 `warning` 表示，不伪造成成功。
 
-## 46. v3.4 Phase 14.4 可选集成准备度矩阵检查（当前）
+## 46. v3.4 Phase 14.4 可选集成准备度矩阵检查（已完成）
 
 - [ ] 已新增准备度矩阵文档：`docs/optional_integration_readiness_matrix_v34.md`。
 - [ ] 已新增只读矩阵脚本：`scripts/optional_integration_readiness.py`。
@@ -451,7 +450,7 @@
 - [ ] 仅检查配置存在性和本地可验证条件，不读取真实 secret 值，仅输出 env name 与 `present=true/false`。
 - [ ] 不调用真实外网 LLM，不连接真实外部 MCP；缺少真实 opt-in 条件必须 `skipped`。
 
-## 47. v3.4 Phase 14.5 企业内网试点交接清单检查（当前）
+## 47. v3.4 Phase 14.5 企业内网试点交接清单检查（已完成）
 
 - [ ] 已新增交接文档：`docs/pilot_handoff_checklist_v34.md`。
 - [ ] 已新增只读生成脚本：`scripts/pilot_handoff_checklist.py`。
@@ -462,7 +461,7 @@
 - [ ] Go/No-Go 明确：企业内网试点可继续，公网直上 No-Go，真实生产验收需另行执行。
 - [ ] 保持只读边界：不读取 secret 原文、不执行真实外网 LLM、不写业务数据。
 
-## 48. v3.4.0 release prep 收口检查（当前）
+## 48. v3.4.0 release prep 收口检查（历史）
 
 - [ ] 版本号已同步到 3.4.0（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / script version markers / related tests）。
 - [ ] 已新增 `RELEASE_NOTES_v3.4.0.md`。
@@ -473,3 +472,21 @@
 - [ ] 本轮不执行真实外网 LLM。
 - [ ] 本轮不打 `v3.4.0` tag、不创建 GitHub Release、不移动历史 tag。
 - [ ] 可进入 v3.4.0 tag 前最终复核。
+
+## 49. v3.5 规划入口检查（当前）
+
+- [ ] 已创建规划文档：`docs/v3_5_controlled_pilot_expansion_plan.md`。
+- [ ] v3.5 定位为 Controlled Pilot Expansion & Evidence Operations。
+- [ ] 规划覆盖 Phase 15.1~15.6：
+  - Phase 15.1 Pilot evidence comparison snapshot。
+  - Phase 15.2 Operator drill scoring rubric。
+  - Phase 15.3 Controlled integration dry-run checklist。
+  - Phase 15.4 Governance exception register。
+  - Phase 15.5 Pilot closeout report pack。
+  - Phase 15.6 v3.5 release prep。
+- [ ] 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- [ ] `v3.4.0` GitHub Release 已完成，历史 tags 保持不变。
+- [ ] 规划轮次保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
+- [ ] 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- [ ] 不读取或输出真实 secret 原文。
+- [ ] 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
