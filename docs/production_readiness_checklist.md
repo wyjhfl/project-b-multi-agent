@@ -312,7 +312,7 @@
 - [ ] 若执行成功，报告仍需保持脱敏边界（不含 prompt 原文/密钥原文/DSN 密码）
 - [ ] 不改版本号、不打 tag、不创建 Release、不移动 `v3.1.0` / `v3.0.0` tag
 
-## 34. v3.2.0 release prep 收口检查（当前）
+## 34. v3.2.0 release prep 收口检查（历史）
 
 - [ ] 版本号已同步到 3.2.0（pyproject / app.version / health.version / stdio fallback / tests 断言 / snapshot & diagnostics 版本字段）
 - [ ] 已新增 `RELEASE_NOTES_v3.2.0.md`
@@ -490,3 +490,16 @@
 - [ ] 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
 - [ ] 不读取或输出真实 secret 原文。
 - [ ] 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
+
+## 50. v3.5 Phase 15.1 试点证据对比快照检查（当前）
+
+- [ ] 已新增 runbook：`docs/pilot_evidence_comparison_v35.md`。
+- [ ] 已新增只读对比脚本：`scripts/pilot_evidence_comparison.py`。
+- [ ] 已新增测试：`tests/test_pilot_evidence_comparison_v351.py`。
+- [ ] 默认输出目录：`docs/reports/pilot_evidence_comparison/`。
+- [ ] 支持 baseline/current manifest JSON 或证据目录输入。
+- [ ] 输入为 manifest JSON 时仅读取 `evidence_items` 元数据；输入为目录时仅枚举文件元数据。
+- [ ] 输出 JSON + Markdown，覆盖新增、减少、变化文件统计与 `warnings`。
+- [ ] 缺失或空输入必须 `skipped` 并记录 `warnings`，不得伪造成成功。
+- [ ] 保持只读边界：不删除、不移动、不修改输入证据，不自动执行 retention 清理，不读取或输出真实 secret 原文，不执行真实外网 LLM。
+- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.1 改为 `3.5.0`。

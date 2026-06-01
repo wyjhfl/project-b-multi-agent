@@ -103,7 +103,7 @@
 - 不宣称公网生产可直接上线。
 - 未完成项仍包括：生产级 SSO/OIDC、多租户、复杂 BI、真实外部 MCP 生产验收。
 
-## v3.1 产品化增强路线说明（当前）
+## v3.1 产品化增强路线说明（历史）
 
 - v3.1 采用分阶段推进，Phase 11.1~11.5 已完成（历史阶段）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
@@ -349,4 +349,14 @@
 - `v3.4.0` GitHub Release 已完成，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
-- 建议下一阶段：15.1 Pilot evidence comparison snapshot。
+- 建议下一阶段：15.2 Operator drill scoring rubric。
+
+## v3.5 Phase 15.1 Pilot evidence comparison snapshot（当前）
+
+- 已新增证据对比 runbook：`docs/pilot_evidence_comparison_v35.md`。
+- 已新增只读对比脚本：`scripts/pilot_evidence_comparison.py`。
+- 已新增测试：`tests/test_pilot_evidence_comparison_v351.py`。
+- 默认输出目录：`docs/reports/pilot_evidence_comparison/`。
+- 支持 baseline/current manifest JSON 或证据目录输入，仅读取元数据，不读取报告正文。
+- 输出新增、减少、变化文件统计；缺失或空输入必须 `skipped` 并记录 `warnings`，不得伪造成成功。
+- 保持只读边界：不删除、不移动、不修改输入证据，不自动执行 retention 清理，不读取或输出真实 secret 原文，不执行真实外网 LLM。

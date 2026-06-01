@@ -202,7 +202,7 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
   - `docs/backup_restore_checklist_v31.md`
 - Go/No-Go 口径：企业内网试点/准生产演示 Go；公网生产直接上线 No-Go；多租户/复杂 BI/完整生产级 SSO 声明 No-Go。
 
-## 11. v3.2.0 release prep 口径补充（当前）
+## 11. v3.2.0 release prep 口径补充（历史）
 
 - v3.2.0 定位为 Acceptance & Observability Enhancement（企业内网试点验收闭环与可观测性增强），不是公网生产直接上线声明。
 - v3.2.0 已完成 Phase 12.1~12.5：
@@ -212,8 +212,8 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
   - 12.4 Failure diagnostics pack
   - 12.5 optional real LLM evidence retry（本轮 skipped，未执行真实外网 LLM）
 - 默认 fake/offline，默认 pytest/CI 不调用真实 LLM；本轮 release prep 未执行真实外网 LLM。
-- `v3.1.0`/`v3.0.0` tag 与对应 GitHub Release 已完成且不移动；main 当前为 v3.2.0 release prep 演进。
-- 本轮仅做版本同步、发布文档与验证收口，不打 tag、不创建 GitHub Release。
+- `v3.1.0`/`v3.0.0` tag 与对应 GitHub Release 已完成且不移动；该轮 main 为 v3.2.0 release prep 演进。
+- release prep 当轮仅做版本同步、发布文档与验证收口，不打 tag、不创建 GitHub Release。
 - 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。
 
 ## 12. v3.3.0 release prep 边界说明（历史）
@@ -223,10 +223,10 @@ powershell -ExecutionPolicy Bypass -File scripts/prod_down.ps1
 - Optional live drill remains read-only precheck; missing opt-in conditions must be recorded as skipped.
 - This round does not create v3.3.0 tag and does not create GitHub Release.
 
-## 13. v3.4.0 release prep 边界说明（当前）
+## 13. v3.4.0 release prep 边界说明（历史）
 
 - v3.4.0 release prep 范围 = Pilot Hardening & Operator Experience 收口（Phase 14.1~14.5）。
 - release-prep 产物：`RELEASE_NOTES_v3.4.0.md` 与 `docs/release_review_v3.4_pilot_hardening_operator_experience.md`。
-- 本轮不创建 v3.4.0 tag，不创建 GitHub Release。
+- release prep 当轮不创建 v3.4.0 tag，不创建 GitHub Release；后续 `v3.4.0` tag 与 GitHub Release 已完成且保持不变。
 - 保持默认 fake/offline 路径与默认 pytest/CI 不调用真实 LLM 边界。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI 全量完成。

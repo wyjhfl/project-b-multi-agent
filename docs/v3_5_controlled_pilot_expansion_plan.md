@@ -61,8 +61,9 @@ docker compose config
 ### 完成标准
 
 - 能记录 baseline 与 current 两组证据索引的文件数量、缺失类型、最新文件、过期候选和状态变化。
-- 空目录或缺失输入必须记录为 `skipped` 或 `warning`，不得伪造成成功。
+- 空目录或缺失输入必须记录为 `skipped` 并写入 `warnings`，不得伪造成成功。
 - 输出明确 `read_only=true`、`real_llm_executed=false`。
+- 本阶段交付物已落地：`docs/pilot_evidence_comparison_v35.md`、`scripts/pilot_evidence_comparison.py`、`tests/test_pilot_evidence_comparison_v351.py`。
 
 ## Phase 15.2：Operator drill scoring rubric（P0）
 
