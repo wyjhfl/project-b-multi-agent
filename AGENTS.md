@@ -349,9 +349,9 @@
 - `v3.4.0` GitHub Release 已完成，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
-- 建议下一阶段：15.2 Operator drill scoring rubric。
+- 建议下一阶段：15.3 Controlled integration dry-run checklist。
 
-## v3.5 Phase 15.1 Pilot evidence comparison snapshot（当前）
+## v3.5 Phase 15.1 Pilot evidence comparison snapshot（已完成）
 
 - 已新增证据对比 runbook：`docs/pilot_evidence_comparison_v35.md`。
 - 已新增只读对比脚本：`scripts/pilot_evidence_comparison.py`。
@@ -360,3 +360,14 @@
 - 支持 baseline/current manifest JSON 或证据目录输入，仅读取元数据，不读取报告正文。
 - 输出新增、减少、变化文件统计；缺失或空输入必须 `skipped` 并记录 `warnings`，不得伪造成成功。
 - 保持只读边界：不删除、不移动、不修改输入证据，不自动执行 retention 清理，不读取或输出真实 secret 原文，不执行真实外网 LLM。
+
+## v3.5 Phase 15.2 Operator drill scoring rubric（当前）
+
+- 已新增评分 runbook：`docs/operator_drill_scoring_rubric_v35.md`。
+- 已新增只读评分脚本：`scripts/operator_drill_scoring.py`。
+- 已新增测试：`tests/test_operator_drill_scoring_v352.py`。
+- 默认输出目录：`docs/reports/operator_drill_scoring/`。
+- 评分维度覆盖 availability、recoverability、evidence_integrity、configuration_readiness、permission_boundary、known_limitations。
+- 输入来源包括 incident rehearsal、pilot handoff、optional integration readiness、evidence comparison 的 JSON 元数据。
+- 缺失输入或来源报告 skipped 必须保留 skipped 语义，不得伪造成成功。
+- 保持只读边界：不读取报告正文、不写业务数据、不自动改变 Go/No-Go 结论、不读取或输出真实 secret 原文、不执行真实外网 LLM。

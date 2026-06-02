@@ -975,9 +975,9 @@ project-b-multi-agent/
 - `v3.4.0` GitHub Release 已由用户手动创建，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
-- 建议下一执行入口：Phase 15.2 Operator drill scoring rubric。
+- 建议下一执行入口：Phase 15.3 Controlled integration dry-run checklist。
 
-## v3.5 Phase 15.1 试点证据对比快照（当前）
+## v3.5 Phase 15.1 试点证据对比快照（已完成）
 
 - 新增 runbook：`docs/pilot_evidence_comparison_v35.md`。
 - 新增只读对比脚本：`scripts/pilot_evidence_comparison.py`，默认输出 `docs/reports/pilot_evidence_comparison/`。
@@ -985,3 +985,13 @@ project-b-multi-agent/
 - 支持 baseline/current manifest JSON 或证据目录输入，仅读取元数据，不读取报告正文。
 - 输出 JSON + Markdown，覆盖新增、减少、变化文件统计与 `warnings`。
 - 保持只读边界：不删除、不移动、不修改输入证据，不自动执行 retention 清理，不读取或输出真实 secret 原文，不执行真实外网 LLM。
+
+## v3.5 Phase 15.2 操作员演练评分 Rubric（当前）
+
+- 新增 runbook：`docs/operator_drill_scoring_rubric_v35.md`。
+- 新增只读评分脚本：`scripts/operator_drill_scoring.py`，默认输出 `docs/reports/operator_drill_scoring/`。
+- 新增测试：`tests/test_operator_drill_scoring_v352.py`。
+- 评分维度覆盖 availability、recoverability、evidence_integrity、configuration_readiness、permission_boundary、known_limitations。
+- 输入来源包括 incident rehearsal、pilot handoff、optional integration readiness、evidence comparison 的 JSON 元数据。
+- 保持只读边界：不读取报告正文、不写业务数据、不自动改变 Go/No-Go 结论、不读取或输出真实 secret 原文、不执行真实外网 LLM。
+- 建议下一执行入口：Phase 15.3 Controlled integration dry-run checklist。

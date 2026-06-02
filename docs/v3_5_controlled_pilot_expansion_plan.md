@@ -99,6 +99,7 @@ docker compose config
 - 评分维度覆盖可用性、可恢复性、证据完整性、配置准备度、权限边界、已知限制说明。
 - 评分输出必须保留原始状态词：`success / skipped / blocked / partial / failed`。
 - `skipped` 必须携带缺失条件列表。
+- 本阶段交付物已落地：`docs/operator_drill_scoring_rubric_v35.md`、`scripts/operator_drill_scoring.py`、`tests/test_operator_drill_scoring_v352.py`。
 
 ## Phase 15.3：Controlled integration dry-run checklist（P1）
 
