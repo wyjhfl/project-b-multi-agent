@@ -587,7 +587,7 @@
 - [x] 明确默认不启用 `AUTH_ENABLED`、`RBAC_ENABLED`、`OIDC_ENABLED`。
 - [x] 明确默认不连接真实外部 IdP，不执行真实 token exchange。
 - [x] 明确不输出真实 secret 原文，不宣称生产级 SSO/OIDC 或多租户完成。
-- [x] Phase 16.1 已完成；下一建议阶段为 Phase 16.2 Tenant ownership model draft。
+- [x] Phase 16.1、Phase 16.2 已完成；下一建议阶段为 Phase 16.3 RBAC matrix hardening。
 
 ## 57. v3.6 Phase 16.1 身份与租户边界盘点检查（已完成）
 
@@ -600,4 +600,15 @@
 - [x] 输出明确 `read_only=true`、`real_idp_connected=false`、`tenant_enforcement_enabled=false`。
 - [x] 不读取 `.env` 或真实 secret 值，不连接真实 IdP，不执行 OIDC token exchange。
 - [x] 不改 JWT payload，不新增 tenant enforcement，不默认启用 `AUTH_ENABLED`、`RBAC_ENABLED`、`OIDC_ENABLED`。
+- [x] 不宣称生产级 SSO/OIDC 或多租户完成。
+
+## 58. v3.6 Phase 16.2 租户归属模型草案检查（已完成）
+
+- [x] 已新增模型设计文档：`docs/tenant_ownership_model_v36.md`。
+- [x] 已新增 Pydantic 草案模型：`OrganizationScopeDraft`、`TenantScopeDraft`、`ProjectScopeDraft`、`PrincipalScopeDraft`、`RoleAssignmentDraft`、`ResourceScopeDraft`、`AuditScopeDraft`、`TenantOwnershipModelDraft`。
+- [x] 已新增测试：`tests/test_tenant_ownership_model_v362.py`。
+- [x] 已定义 `organization`、`tenant`、`project`、`principal`、`role_assignment`、`resource_scope`、`audit_scope` 概念边界。
+- [x] 已明确未来可进入 JWT 的 claim 草案：`organization_id`、`tenant_id`、`project_id`。
+- [x] 已明确服务端 store 字段、审计字段、跨租户拒绝规则和迁移兼容策略。
+- [x] 本阶段不迁移数据库、不改 user store、不改 JWT payload、不启用 tenant enforcement、不改变默认离线 demo。
 - [x] 不宣称生产级 SSO/OIDC 或多租户完成。

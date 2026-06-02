@@ -51,7 +51,7 @@ def test_identity_tenant_boundary_inventory_marks_tenant_scope_gaps(tmp_path: Pa
 
     assert "identity:user_model_tenant_scope_missing" in gap_ids
     assert "identity:token_payload_tenant_scope_missing" in gap_ids
-    assert "tenant:ownership_model_missing" in gap_ids
+    assert "tenant:ownership_model_missing" not in gap_ids
     assert "tenant:runtime_enforcement_missing" in gap_ids
     assert "audit:tenant_scope_missing" in gap_ids
     assert payload["gap_count"] == len(payload["gaps"])

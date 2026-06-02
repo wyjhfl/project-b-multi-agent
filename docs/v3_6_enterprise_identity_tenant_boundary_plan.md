@@ -114,6 +114,7 @@ docker compose config
 - 模型能解释用户、角色、组织、租户、项目、资源和审计记录之间的所有权关系。
 - 明确跨租户拒绝规则和审计记录字段要求。
 - 明确迁移前后兼容策略。
+- 本阶段交付物已落地：`docs/tenant_ownership_model_v36.md`、`app/models/schemas.py` 中的 `TenantOwnershipModelDraft` 草案模型、`tests/test_tenant_ownership_model_v362.py`。
 
 ## Phase 16.3：RBAC matrix hardening（P1）
 

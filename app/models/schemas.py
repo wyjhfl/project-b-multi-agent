@@ -24,6 +24,22 @@ class RiskLevel(str, Enum):
     high = "high"
 
 
+class TenantScopeType(str, Enum):
+    organization = "organization"
+    tenant = "tenant"
+    project = "project"
+    resource = "resource"
+    audit = "audit"
+
+
+class TenantResourceAction(str, Enum):
+    read = "read"
+    write = "write"
+    approve = "approve"
+    audit = "audit"
+    administer = "administer"
+
+
 class TaskRun(BaseModel):
     task_id: str = Field(..., description="任务唯一标识")
     query: str = Field(..., description="用户原始查询")
@@ -110,6 +126,86 @@ class AuditEvent(BaseModel):
     reason: str | None = Field(default=None, description="原因")
     severity: str | None = Field(default=None, description="严重级别: info/warn/high/critical")
     detail: dict[str, Any] = Field(default_factory=dict, description="事件详情")
+
+
+class OrganizationScopeDraft(BaseModel):
+    organization_id: str = Field(..., description="组织 ID")
+    name: str = Field(default="", description="组织名称")
+    status: Literal["active", "disabled"] = Field(default="active", description="组织状态")
+
+
+class TenantScopeDraft(BaseModel):
+    tenant_id: str = Field(..., description="租户 ID")
+    organization_id: str = Field(..., description="所属组织 ID")
+    name: str = Field(default="", description="租户名称")
+    status: Literal["active", "disabled"] = Field(default="active", description="租户状态")
+
+
+class ProjectScopeDraft(BaseModel):
+    project_id: str = Field(..., description="项目 ID")
+    tenant_id: str = Field(..., description="所属租户 ID")
+    organization_id: str = Field(..., description="所属组织 ID")
+    name: str = Field(default="", description="项目名称")
+    status: Literal["active", "disabled"] = Field(default="active", description="项目状态")
+
+
+class PrincipalScopeDraft(BaseModel):
+    principal_id: str = Field(..., description="主体 ID，通常对应用户或服务账号")
+    principal_type: Literal["user", "service_account"] = Field(default="user", description="主体类型")
+    username: str = Field(default="", description="用户名或服务账号名")
+    organization_id: str | None = Field(default=None, description="默认组织 ID")
+    tenant_id: str | None = Field(default=None, description="默认租户 ID")
+    project_id: str | None = Field(default=None, description="默认项目 ID")
+
+
+class RoleAssignmentDraft(BaseModel):
+    assignment_id: str = Field(..., description="角色授权 ID")
+    principal_id: str = Field(..., description="被授权主体 ID")
+    role: str = Field(..., description="角色名称，例如 admin/operator/viewer/auditor")
+    scope_type: TenantScopeType = Field(default=TenantScopeType.tenant, description="授权范围类型")
+    scope_id: str = Field(..., description="授权范围 ID")
+    granted_by: str = Field(default="manual_review_required", description="授权人")
+    expires_at: datetime | None = Field(default=None, description="授权到期时间")
+
+
+class ResourceScopeDraft(BaseModel):
+    resource_id: str = Field(..., description="资源 ID")
+    resource_type: str = Field(..., description="资源类型，例如 task/tool/audit/report")
+    organization_id: str = Field(..., description="资源所属组织 ID")
+    tenant_id: str = Field(..., description="资源所属租户 ID")
+    project_id: str | None = Field(default=None, description="资源所属项目 ID")
+    owner_principal_id: str | None = Field(default=None, description="资源所有者主体 ID")
+    allowed_actions: list[TenantResourceAction] = Field(default_factory=list, description="资源允许动作草案")
+
+
+class AuditScopeDraft(BaseModel):
+    organization_id: str | None = Field(default=None, description="审计组织范围")
+    tenant_id: str | None = Field(default=None, description="审计租户范围")
+    project_id: str | None = Field(default=None, description="审计项目范围")
+    resource_id: str | None = Field(default=None, description="审计资源 ID")
+    actor_principal_id: str | None = Field(default=None, description="审计主体 ID")
+    decision: Literal["allow", "deny", "not_evaluated"] = Field(default="not_evaluated", description="访问决策")
+    denial_reason: str | None = Field(default=None, description="拒绝原因")
+
+
+class TenantOwnershipModelDraft(BaseModel):
+    organization: OrganizationScopeDraft = Field(..., description="组织范围草案")
+    tenant: TenantScopeDraft = Field(..., description="租户范围草案")
+    project: ProjectScopeDraft | None = Field(default=None, description="项目范围草案")
+    principal: PrincipalScopeDraft = Field(..., description="主体范围草案")
+    role_assignments: list[RoleAssignmentDraft] = Field(default_factory=list, description="角色授权草案")
+    resource_scope: ResourceScopeDraft | None = Field(default=None, description="资源归属草案")
+    audit_scope: AuditScopeDraft | None = Field(default=None, description="审计范围草案")
+    jwt_future_claims: list[str] = Field(
+        default_factory=lambda: ["organization_id", "tenant_id", "project_id"],
+        description="未来可进入 JWT 的 scope claim 草案",
+    )
+    server_store_fields: list[str] = Field(
+        default_factory=lambda: ["role_assignments", "resource_scope", "audit_scope"],
+        description="建议由服务端 store 管理的字段草案",
+    )
+    draft_only: bool = Field(default=True, description="仅为草案，不接入运行链路")
+    tenant_enforcement_enabled: bool = Field(default=False, description="是否已启用租户 enforcement")
 
 
 class EvalCase(BaseModel):

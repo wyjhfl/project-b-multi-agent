@@ -1054,7 +1054,7 @@ project-b-multi-agent/
 - 现有 OIDC 仍为最小配置预检，不执行真实 token exchange，不宣称生产级 SSO/OIDC 完成。
 - 当前尚未实现 tenant/org/project/resource ownership 运行时 enforcement，不宣称多租户完成。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不连接真实外部 IdP，不输出真实 secret 原文。
-- Phase 16.1 已完成；建议下一阶段：Phase 16.2 Tenant ownership model draft。
+- Phase 16.1、Phase 16.2 已完成；建议下一阶段：Phase 16.3 RBAC matrix hardening。
 
 ## v3.6 Phase 16.1 身份与租户边界盘点（已完成）
 
@@ -1064,4 +1064,15 @@ project-b-multi-agent/
 - 盘点覆盖 `User`、`TokenPayload`、`UserRole`、JWT、`ROLE_HIERARCHY`、`ENDPOINT_PERMISSIONS`、OIDC 配置预检、审计文件和资源归属概念。
 - 当前盘点结果预期为 `partial`：用户/JWT 尚无 tenant/org/project scope，尚无 tenant ownership 统一模型和运行时 enforcement，审计尚未定义 tenant scope。
 - 保持只读边界：不读取 `.env` 或真实 secret 值，不连接真实 IdP，不执行 OIDC token exchange，不改 JWT payload，不新增 tenant enforcement，不写业务数据。
+- 不宣称生产级 SSO/OIDC 或多租户完成。
+
+## v3.6 Phase 16.2 租户归属模型草案（已完成）
+
+- 新增模型设计文档：`docs/tenant_ownership_model_v36.md`。
+- 新增 Pydantic 草案模型：`OrganizationScopeDraft`、`TenantScopeDraft`、`ProjectScopeDraft`、`PrincipalScopeDraft`、`RoleAssignmentDraft`、`ResourceScopeDraft`、`AuditScopeDraft`、`TenantOwnershipModelDraft`。
+- 新增测试：`tests/test_tenant_ownership_model_v362.py`。
+- 已明确 `organization`、`tenant`、`project`、`principal`、`role_assignment`、`resource_scope`、`audit_scope` 概念边界。
+- 已明确未来可进入 JWT 的 claim 草案：`organization_id`、`tenant_id`、`project_id`；当前不改 `TokenPayload`。
+- 已明确服务端 store 字段、审计字段、跨租户拒绝规则和迁移兼容策略。
+- 本阶段不迁移数据库、不改 user store、不改 JWT payload、不启用 tenant enforcement、不改变默认离线 demo。
 - 不宣称生产级 SSO/OIDC 或多租户完成。

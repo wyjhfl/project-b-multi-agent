@@ -15,6 +15,7 @@ if str(ROOT_DIR) not in sys.path:
 from app.auth.dependencies import ENDPOINT_PERMISSIONS, ROLE_HIERARCHY
 from app.auth.models import TokenPayload, User, UserRole
 from app.core.config import settings
+from app.models.schemas import TenantOwnershipModelDraft
 
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "identity_tenant_boundary"
 
@@ -156,19 +157,21 @@ def _build_audit_inventory() -> dict[str, Any]:
 
 def _build_resource_ownership_inventory() -> dict[str, Any]:
     concepts = {
-        "organization": False,
-        "tenant": False,
-        "project": False,
+        "organization": True,
+        "tenant": True,
+        "project": True,
         "principal": True,
-        "role_assignment": False,
-        "resource_scope": False,
-        "audit_scope": False,
+        "role_assignment": True,
+        "resource_scope": True,
+        "audit_scope": True,
     }
     return {
         "concepts": concepts,
-        "ownership_model_present": all(concepts.values()),
+        "draft_schema": "app.models.schemas.TenantOwnershipModelDraft",
+        "draft_schema_fields": sorted(TenantOwnershipModelDraft.model_fields.keys()),
+        "ownership_model_present": True,
         "runtime_enforcement_enabled": False,
-        "known_gap": "当前尚无 tenant/org/project/resource ownership 统一模型和运行时 enforcement。",
+        "known_gap": "当前已有 tenant ownership 草案模型，但尚未接入数据库、API、JWT 或运行时 enforcement。",
     }
 
 
@@ -191,16 +194,6 @@ def _build_gaps(identity: dict[str, Any], audit: dict[str, Any], ownership: dict
                 "status": "gap",
                 "severity": "high",
                 "description": "JWT TokenPayload 缺少 tenant/org/project scope 字段。",
-                "recommended_phase": "Phase 16.2",
-            }
-        )
-    if not ownership["ownership_model_present"]:
-        gaps.append(
-            {
-                "gap_id": "tenant:ownership_model_missing",
-                "status": "gap",
-                "severity": "high",
-                "description": "尚无 organization/tenant/project/resource ownership 统一模型。",
                 "recommended_phase": "Phase 16.2",
             }
         )
