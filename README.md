@@ -1054,4 +1054,14 @@ project-b-multi-agent/
 - 现有 OIDC 仍为最小配置预检，不执行真实 token exchange，不宣称生产级 SSO/OIDC 完成。
 - 当前尚未实现 tenant/org/project/resource ownership 运行时 enforcement，不宣称多租户完成。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不连接真实外部 IdP，不输出真实 secret 原文。
-- 建议下一阶段：Phase 16.1 Identity and tenant boundary inventory。
+- Phase 16.1 已完成；建议下一阶段：Phase 16.2 Tenant ownership model draft。
+
+## v3.6 Phase 16.1 身份与租户边界盘点（已完成）
+
+- 新增 runbook：`docs/identity_tenant_boundary_inventory_v36.md`。
+- 新增只读盘点脚本：`scripts/identity_tenant_boundary_inventory.py`，默认输出 `docs/reports/identity_tenant_boundary/`。
+- 新增测试：`tests/test_identity_tenant_boundary_inventory_v361.py`。
+- 盘点覆盖 `User`、`TokenPayload`、`UserRole`、JWT、`ROLE_HIERARCHY`、`ENDPOINT_PERMISSIONS`、OIDC 配置预检、审计文件和资源归属概念。
+- 当前盘点结果预期为 `partial`：用户/JWT 尚无 tenant/org/project scope，尚无 tenant ownership 统一模型和运行时 enforcement，审计尚未定义 tenant scope。
+- 保持只读边界：不读取 `.env` 或真实 secret 值，不连接真实 IdP，不执行 OIDC token exchange，不改 JWT payload，不新增 tenant enforcement，不写业务数据。
+- 不宣称生产级 SSO/OIDC 或多租户完成。

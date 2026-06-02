@@ -587,4 +587,17 @@
 - [x] 明确默认不启用 `AUTH_ENABLED`、`RBAC_ENABLED`、`OIDC_ENABLED`。
 - [x] 明确默认不连接真实外部 IdP，不执行真实 token exchange。
 - [x] 明确不输出真实 secret 原文，不宣称生产级 SSO/OIDC 或多租户完成。
-- [x] 下一建议阶段为 Phase 16.1 Identity and tenant boundary inventory。
+- [x] Phase 16.1 已完成；下一建议阶段为 Phase 16.2 Tenant ownership model draft。
+
+## 57. v3.6 Phase 16.1 身份与租户边界盘点检查（已完成）
+
+- [x] 已新增 runbook：`docs/identity_tenant_boundary_inventory_v36.md`。
+- [x] 已新增只读盘点脚本：`scripts/identity_tenant_boundary_inventory.py`。
+- [x] 已新增测试：`tests/test_identity_tenant_boundary_inventory_v361.py`。
+- [x] 默认输出目录：`docs/reports/identity_tenant_boundary/`。
+- [x] 输出当前身份模型、角色层级、权限矩阵、OIDC 配置预检、审计边界和资源归属缺口。
+- [x] 缺失 tenant/org/project/resource ownership 时记录为 `gap`，不得伪造成已完成。
+- [x] 输出明确 `read_only=true`、`real_idp_connected=false`、`tenant_enforcement_enabled=false`。
+- [x] 不读取 `.env` 或真实 secret 值，不连接真实 IdP，不执行 OIDC token exchange。
+- [x] 不改 JWT payload，不新增 tenant enforcement，不默认启用 `AUTH_ENABLED`、`RBAC_ENABLED`、`OIDC_ENABLED`。
+- [x] 不宣称生产级 SSO/OIDC 或多租户完成。

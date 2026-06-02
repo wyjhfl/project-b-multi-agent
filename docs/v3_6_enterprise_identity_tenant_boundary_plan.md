@@ -80,6 +80,7 @@ docker compose config
 - 输出当前身份模型、角色层级、权限矩阵、OIDC 配置预检、审计边界和资源归属缺口。
 - 缺失 tenant/org/project/resource ownership 时记录为 `gap`，不得伪造成已完成。
 - 输出明确 `read_only=true`、`real_idp_connected=false`、`tenant_enforcement_enabled=false`。
+- 本阶段交付物已落地：`docs/identity_tenant_boundary_inventory_v36.md`、`scripts/identity_tenant_boundary_inventory.py`、`tests/test_identity_tenant_boundary_inventory_v361.py`。
 
 ## Phase 16.2：Tenant ownership model draft（P0）
 
