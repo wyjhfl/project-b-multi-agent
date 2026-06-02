@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-807%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.4.0-brightgreen)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-831%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.5.0_prep-brightgreen)]()
 
 ---
 
@@ -444,7 +444,7 @@ python -m pytest -q
 > 手动执行方式：`python -m pytest tests/test_real_llm_smoke_v52.py -m real_llm -q`  
 > 需显式设置环境变量：`REAL_LLM_SMOKE_ENABLED=true`、`REAL_LLM_ACCEPTANCE_ENABLED=true`、`REAL_LLM_PREFLIGHT_ENABLED=true`、`REAL_LLM_PREFLIGHT_NETWORK_CHECK=true`。
 
-当前基线：**807 passed, 4 skipped**，覆盖全部模块：
+当前基线：**831 passed, 4 skipped**，覆盖全部模块：
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
@@ -658,7 +658,7 @@ project-b-multi-agent/
 | **Agent 编排** | LangGraph | 有向图 Agent 内核，实现 START → ... → END 编排 |
 | **工具协议** | MCP | Model Context Protocol，统一本地与远程工具调用 |
 | **LLM 接入** | LiteLLM（可选） | 可插拔 LLM Provider，默认 FakeLLMProvider 零依赖 |
-| **测试** | pytest + httpx | 807 passed, 4 skipped（默认 real_llm 用例 skip） |
+| **测试** | pytest + httpx | 831 passed, 4 skipped（默认 real_llm 用例 skip） |
 | **容器化** | Docker + Docker Compose | 一键启动，健康检查 |
 
 ---
@@ -724,7 +724,7 @@ project-b-multi-agent/
 - v3.1.0 Productization Enhancement 已发布完成（tag 与 GitHub Release 已完成，tag 保持不变）。
 - Phase 11.1~11.5 已完成文档化收口：离线 demo seed 与 E2E 演示脚本、只读运营总览、真实 LLM opt-in 执行记录（本轮 skipped）、OIDC 最小真实 IdP 演练、运维排障索引与备份恢复清单。
 - 默认 fake/offline，默认 pytest/CI 不调用真实 LLM，本轮未执行真实外网 LLM。
-- 当前全量基线：`807 passed, 4 skipped`。
+- 当前全量基线：`831 passed, 4 skipped`。
 
 ### 仍保持的边界
 
@@ -966,17 +966,18 @@ project-b-multi-agent/
 - main 超前 tag 属于发布后文档收口。
 - 后续建议进入 v3.5 或下一阶段路线规划。
 
-## v3.5 路线规划已开启（当前）
+## v3.5.0 release prep（当前）
 
 - 规划文档：`docs/v3_5_controlled_pilot_expansion_plan.md`。
 - 生产级后续路线图：`docs/enterprise_production_landing_roadmap.md`。
 - v3.5 定位：Controlled Pilot Expansion & Evidence Operations。
-- 当前阶段仅做路线规划与入口收口，不改业务逻辑、不改版本号、不打 tag、不创建 GitHub Release。
-- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- release-prep 阶段版本已同步为 `3.5.0`。
+- 已新增发布材料：`RELEASE_NOTES_v3.5.0.md`、`docs/release_review_v3.5_controlled_pilot_expansion.md`。
+- 本轮不打 `v3.5.0` tag，不创建 GitHub Release，不移动历史 tag。
 - `v3.4.0` GitHub Release 已由用户手动创建，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
-- 建议下一执行入口：Phase 15.6 v3.5 release prep。
+- Go/No-Go：可以进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。
 
 ## v3.5 Phase 15.1 试点证据对比快照（已完成）
 
@@ -1016,7 +1017,7 @@ project-b-multi-agent/
 - 支持引用 config drift、governance policy summary、incident rehearsal、operator drill scoring 的 JSON 元数据。
 - 例外字段覆盖风险描述、影响范围、责任人、到期时间、补偿控制、复核证据、状态和下一步动作。
 - 保持只读边界：不自动批准例外、不绕过 deployment guard/安全响应头/审计脱敏/审批链路、不记录真实 secret 原文、不执行真实外网 LLM。
-- 当前版本保持 `3.4.0`，不打 tag，不创建 GitHub Release。
+- 当前版本在 release prep 阶段已同步为 `3.5.0`；本阶段未打 tag，未创建 GitHub Release。
 - 建议下一执行入口：Phase 15.5 Pilot closeout report pack。
 
 ## v3.5 Phase 15.5 试点收口报告包（当前）
@@ -1028,5 +1029,14 @@ project-b-multi-agent/
 - 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
 - 保持 `skipped/blocked/partial` 原始语义，不把缺失或阻断项伪造成 `success`。
 - 保持只读边界：不读取报告正文、不写业务数据、不改版本号、不打 tag、不创建 GitHub Release、不执行真实外网 LLM、不输出真实 secret 原文。
-- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
-- 建议下一执行入口：Phase 15.6 v3.5 release prep。
+- 当前版本在 release prep 阶段已同步为 `3.5.0`；本阶段未打 tag，未创建 GitHub Release。
+
+## v3.5 Phase 15.6 release prep（当前）
+
+- 已同步版本到 `3.5.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、脚本 version markers、相关测试断言。
+- 已新增 `RELEASE_NOTES_v3.5.0.md`。
+- 已新增 `docs/release_review_v3.5_controlled_pilot_expansion.md`。
+- Phase 15.1~15.5 纳入 v3.5.0 release prep 范围。
+- release prep 当轮不打 tag、不创建 GitHub Release、不移动历史 tag。
+- 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；不执行真实外网 LLM。
+- Go/No-Go：可以进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。

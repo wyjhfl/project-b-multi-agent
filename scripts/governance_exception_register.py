@@ -376,7 +376,7 @@ def build_governance_exception_register(
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.4.0",
+        "version": "3.5.0",
         "mode": "fake_offline_default",
         "status": status,
         "status_vocabulary": STATUS_VOCABULARY,

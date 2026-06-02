@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-b-multi-agent"
-version = "3.4.0"
+version = "3.5.0"
 description = "Harness-native 运营中台 Agent"
 requires-python = ">=3.11"
 dependencies = [

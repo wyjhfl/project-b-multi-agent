@@ -45,7 +45,7 @@ def test_pilot_evidence_comparison_manifest_to_manifest_success(tmp_path: Path) 
     payload = _read_payload(summary)
 
     assert summary["status"] == "success"
-    assert payload["version"] == "3.4.0"
+    assert payload["version"] == "3.5.0"
     assert payload["comparison"]["added_paths"] == ["docs/reports/c.json"]
     assert payload["comparison"]["removed_paths"] == ["docs/reports/b.json"]
     assert payload["comparison"]["changed_count"] == 0

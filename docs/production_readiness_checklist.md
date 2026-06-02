@@ -101,7 +101,7 @@
 
 ## 12. v2.9.0 release prep 补充检查
 
-- [ ] 当前后端全量基线为 807 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
+- [ ] 当前后端全量基线为 831 passed, 4 skipped（若再次全量验证变化，以最新结果为准）
 - [ ] `/llm/preflight` 在默认关闭语义下返回 `status=disabled` 且不阻断默认离线路径
 - [ ] 前端 `/llm` 页面仅展示状态观测信息，不提供密钥输入与明文展示
 - [ ] acceptance_summary 字段完整（provider/model/fallback/budget/cache/cost/request_id/error_type）
@@ -485,7 +485,7 @@
   - Phase 15.4 Governance exception register。
   - Phase 15.5 Pilot closeout report pack。
   - Phase 15.6 v3.5 release prep。
-- [ ] 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- [ ] 当前 release prep 阶段版本已同步为 `3.5.0`。
 - [ ] `v3.4.0` GitHub Release 已完成，历史 tags 保持不变。
 - [ ] 规划轮次保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM。
 - [ ] 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
@@ -503,7 +503,7 @@
 - [ ] 输出 JSON + Markdown，覆盖新增、减少、变化文件统计与 `warnings`。
 - [ ] 缺失或空输入必须 `skipped` 并记录 `warnings`，不得伪造成成功。
 - [ ] 保持只读边界：不删除、不移动、不修改输入证据，不自动执行 retention 清理，不读取或输出真实 secret 原文，不执行真实外网 LLM。
-- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.1 改为 `3.5.0`。
+- [ ] Phase 15.1 当轮版本保持 `3.4.0`；v3.5 release prep 已另行同步到 `3.5.0`。
 
 ## 51. v3.5 Phase 15.2 操作员演练评分 Rubric 检查（已完成）
 
@@ -516,7 +516,7 @@
 - [ ] 输入来源仅消费 incident rehearsal、pilot handoff、optional integration readiness、evidence comparison 的 JSON 元数据。
 - [ ] 缺失输入或所有输入为空必须 `skipped`，来源报告 skipped 必须保留 skipped 语义，不得伪造成成功。
 - [ ] 不自动改变 Go/No-Go 结论，不读取报告正文，不写业务数据，不读取或输出真实 secret 原文，不执行真实外网 LLM。
-- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.2 改为 `3.5.0`。
+- [ ] Phase 15.2 当轮版本保持 `3.4.0`；v3.5 release prep 已另行同步到 `3.5.0`。
 
 ## 52. v3.5 Phase 15.3 受控集成 dry-run checklist 检查（已完成）
 
@@ -530,7 +530,7 @@
 - [ ] 支持串联 Phase 14.4 optional integration readiness JSON，但只消费结构化元数据。
 - [ ] 缺少 opt-in 条件必须 `skipped` 并记录 `missing_conditions`，不得伪造成 `ready/success`。
 - [ ] 不启动服务、不修改 `.env`、不连接真实外部 MCP、不调用真实外网 LLM、不读取或输出真实 secret 原文。
-- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.3 改为 `3.5.0`。
+- [ ] Phase 15.3 当轮版本保持 `3.4.0`；v3.5 release prep 已另行同步到 `3.5.0`。
 
 ## 53. v3.5 Phase 15.4 治理例外登记检查（已完成）
 
@@ -544,7 +544,7 @@
 - [ ] 不自动批准例外，不绕过 deployment guard、安全响应头、审计脱敏或审批链路。
 - [ ] 不记录真实 secret 原文，不执行真实外网 LLM，不改版本号，不打 tag，不创建 Release。
 - [ ] 输出必须声明不代表生产安全豁免，也不代表公网生产可直接上线。
-- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.4 改为 `3.5.0`。
+- [ ] Phase 15.4 当轮版本保持 `3.4.0`；v3.5 release prep 已另行同步到 `3.5.0`。
 
 ## 54. v3.5 Phase 15.5 试点收口报告包检查（当前）
 
@@ -558,4 +558,16 @@
 - [ ] 对所有 `skipped/blocked/partial` 项保持原始解释，不做假通过。
 - [ ] 不改版本号，不打 tag，不创建 Release，不执行真实外网 LLM，不输出真实 secret 原文。
 - [ ] 输出必须声明不代表生产安全豁免，不代表真实生产验收完成，也不代表公网生产可直接上线。
-- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.5 改为 `3.5.0`。
+- [ ] Phase 15.5 当轮版本保持 `3.4.0`；v3.5 release prep 已另行同步到 `3.5.0`。
+
+## 55. v3.5.0 release prep 收口检查（当前）
+
+- [ ] 版本号已同步到 `3.5.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / script version markers / related tests）。
+- [ ] 已新增 `RELEASE_NOTES_v3.5.0.md`。
+- [ ] 已新增 `docs/release_review_v3.5_controlled_pilot_expansion.md`。
+- [ ] release notes 覆盖 Phase 15.1~15.5、状态边界与默认 fake/offline 约束。
+- [ ] release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
+- [ ] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
+- [ ] 本轮不执行真实外网 LLM。
+- [ ] 本轮不打 `v3.5.0` tag、不创建 GitHub Release、不移动历史 tag。
+- [ ] 可进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。

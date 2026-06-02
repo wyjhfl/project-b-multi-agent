@@ -108,7 +108,7 @@
 - v3.1 采用分阶段推进，Phase 11.1~11.5 已完成（历史阶段）。
 - 默认开发模板仍是 `docker-compose.yml`，用于本地离线开发与演示。
 - 生产试点模板通过 `docker-compose.prod.yml` 叠加，不替换默认开发路径。
-- 当前回归基线：807 passed, 4 skipped（默认 real_llm 用例 skip）。
+- 当前回归基线：831 passed, 4 skipped（默认 real_llm 用例 skip）。
 
 ## v2.7 安全基线推进口径（当前阶段）
 
@@ -340,17 +340,18 @@
 - main 超前 tag 属于发布后文档收口。
 - 后续建议进入 v3.5 或下一阶段路线规划。
 
-## v3.5 路线规划已开启（当前）
+## v3.5.0 release prep（当前）
 
 - 规划文档：`docs/v3_5_controlled_pilot_expansion_plan.md`。
 - 生产级后续路线图：`docs/enterprise_production_landing_roadmap.md`。
 - v3.5 定位：Controlled Pilot Expansion & Evidence Operations。
-- 规划阶段约束：不改业务逻辑、不改版本号、不打 tag、不创建 Release。
-- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- release-prep 阶段版本已同步为 `3.5.0`。
+- 已新增发布材料：`RELEASE_NOTES_v3.5.0.md`、`docs/release_review_v3.5_controlled_pilot_expansion.md`。
+- 本轮不打 `v3.5.0` tag，不创建 GitHub Release，不移动历史 tag。
 - `v3.4.0` GitHub Release 已完成，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 已完成，不宣称多租户/复杂 BI 全量完成。
-- 建议下一阶段：15.6 v3.5 release prep。
+- Go/No-Go：可以进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。
 
 ## v3.5 Phase 15.1 Pilot evidence comparison snapshot（已完成）
 
@@ -395,7 +396,7 @@
 - 例外字段覆盖风险描述、影响范围、责任人、到期时间、补偿控制、复核证据、状态和下一步动作。
 - 不自动批准例外，不绕过 deployment guard、安全响应头、审计脱敏或审批链路。
 - 保持只读边界：不记录真实 secret 原文、不执行真实外网 LLM、不改版本号、不打 tag、不创建 Release。
-- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- 当前版本在 release prep 阶段已同步为 `3.5.0`；本阶段未打 tag，未创建 Release。
 
 ## v3.5 Phase 15.5 Pilot closeout report pack（当前）
 
@@ -407,4 +408,14 @@
 - 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
 - 对所有 `skipped/blocked/partial` 项保持原始解释，不做假通过。
 - 保持只读边界：不读取报告正文、不写业务数据、不改版本号、不打 tag、不创建 Release、不执行真实外网 LLM、不输出真实 secret 原文。
-- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- 当前版本在 release prep 阶段已同步为 `3.5.0`；本阶段未打 tag，未创建 Release。
+
+## v3.5 Phase 15.6 release prep（当前）
+
+- 已同步版本到 `3.5.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、脚本 version markers、相关测试断言。
+- 已新增 `RELEASE_NOTES_v3.5.0.md`。
+- 已新增 `docs/release_review_v3.5_controlled_pilot_expansion.md`。
+- Phase 15.1~15.5 纳入 v3.5.0 release prep 范围。
+- release prep 当轮不打 tag、不创建 GitHub Release、不移动历史 tag。
+- 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；不执行真实外网 LLM。
+- Go/No-Go：可以进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。

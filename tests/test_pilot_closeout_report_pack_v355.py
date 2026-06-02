@@ -20,7 +20,7 @@ def test_pilot_closeout_report_pack_missing_inputs_skipped(tmp_path: Path) -> No
     payload = _read_payload(summary)
 
     assert summary["status"] == "skipped"
-    assert payload["version"] == "3.4.0"
+    assert payload["version"] == "3.5.0"
     assert payload["mode"] == "fake_offline_default"
     assert payload["read_only"] is True
     assert payload["real_llm_executed"] is False
@@ -45,7 +45,7 @@ def test_pilot_closeout_report_pack_success_sources_still_manual_review(tmp_path
         handoff,
         {
             "status": "success",
-            "version": "3.4.0",
+            "version": "3.5.0",
             "mode": "fake_offline_default",
             "read_only": True,
             "real_llm_executed": False,
@@ -55,11 +55,11 @@ def test_pilot_closeout_report_pack_success_sources_still_manual_review(tmp_path
             "go_no_go": {"summary": "企业内网试点可继续；公网直上 No-Go。"},
         },
     )
-    _write_json(evidence, {"status": "success", "version": "3.4.0", "read_only": True, "real_llm_executed": False, "manifest_id": "m1", "total_files": 3})
-    _write_json(readiness, {"readiness_status": "ready", "version": "3.4.0", "read_only": True, "real_llm_executed": False, "integrations": [{"readiness_status": "ready"}]})
-    _write_json(scoring, {"status": "success", "version": "3.4.0", "read_only": True, "real_llm_executed": False, "overall_score": 92, "risk_level": "low", "dimension_scores": [{"status": "success"}]})
-    _write_json(dry_run, {"status": "success", "version": "3.4.0", "read_only": True, "real_llm_executed": False, "integrations": [{"readiness_status": "ready"}]})
-    _write_json(exceptions, {"status": "success", "version": "3.4.0", "read_only": True, "real_llm_executed": False, "exception_count": 1, "auto_approved": False})
+    _write_json(evidence, {"status": "success", "version": "3.5.0", "read_only": True, "real_llm_executed": False, "manifest_id": "m1", "total_files": 3})
+    _write_json(readiness, {"readiness_status": "ready", "version": "3.5.0", "read_only": True, "real_llm_executed": False, "integrations": [{"readiness_status": "ready"}]})
+    _write_json(scoring, {"status": "success", "version": "3.5.0", "read_only": True, "real_llm_executed": False, "overall_score": 92, "risk_level": "low", "dimension_scores": [{"status": "success"}]})
+    _write_json(dry_run, {"status": "success", "version": "3.5.0", "read_only": True, "real_llm_executed": False, "integrations": [{"readiness_status": "ready"}]})
+    _write_json(exceptions, {"status": "success", "version": "3.5.0", "read_only": True, "real_llm_executed": False, "exception_count": 1, "auto_approved": False})
 
     summary = build_pilot_closeout_report_pack(
         output_dir=tmp_path / "out",

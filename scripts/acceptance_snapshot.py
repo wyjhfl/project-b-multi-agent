@@ -305,7 +305,7 @@ def build_acceptance_snapshot(
         "generated_at": generated_at,
         "status": status,
         "commit": commit,
-        "version": "3.4.0",
+        "version": "3.5.0",
         "environment": {
             "app_env": settings.app_env,
             "mode": "fake_offline_default",

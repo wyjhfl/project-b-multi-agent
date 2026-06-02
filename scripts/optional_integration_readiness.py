@@ -204,7 +204,7 @@ def build_optional_integration_readiness(*, output_dir: str | Path | None = None
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.4.0",
+        "version": "3.5.0",
         "integrations": integrations,
         "readiness_status": readiness_status,
         "missing_conditions": missing_conditions,

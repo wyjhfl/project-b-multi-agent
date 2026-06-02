@@ -238,7 +238,7 @@ def build_live_drill_window_summary(*, output_dir: str | Path | None = None, bas
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.4.0",
+        "version": "3.5.0",
         "mode": "fake_offline_default",
         "status": status,
         "service_window": service_checks,

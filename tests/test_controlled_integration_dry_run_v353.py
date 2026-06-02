@@ -23,7 +23,7 @@ def test_controlled_integration_dry_run_generates_default_checklist(tmp_path: Pa
     assert summary["read_only"] is True
     assert summary["real_llm_executed"] is False
     assert summary["integration_count"] == 8
-    assert payload["version"] == "3.4.0"
+    assert payload["version"] == "3.5.0"
     assert payload["output_dir"] == str(tmp_path / "out")
     assert Path(summary["markdown_path"]).exists()
 
@@ -73,7 +73,7 @@ def test_controlled_integration_uses_readiness_report_metadata(tmp_path: Path, m
         readiness,
         {
             "readiness_status": "partial",
-            "version": "3.4.0",
+            "version": "3.5.0",
             "mode": "fake_offline_default",
             "read_only": True,
             "real_llm_executed": False,

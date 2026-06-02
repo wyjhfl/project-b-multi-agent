@@ -39,7 +39,7 @@ BOUNDARY_DECLARATIONS = [
     "不自动改变 Go/No-Go 结论",
     "不创建 GitHub Release",
     "不打 tag，不移动、不删除、不重建历史 tag",
-    "当前版本保持 3.4.0，不写 3.5.0",
+    "当前版本已同步为 3.5.0",
     "默认 fake/offline，默认 pytest/CI 不调用真实 LLM",
     "不宣称公网生产可直接上线",
     "不宣称真实 LLM 生产验收完成",
@@ -465,7 +465,7 @@ def build_pilot_closeout_report_pack(
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.4.0",
+        "version": "3.5.0",
         "mode": "fake_offline_default",
         "status": status,
         "status_vocabulary": STATUS_VOCABULARY,

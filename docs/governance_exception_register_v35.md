@@ -88,7 +88,7 @@ python scripts/governance_exception_register.py `
 
 - `generated_at`：生成时间，ISO8601。
 - `commit`：当前提交哈希，无法获取时为 `unknown`。
-- `version`：固定保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- `version`：当前应用版本；v3.5 release prep 后为 `3.5.0`。
 - `mode`：`fake_offline_default`。
 - `status`：顶层状态。
 - `read_only`：固定为 `true`。

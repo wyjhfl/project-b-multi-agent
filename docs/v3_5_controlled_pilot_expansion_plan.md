@@ -4,8 +4,8 @@
 
 - v3.5 = **Controlled Pilot Expansion & Evidence Operations**。
 - 核心目标：在 v3.4 已完成的操作员体验、故障演练、证据归档和交接清单基础上，继续强化受控试点扩展、证据对比、演练评分、治理例外登记和试点收口报告。
-- 当前阶段仅做路线规划与入口收口，不改业务逻辑、不改版本号、不打 tag、不创建 GitHub Release。
-- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- 当前已进入 release prep，版本已同步为 `3.5.0`。
+- release prep 当轮不打 tag、不创建 GitHub Release，不移动历史 tag。
 
 ## 基线与边界
 
@@ -214,7 +214,7 @@ docker compose config
 
 ### 目标
 
-完成 v3.5 release prep，但规划阶段不执行。release prep 才同步版本号、release notes、release review 和 tag 决策前复核。
+完成 v3.5 release prep，同步版本号、release notes、release review 和 tag 决策前复核材料。
 
 ### 修改范围
 
@@ -225,9 +225,8 @@ docker compose config
 
 ### 不做什么
 
-- 规划阶段不改版本号。
-- 规划阶段不打 tag。
-- 规划阶段不创建 GitHub Release。
+- release prep 当轮不打 tag。
+- release prep 当轮不创建 GitHub Release。
 - 不移动、删除或重建历史 tag。
 - 不执行真实外网 LLM。
 
@@ -245,6 +244,7 @@ npm --prefix frontend run build
 - release notes 覆盖 Phase 15.1~15.5、状态边界与默认 fake/offline 约束。
 - release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
 - 明确可进入 tag 决策前复核，但 release prep 当轮是否打 tag 需单独确认。
+- 本阶段交付物已落地：`RELEASE_NOTES_v3.5.0.md`、`docs/release_review_v3.5_controlled_pilot_expansion.md`。
 
 ## 本轮规划验收
 
