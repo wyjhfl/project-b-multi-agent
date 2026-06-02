@@ -574,3 +574,17 @@
 - [x] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
 - [x] 本轮 release-created 收口不执行真实外网 LLM。
 - [x] main 超前 `v3.5.0` tag 属于发布后文档收口。
+
+## 56. v3.6 Enterprise Identity & Tenant Boundary 规划入口检查（当前）
+
+- [x] 已新增规划文档：`docs/v3_6_enterprise_identity_tenant_boundary_plan.md`。
+- [x] v3.6 定位为 Enterprise Identity & Tenant Boundary。
+- [x] 当前仅进入规划阶段，版本保持 `3.5.0`。
+- [x] 规划阶段不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- [x] `v3.5.0` GitHub Release 已创建，历史 tag 不移动、不删除、不重建。
+- [x] 已记录现有身份/RBAC/OIDC 能力：JWT、`/auth/login`、`/auth/me`、`require_permission`、OIDC 配置预检。
+- [x] 已记录当前缺口：JWT payload 未包含 tenant/org/project scope，用户模型未包含组织或租户归属，尚无 tenant/org/project/resource ownership 运行时 enforcement。
+- [x] 明确默认不启用 `AUTH_ENABLED`、`RBAC_ENABLED`、`OIDC_ENABLED`。
+- [x] 明确默认不连接真实外部 IdP，不执行真实 token exchange。
+- [x] 明确不输出真实 secret 原文，不宣称生产级 SSO/OIDC 或多租户完成。
+- [x] 下一建议阶段为 Phase 16.1 Identity and tenant boundary inventory。

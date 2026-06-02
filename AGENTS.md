@@ -422,3 +422,15 @@
 - `v3.5.0` tag 与 GitHub Release 已创建；历史 tag 未移动、未删除、未重建。
 - 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；不执行真实外网 LLM。
 - 发布后收口文档：`docs/post_release_check_v3.5.0.md`。
+
+## v3.6 路线规划已开启（当前）
+
+- 规划文档：`docs/v3_6_enterprise_identity_tenant_boundary_plan.md`。
+- v3.6 定位：Enterprise Identity & Tenant Boundary。
+- 当前仅进入规划阶段，版本保持 `3.5.0`。
+- 规划阶段约束：不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- `v3.5.0` GitHub Release 已创建，`v3.5.0/v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
+- 现有 OIDC 仍为最小配置预检，不执行真实 token exchange，不宣称生产级 SSO/OIDC 完成。
+- 当前尚未实现 tenant/org/project/resource ownership 运行时 enforcement，不宣称多租户完成。
+- 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不连接真实外部 IdP，不输出真实 secret 原文。
+- 建议下一阶段：Phase 16.1 Identity and tenant boundary inventory。
