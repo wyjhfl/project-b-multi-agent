@@ -197,6 +197,8 @@ docker compose config
 ### 验证命令
 
 ```powershell
+python -m pytest tests/test_pilot_closeout_report_pack_v355.py -q
+python -m pytest tests/test_pilot_closeout_report_pack_v355.py tests/test_pilot_handoff_checklist_v345.py tests/test_evidence_archive_manifest_v343.py tests/test_governance_exception_register_v354.py -q
 python -m pytest tests/test_pilot_handoff_checklist_v345.py tests/test_evidence_archive_manifest_v343.py -q
 python -m pytest tests/test_runtime_hardening_v055.py -q
 docker compose config
@@ -206,6 +208,7 @@ docker compose config
 
 - 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
 - 对所有 skipped/blocked 项保持原始解释，不做假通过。
+- 本阶段交付物已落地：`docs/pilot_closeout_report_pack_v35.md`、`scripts/pilot_closeout_report_pack.py`、`tests/test_pilot_closeout_report_pack_v355.py`。
 
 ## Phase 15.6：v3.5 release prep（P2）
 

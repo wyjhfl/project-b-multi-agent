@@ -976,7 +976,7 @@ project-b-multi-agent/
 - `v3.4.0` GitHub Release 已由用户手动创建，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
-- 建议下一执行入口：Phase 15.5 Pilot closeout report pack。
+- 建议下一执行入口：Phase 15.6 v3.5 release prep。
 
 ## v3.5 Phase 15.1 试点证据对比快照（已完成）
 
@@ -1008,7 +1008,7 @@ project-b-multi-agent/
 - 生产级方向已新增独立路线图，但当前项目仍只能作为企业内网受控试点与准生产演示基础，不宣称生产级全量完成。
 - 建议下一执行入口：Phase 15.4 Governance exception register。
 
-## v3.5 Phase 15.4 治理例外登记（当前）
+## v3.5 Phase 15.4 治理例外登记（已完成）
 
 - 新增 runbook：`docs/governance_exception_register_v35.md`。
 - 新增只读治理例外登记脚本：`scripts/governance_exception_register.py`，默认输出 `docs/reports/governance_exceptions/`。
@@ -1018,3 +1018,15 @@ project-b-multi-agent/
 - 保持只读边界：不自动批准例外、不绕过 deployment guard/安全响应头/审计脱敏/审批链路、不记录真实 secret 原文、不执行真实外网 LLM。
 - 当前版本保持 `3.4.0`，不打 tag，不创建 GitHub Release。
 - 建议下一执行入口：Phase 15.5 Pilot closeout report pack。
+
+## v3.5 Phase 15.5 试点收口报告包（当前）
+
+- 新增 runbook：`docs/pilot_closeout_report_pack_v35.md`。
+- 新增只读收口报告包脚本：`scripts/pilot_closeout_report_pack.py`，默认输出 `docs/reports/pilot_closeout/`。
+- 新增测试：`tests/test_pilot_closeout_report_pack_v355.py`。
+- 支持汇总 pilot handoff、evidence archive、optional integration readiness、operator scoring、controlled integration dry-run、governance exception register 的 JSON 元数据。
+- 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
+- 保持 `skipped/blocked/partial` 原始语义，不把缺失或阻断项伪造成 `success`。
+- 保持只读边界：不读取报告正文、不写业务数据、不改版本号、不打 tag、不创建 GitHub Release、不执行真实外网 LLM、不输出真实 secret 原文。
+- 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
+- 建议下一执行入口：Phase 15.6 v3.5 release prep。

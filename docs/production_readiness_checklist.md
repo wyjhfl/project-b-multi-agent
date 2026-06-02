@@ -532,7 +532,7 @@
 - [ ] 不启动服务、不修改 `.env`、不连接真实外部 MCP、不调用真实外网 LLM、不读取或输出真实 secret 原文。
 - [ ] 当前版本保持 `3.4.0`，不在 Phase 15.3 改为 `3.5.0`。
 
-## 53. v3.5 Phase 15.4 治理例外登记检查（当前）
+## 53. v3.5 Phase 15.4 治理例外登记检查（已完成）
 
 - [ ] 已新增 runbook：`docs/governance_exception_register_v35.md`。
 - [ ] 已新增只读治理例外登记脚本：`scripts/governance_exception_register.py`。
@@ -545,3 +545,17 @@
 - [ ] 不记录真实 secret 原文，不执行真实外网 LLM，不改版本号，不打 tag，不创建 Release。
 - [ ] 输出必须声明不代表生产安全豁免，也不代表公网生产可直接上线。
 - [ ] 当前版本保持 `3.4.0`，不在 Phase 15.4 改为 `3.5.0`。
+
+## 54. v3.5 Phase 15.5 试点收口报告包检查（当前）
+
+- [ ] 已新增 runbook：`docs/pilot_closeout_report_pack_v35.md`。
+- [ ] 已新增只读收口报告脚本：`scripts/pilot_closeout_report_pack.py`。
+- [ ] 已新增测试：`tests/test_pilot_closeout_report_pack_v355.py`。
+- [ ] 默认输出目录：`docs/reports/pilot_closeout/`。
+- [ ] CLI 支持 `--output-dir`、`--pilot-handoff`、`--evidence-archive`、`--integration-readiness`、`--operator-scoring`、`--controlled-integration`、`--governance-exceptions`。
+- [ ] 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
+- [ ] 仅汇总 JSON 元数据，不读取报告正文，不写业务数据。
+- [ ] 对所有 `skipped/blocked/partial` 项保持原始解释，不做假通过。
+- [ ] 不改版本号，不打 tag，不创建 Release，不执行真实外网 LLM，不输出真实 secret 原文。
+- [ ] 输出必须声明不代表生产安全豁免，不代表真实生产验收完成，也不代表公网生产可直接上线。
+- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.5 改为 `3.5.0`。
