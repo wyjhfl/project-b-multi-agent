@@ -546,28 +546,31 @@
 - [ ] 输出必须声明不代表生产安全豁免，也不代表公网生产可直接上线。
 - [ ] Phase 15.4 当轮版本保持 `3.4.0`；v3.5 release prep 已另行同步到 `3.5.0`。
 
-## 54. v3.5 Phase 15.5 试点收口报告包检查（当前）
+## 54. v3.5 Phase 15.5 试点收口报告包检查（已完成）
 
-- [ ] 已新增 runbook：`docs/pilot_closeout_report_pack_v35.md`。
-- [ ] 已新增只读收口报告脚本：`scripts/pilot_closeout_report_pack.py`。
-- [ ] 已新增测试：`tests/test_pilot_closeout_report_pack_v355.py`。
-- [ ] 默认输出目录：`docs/reports/pilot_closeout/`。
-- [ ] CLI 支持 `--output-dir`、`--pilot-handoff`、`--evidence-archive`、`--integration-readiness`、`--operator-scoring`、`--controlled-integration`、`--governance-exceptions`。
-- [ ] 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
-- [ ] 仅汇总 JSON 元数据，不读取报告正文，不写业务数据。
-- [ ] 对所有 `skipped/blocked/partial` 项保持原始解释，不做假通过。
-- [ ] 不改版本号，不打 tag，不创建 Release，不执行真实外网 LLM，不输出真实 secret 原文。
-- [ ] 输出必须声明不代表生产安全豁免，不代表真实生产验收完成，也不代表公网生产可直接上线。
-- [ ] Phase 15.5 当轮版本保持 `3.4.0`；v3.5 release prep 已另行同步到 `3.5.0`。
+- [x] 已新增 runbook：`docs/pilot_closeout_report_pack_v35.md`。
+- [x] 已新增只读收口报告脚本：`scripts/pilot_closeout_report_pack.py`。
+- [x] 已新增测试：`tests/test_pilot_closeout_report_pack_v355.py`。
+- [x] 默认输出目录：`docs/reports/pilot_closeout/`。
+- [x] CLI 支持 `--output-dir`、`--pilot-handoff`、`--evidence-archive`、`--integration-readiness`、`--operator-scoring`、`--controlled-integration`、`--governance-exceptions`。
+- [x] 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
+- [x] 仅汇总 JSON 元数据，不读取报告正文，不写业务数据。
+- [x] 对所有 `skipped/blocked/partial` 项保持原始解释，不做假通过。
+- [x] Phase 15.5 交付当轮不改版本号、不打 tag、不创建 Release、不执行真实外网 LLM、不输出真实 secret 原文。
+- [x] 输出必须声明不代表生产安全豁免，不代表真实生产验收完成，也不代表公网生产可直接上线。
+- [x] 当前版本已完成 `v3.5.0` 发布，发布后收口记录见 `docs/post_release_check_v3.5.0.md`。
 
-## 55. v3.5.0 release prep 收口检查（当前）
+## 55. v3.5.0 release-created 收口检查（当前）
 
-- [ ] 版本号已同步到 `3.5.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / script version markers / related tests）。
-- [ ] 已新增 `RELEASE_NOTES_v3.5.0.md`。
-- [ ] 已新增 `docs/release_review_v3.5_controlled_pilot_expansion.md`。
-- [ ] release notes 覆盖 Phase 15.1~15.5、状态边界与默认 fake/offline 约束。
-- [ ] release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
-- [ ] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
-- [ ] 本轮不执行真实外网 LLM。
-- [ ] 本轮不打 `v3.5.0` tag、不创建 GitHub Release、不移动历史 tag。
-- [ ] 可进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。
+- [x] 版本号已同步到 `3.5.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / script version markers / related tests）。
+- [x] 已新增 `RELEASE_NOTES_v3.5.0.md`。
+- [x] 已新增 `docs/release_review_v3.5_controlled_pilot_expansion.md`。
+- [x] 已新增 `docs/post_release_check_v3.5.0.md`。
+- [x] release notes 覆盖 Phase 15.1~15.5、状态边界与默认 fake/offline 约束。
+- [x] release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
+- [x] GitHub Release `v3.5.0` 已创建，Release notes 来源为 `RELEASE_NOTES_v3.5.0.md`。
+- [x] 远端 tag `v3.5.0` 指向 commit `90cf1b3a325032b6d865c82d11035c27cfee3017`。
+- [x] 历史 tag 未移动、未删除、未重建。
+- [x] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
+- [x] 本轮 release-created 收口不执行真实外网 LLM。
+- [x] main 超前 `v3.5.0` tag 属于发布后文档收口。

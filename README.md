@@ -6,7 +6,7 @@
 >
 > 本项目是 **production-grade Agent Harness engineering prototype**。当前 Multi-Agent 是 **deterministic multi-role orchestration**，不是完全自治多 Agent；当前已实现 real MCP stdio protocol path（基于 fake stdio fixture 验收），并提供 LiteLLMProvider/LLMJudgeProvider 可选真实 provider 路径（默认 fake/offline，默认测试不调用真实 LLM），但真实外部 MCP Server 与真实 LLM 生产验收仍需外部环境和密钥单独完成。当前已实现 graph checkpoint / interrupt / resume adapter 最小闭环，完整 LangGraph native checkpoint / Command interrupt / Command resume 仍在 Roadmap。
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-831%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.5.0_prep-brightgreen)]()
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.11+-blue)](pyproject.toml) [![Tests](https://img.shields.io/badge/Tests-831%20passed%20(4%20skipped)-passing-brightgreen)](tests/) [![Version](https://img.shields.io/badge/Release-v3.5.0-brightgreen)]()
 
 ---
 
@@ -966,18 +966,21 @@ project-b-multi-agent/
 - main 超前 tag 属于发布后文档收口。
 - 后续建议进入 v3.5 或下一阶段路线规划。
 
-## v3.5.0 release prep（当前）
+## v3.5.0 release-created closure（当前）
 
 - 规划文档：`docs/v3_5_controlled_pilot_expansion_plan.md`。
 - 生产级后续路线图：`docs/enterprise_production_landing_roadmap.md`。
 - v3.5 定位：Controlled Pilot Expansion & Evidence Operations。
-- release-prep 阶段版本已同步为 `3.5.0`。
-- 已新增发布材料：`RELEASE_NOTES_v3.5.0.md`、`docs/release_review_v3.5_controlled_pilot_expansion.md`。
-- 本轮不打 `v3.5.0` tag，不创建 GitHub Release，不移动历史 tag。
-- `v3.4.0` GitHub Release 已由用户手动创建，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
+- GitHub Release `v3.5.0` 已创建。
+- Release 标题：`Project B v3.5.0 - Controlled Pilot Expansion & Evidence Operations`。
+- Release notes 来源：`RELEASE_NOTES_v3.5.0.md`。
+- 发布后检查：`docs/post_release_check_v3.5.0.md`。
+- 远端 tag `v3.5.0` 指向 commit `90cf1b3a325032b6d865c82d11035c27cfee3017`，历史 tag 保持不变。
+- 由于本机 `github.com:443` Git HTTPS 不通，本轮通过 GitHub API 创建远端 annotated tag/ref 与 Release；未移动、删除或重建远端 tag。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
-- Go/No-Go：可以进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。
+- main 超前 `v3.5.0` tag 属于发布后文档收口。
+- 后续建议进入 v3.6 Enterprise Identity & Tenant Boundary 或下一阶段路线规划。
 
 ## v3.5 Phase 15.1 试点证据对比快照（已完成）
 
@@ -1017,10 +1020,10 @@ project-b-multi-agent/
 - 支持引用 config drift、governance policy summary、incident rehearsal、operator drill scoring 的 JSON 元数据。
 - 例外字段覆盖风险描述、影响范围、责任人、到期时间、补偿控制、复核证据、状态和下一步动作。
 - 保持只读边界：不自动批准例外、不绕过 deployment guard/安全响应头/审计脱敏/审批链路、不记录真实 secret 原文、不执行真实外网 LLM。
-- 当前版本在 release prep 阶段已同步为 `3.5.0`；本阶段未打 tag，未创建 GitHub Release。
+- Phase 15.4 交付当轮不改版本号、不打 tag、不创建 Release；当前版本已完成 `v3.5.0` 发布。
 - 建议下一执行入口：Phase 15.5 Pilot closeout report pack。
 
-## v3.5 Phase 15.5 试点收口报告包（当前）
+## v3.5 Phase 15.5 试点收口报告包（已完成）
 
 - 新增 runbook：`docs/pilot_closeout_report_pack_v35.md`。
 - 新增只读收口报告包脚本：`scripts/pilot_closeout_report_pack.py`，默认输出 `docs/reports/pilot_closeout/`。
@@ -1028,15 +1031,15 @@ project-b-multi-agent/
 - 支持汇总 pilot handoff、evidence archive、optional integration readiness、operator scoring、controlled integration dry-run、governance exception register 的 JSON 元数据。
 - 报告包包含 executive summary、evidence summary、known limitations、Go/No-Go、next actions 和 boundary declarations。
 - 保持 `skipped/blocked/partial` 原始语义，不把缺失或阻断项伪造成 `success`。
-- 保持只读边界：不读取报告正文、不写业务数据、不改版本号、不打 tag、不创建 GitHub Release、不执行真实外网 LLM、不输出真实 secret 原文。
-- 当前版本在 release prep 阶段已同步为 `3.5.0`；本阶段未打 tag，未创建 GitHub Release。
+- 保持只读边界：不读取报告正文、不写业务数据、不执行真实外网 LLM、不输出真实 secret 原文。
+- 当前版本已完成 `v3.5.0` 发布，tag 与 Release 已创建。
 
-## v3.5 Phase 15.6 release prep（当前）
+## v3.5 Phase 15.6 release prep（已完成）
 
 - 已同步版本到 `3.5.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、脚本 version markers、相关测试断言。
 - 已新增 `RELEASE_NOTES_v3.5.0.md`。
 - 已新增 `docs/release_review_v3.5_controlled_pilot_expansion.md`。
 - Phase 15.1~15.5 纳入 v3.5.0 release prep 范围。
-- release prep 当轮不打 tag、不创建 GitHub Release、不移动历史 tag。
+- `v3.5.0` tag 与 GitHub Release 已创建；历史 tag 未移动、未删除、未重建。
 - 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；不执行真实外网 LLM。
-- Go/No-Go：可以进入 v3.5.0 tag 前最终复核；是否打 tag/创建 Release 需用户单独确认。
+- 发布后收口文档：`docs/post_release_check_v3.5.0.md`。
