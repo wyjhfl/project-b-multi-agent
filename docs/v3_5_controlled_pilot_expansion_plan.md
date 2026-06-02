@@ -125,7 +125,8 @@ docker compose config
 ### 验证命令
 
 ```powershell
-python -m pytest tests/test_optional_integration_readiness_v344.py -q
+python -m pytest tests/test_controlled_integration_dry_run_v353.py -q
+python -m pytest tests/test_optional_integration_readiness_v344.py tests/test_operator_drill_scoring_v352.py tests/test_controlled_integration_dry_run_v353.py -q
 python -m pytest tests/test_runtime_hardening_v055.py -q
 docker compose config
 ```
@@ -135,6 +136,7 @@ docker compose config
 - 每个可选集成项均标记 `ready / skipped / blocked / partial`。
 - 仅输出 env name 与是否存在，不输出真实值。
 - 缺少 opt-in 条件时必须 `skipped`。
+- 本阶段交付物已落地：`docs/controlled_integration_dry_run_v35.md`、`scripts/controlled_integration_dry_run.py`、`tests/test_controlled_integration_dry_run_v353.py`。
 
 ## Phase 15.4：Governance exception register（P1）
 

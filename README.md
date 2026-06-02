@@ -969,13 +969,14 @@ project-b-multi-agent/
 ## v3.5 路线规划已开启（当前）
 
 - 规划文档：`docs/v3_5_controlled_pilot_expansion_plan.md`。
+- 生产级后续路线图：`docs/enterprise_production_landing_roadmap.md`。
 - v3.5 定位：Controlled Pilot Expansion & Evidence Operations。
 - 当前阶段仅做路线规划与入口收口，不改业务逻辑、不改版本号、不打 tag、不创建 GitHub Release。
 - 当前版本保持 `3.4.0`，直到 v3.5 release prep 阶段再同步版本号。
 - `v3.4.0` GitHub Release 已由用户手动创建，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
-- 建议下一执行入口：Phase 15.3 Controlled integration dry-run checklist。
+- 建议下一执行入口：Phase 15.4 Governance exception register。
 
 ## v3.5 Phase 15.1 试点证据对比快照（已完成）
 
@@ -986,7 +987,7 @@ project-b-multi-agent/
 - 输出 JSON + Markdown，覆盖新增、减少、变化文件统计与 `warnings`。
 - 保持只读边界：不删除、不移动、不修改输入证据，不自动执行 retention 清理，不读取或输出真实 secret 原文，不执行真实外网 LLM。
 
-## v3.5 Phase 15.2 操作员演练评分 Rubric（当前）
+## v3.5 Phase 15.2 操作员演练评分 Rubric（已完成）
 
 - 新增 runbook：`docs/operator_drill_scoring_rubric_v35.md`。
 - 新增只读评分脚本：`scripts/operator_drill_scoring.py`，默认输出 `docs/reports/operator_drill_scoring/`。
@@ -995,3 +996,14 @@ project-b-multi-agent/
 - 输入来源包括 incident rehearsal、pilot handoff、optional integration readiness、evidence comparison 的 JSON 元数据。
 - 保持只读边界：不读取报告正文、不写业务数据、不自动改变 Go/No-Go 结论、不读取或输出真实 secret 原文、不执行真实外网 LLM。
 - 建议下一执行入口：Phase 15.3 Controlled integration dry-run checklist。
+
+## v3.5 Phase 15.3 受控集成 dry-run checklist（当前）
+
+- 新增 runbook：`docs/controlled_integration_dry_run_v35.md`。
+- 新增只读 dry-run 脚本：`scripts/controlled_integration_dry_run.py`，默认输出 `docs/reports/controlled_integration_dry_run/`。
+- 新增测试：`tests/test_controlled_integration_dry_run_v353.py`。
+- 覆盖 real LLM、OIDC、external MCP、Postgres、Redis、frontend build/network、deployment guard、audit export redaction。
+- 支持通过 `--readiness-report` 串联 Phase 14.4 optional integration readiness JSON，只消费结构化元数据。
+- 保持只读边界：不启动服务、不修改 `.env`、不连接真实外部 MCP、不调用真实外网 LLM、不读取或输出真实 secret 原文。
+- 生产级方向已新增独立路线图，但当前项目仍只能作为企业内网受控试点与准生产演示基础，不宣称生产级全量完成。
+- 建议下一执行入口：Phase 15.4 Governance exception register。

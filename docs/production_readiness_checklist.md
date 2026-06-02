@@ -476,6 +476,7 @@
 ## 49. v3.5 规划入口检查（当前）
 
 - [ ] 已创建规划文档：`docs/v3_5_controlled_pilot_expansion_plan.md`。
+- [ ] 已创建生产级后续路线图：`docs/enterprise_production_landing_roadmap.md`。
 - [ ] v3.5 定位为 Controlled Pilot Expansion & Evidence Operations。
 - [ ] 规划覆盖 Phase 15.1~15.6：
   - Phase 15.1 Pilot evidence comparison snapshot。
@@ -504,7 +505,7 @@
 - [ ] 保持只读边界：不删除、不移动、不修改输入证据，不自动执行 retention 清理，不读取或输出真实 secret 原文，不执行真实外网 LLM。
 - [ ] 当前版本保持 `3.4.0`，不在 Phase 15.1 改为 `3.5.0`。
 
-## 51. v3.5 Phase 15.2 操作员演练评分 Rubric 检查（当前）
+## 51. v3.5 Phase 15.2 操作员演练评分 Rubric 检查（已完成）
 
 - [ ] 已新增 runbook：`docs/operator_drill_scoring_rubric_v35.md`。
 - [ ] 已新增只读评分脚本：`scripts/operator_drill_scoring.py`。
@@ -516,3 +517,17 @@
 - [ ] 缺失输入或所有输入为空必须 `skipped`，来源报告 skipped 必须保留 skipped 语义，不得伪造成成功。
 - [ ] 不自动改变 Go/No-Go 结论，不读取报告正文，不写业务数据，不读取或输出真实 secret 原文，不执行真实外网 LLM。
 - [ ] 当前版本保持 `3.4.0`，不在 Phase 15.2 改为 `3.5.0`。
+
+## 52. v3.5 Phase 15.3 受控集成 dry-run checklist 检查（当前）
+
+- [ ] 已新增 runbook：`docs/controlled_integration_dry_run_v35.md`。
+- [ ] 已新增只读 dry-run 脚本：`scripts/controlled_integration_dry_run.py`。
+- [ ] 已新增测试：`tests/test_controlled_integration_dry_run_v353.py`。
+- [ ] 默认输出目录：`docs/reports/controlled_integration_dry_run/`。
+- [ ] CLI 支持 `--output-dir`、`--readiness-report`。
+- [ ] 覆盖 real LLM、OIDC、external MCP、Postgres、Redis、frontend build/network、deployment guard、audit export redaction。
+- [ ] 仅输出 env name 与 `present=true/false`，不输出真实 secret 值。
+- [ ] 支持串联 Phase 14.4 optional integration readiness JSON，但只消费结构化元数据。
+- [ ] 缺少 opt-in 条件必须 `skipped` 并记录 `missing_conditions`，不得伪造成 `ready/success`。
+- [ ] 不启动服务、不修改 `.env`、不连接真实外部 MCP、不调用真实外网 LLM、不读取或输出真实 secret 原文。
+- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.3 改为 `3.5.0`。
