@@ -161,7 +161,8 @@ docker compose config
 ### 验证命令
 
 ```powershell
-python -m pytest tests/test_governance_policy_summary_v333.py tests/test_config_drift_v332.py -q
+python -m pytest tests/test_governance_exception_register_v354.py -q
+python -m pytest tests/test_governance_exception_register_v354.py tests/test_governance_policy_summary_v333.py tests/test_config_drift_v332.py -q
 python -m pytest tests/test_runtime_hardening_v055.py -q
 docker compose config
 ```
@@ -170,6 +171,7 @@ docker compose config
 
 - 例外字段覆盖风险描述、影响范围、责任人、到期时间、补偿控制、复核证据、状态和下一步动作。
 - 输出必须声明不代表生产安全豁免，也不代表公网生产可直接上线。
+- 本阶段交付物已落地：`docs/governance_exception_register_v35.md`、`scripts/governance_exception_register.py`、`tests/test_governance_exception_register_v354.py`。
 
 ## Phase 15.5：Pilot closeout report pack（P2）
 

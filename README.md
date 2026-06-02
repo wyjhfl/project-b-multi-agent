@@ -976,7 +976,7 @@ project-b-multi-agent/
 - `v3.4.0` GitHub Release 已由用户手动创建，`v3.4.0/v3.3.0/v3.2.0/v3.1.0/v3.0.0` tags 保持不变。
 - 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，默认不执行真实外网 LLM，不输出真实 secret 原文。
 - 不宣称公网生产直上，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户/复杂 BI 全量完成。
-- 建议下一执行入口：Phase 15.4 Governance exception register。
+- 建议下一执行入口：Phase 15.5 Pilot closeout report pack。
 
 ## v3.5 Phase 15.1 试点证据对比快照（已完成）
 
@@ -997,7 +997,7 @@ project-b-multi-agent/
 - 保持只读边界：不读取报告正文、不写业务数据、不自动改变 Go/No-Go 结论、不读取或输出真实 secret 原文、不执行真实外网 LLM。
 - 建议下一执行入口：Phase 15.3 Controlled integration dry-run checklist。
 
-## v3.5 Phase 15.3 受控集成 dry-run checklist（当前）
+## v3.5 Phase 15.3 受控集成 dry-run checklist（已完成）
 
 - 新增 runbook：`docs/controlled_integration_dry_run_v35.md`。
 - 新增只读 dry-run 脚本：`scripts/controlled_integration_dry_run.py`，默认输出 `docs/reports/controlled_integration_dry_run/`。
@@ -1007,3 +1007,14 @@ project-b-multi-agent/
 - 保持只读边界：不启动服务、不修改 `.env`、不连接真实外部 MCP、不调用真实外网 LLM、不读取或输出真实 secret 原文。
 - 生产级方向已新增独立路线图，但当前项目仍只能作为企业内网受控试点与准生产演示基础，不宣称生产级全量完成。
 - 建议下一执行入口：Phase 15.4 Governance exception register。
+
+## v3.5 Phase 15.4 治理例外登记（当前）
+
+- 新增 runbook：`docs/governance_exception_register_v35.md`。
+- 新增只读治理例外登记脚本：`scripts/governance_exception_register.py`，默认输出 `docs/reports/governance_exceptions/`。
+- 新增测试：`tests/test_governance_exception_register_v354.py`。
+- 支持引用 config drift、governance policy summary、incident rehearsal、operator drill scoring 的 JSON 元数据。
+- 例外字段覆盖风险描述、影响范围、责任人、到期时间、补偿控制、复核证据、状态和下一步动作。
+- 保持只读边界：不自动批准例外、不绕过 deployment guard/安全响应头/审计脱敏/审批链路、不记录真实 secret 原文、不执行真实外网 LLM。
+- 当前版本保持 `3.4.0`，不打 tag，不创建 GitHub Release。
+- 建议下一执行入口：Phase 15.5 Pilot closeout report pack。

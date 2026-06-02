@@ -518,7 +518,7 @@
 - [ ] 不自动改变 Go/No-Go 结论，不读取报告正文，不写业务数据，不读取或输出真实 secret 原文，不执行真实外网 LLM。
 - [ ] 当前版本保持 `3.4.0`，不在 Phase 15.2 改为 `3.5.0`。
 
-## 52. v3.5 Phase 15.3 受控集成 dry-run checklist 检查（当前）
+## 52. v3.5 Phase 15.3 受控集成 dry-run checklist 检查（已完成）
 
 - [ ] 已新增 runbook：`docs/controlled_integration_dry_run_v35.md`。
 - [ ] 已新增只读 dry-run 脚本：`scripts/controlled_integration_dry_run.py`。
@@ -531,3 +531,17 @@
 - [ ] 缺少 opt-in 条件必须 `skipped` 并记录 `missing_conditions`，不得伪造成 `ready/success`。
 - [ ] 不启动服务、不修改 `.env`、不连接真实外部 MCP、不调用真实外网 LLM、不读取或输出真实 secret 原文。
 - [ ] 当前版本保持 `3.4.0`，不在 Phase 15.3 改为 `3.5.0`。
+
+## 53. v3.5 Phase 15.4 治理例外登记检查（当前）
+
+- [ ] 已新增 runbook：`docs/governance_exception_register_v35.md`。
+- [ ] 已新增只读治理例外登记脚本：`scripts/governance_exception_register.py`。
+- [ ] 已新增测试：`tests/test_governance_exception_register_v354.py`。
+- [ ] 默认输出目录：`docs/reports/governance_exceptions/`。
+- [ ] CLI 支持 `--output-dir`、`--config-drift`、`--governance-policy`、`--incident-report`、`--operator-scoring`、`--controlled-integration`。
+- [ ] 例外字段覆盖风险描述、影响范围、责任人、到期时间、补偿控制、复核证据、状态和下一步动作。
+- [ ] 支持引用 config drift、governance policy summary、incident rehearsal、operator drill scoring 的 JSON 元数据。
+- [ ] 不自动批准例外，不绕过 deployment guard、安全响应头、审计脱敏或审批链路。
+- [ ] 不记录真实 secret 原文，不执行真实外网 LLM，不改版本号，不打 tag，不创建 Release。
+- [ ] 输出必须声明不代表生产安全豁免，也不代表公网生产可直接上线。
+- [ ] 当前版本保持 `3.4.0`，不在 Phase 15.4 改为 `3.5.0`。
