@@ -663,3 +663,38 @@
 - [x] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
 - [x] 本轮 release prep 不执行真实外网 LLM，不连接真实外部 IdP。
 - [x] 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户完成。
+
+## 63. v3.7 External Integration & Real Provider Acceptance 规划入口检查（当前）
+
+- [x] 已新增规划文档：`docs/v3_7_external_integration_real_provider_acceptance_plan.md`。
+- [x] v3.7 定位为 External Integration & Real Provider Acceptance。
+- [x] 当前先进入规划与只读基线阶段，版本保持 `3.6.0`。
+- [x] 本轮不打 tag、不创建 GitHub Release、不移动历史 tag。
+- [x] 明确默认 fake/offline，默认 pytest/CI 不调用真实 LLM。
+- [x] 明确默认不连接真实外部 MCP，不连接真实业务系统。
+- [x] 明确不读取或输出真实 secret 原文。
+- [x] Phase 17.1~17.2 已完成；下一建议阶段为 Phase 17.3 Real LLM provider acceptance gate。
+
+## 64. v3.7 Phase 17.1 外部集成与真实 provider 基线盘点检查（已完成）
+
+- [x] 已新增 runbook：`docs/external_provider_acceptance_inventory_v37.md`。
+- [x] 已新增只读盘点脚本：`scripts/external_provider_acceptance_inventory.py`。
+- [x] 已新增测试：`tests/test_external_provider_acceptance_inventory_v371.py`。
+- [x] 默认输出目录：`docs/reports/external_provider_acceptance_inventory/`。
+- [x] 盘点覆盖 external MCP、real LLM provider、LLM judge、PostgreSQL、Redis、deployment guard、tool approval audit、frontend offline build。
+- [x] 输出明确 `read_only=true`、`real_llm_executed=false`、`external_mcp_connected=false`、`business_system_connected=false`。
+- [x] 仅输出 env name、present 布尔状态和本地文件存在性，不读取或输出真实 secret 原文。
+- [x] 不调用真实外网 LLM，不连接真实外部 MCP，不连接真实业务系统。
+- [x] 不宣称真实 provider、真实外部 MCP 或真实业务系统生产验收完成。
+
+## 65. v3.7 Phase 17.2 External MCP acceptance gate 检查（已完成）
+
+- [x] 已新增 runbook：`docs/external_mcp_acceptance_gate_v37.md`。
+- [x] 已新增只读门禁脚本：`scripts/external_mcp_acceptance_gate.py`。
+- [x] 已新增测试：`tests/test_external_mcp_acceptance_gate_v372.py`。
+- [x] 默认输出目录：`docs/reports/external_mcp_acceptance_gate/`。
+- [x] 门禁覆盖 real mode opt-in、command configured、command allowlist、tool allowlist、timeout config、lifecycle hardening、approval/audit boundary、fake fixture coverage。
+- [x] 输出明确 `external_mcp_connected=false`、`mcp_process_started=false`、`mcp_tools_list_executed=false`、`mcp_tools_call_executed=false`。
+- [x] 不启动 MCP subprocess，不执行真实 `tools/list` 或 `tools/call`。
+- [x] 不绕过 ToolGateway、PolicyEngine、审批链路或审计链路。
+- [x] 不宣称真实外部 MCP 生产验收完成。

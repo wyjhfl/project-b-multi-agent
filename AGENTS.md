@@ -502,3 +502,33 @@
 - 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
 - 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；不执行真实外网 LLM。
 - 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户完成。
+
+## v3.7 路线规划已开启（当前）
+
+- 规划文档：`docs/v3_7_external_integration_real_provider_acceptance_plan.md`。
+- v3.7 定位：External Integration & Real Provider Acceptance。
+- 当前先进入规划与只读基线阶段，版本保持 `3.6.0`。
+- 本轮不打 tag、不创建 GitHub Release、不移动历史 tag。
+- 由于当前环境 GitHub HTTPS 推送不可用，`v3.6.0` release prep 提交已在本地完成，远端同步需网络恢复后执行。
+- Phase 17.1~17.2 已完成；建议下一阶段：Phase 17.3 Real LLM provider acceptance gate。
+
+## v3.7 Phase 17.1 External integration baseline inventory（已完成）
+
+- 已新增 runbook：`docs/external_provider_acceptance_inventory_v37.md`。
+- 已新增只读盘点脚本：`scripts/external_provider_acceptance_inventory.py`。
+- 已新增测试：`tests/test_external_provider_acceptance_inventory_v371.py`。
+- 默认输出目录：`docs/reports/external_provider_acceptance_inventory/`。
+- 盘点覆盖 external MCP、real LLM provider、LLM judge、PostgreSQL、Redis、deployment guard、tool approval audit、frontend offline build。
+- 输出明确 `read_only=true`、`real_llm_executed=false`、`external_mcp_connected=false`、`business_system_connected=false`。
+- 仅输出 env name、present 布尔状态和本地文件存在性，不读取或输出真实 secret 原文。
+- 不宣称真实 provider、真实外部 MCP 或真实业务系统生产验收完成。
+
+## v3.7 Phase 17.2 External MCP acceptance gate（已完成）
+
+- 已新增 runbook：`docs/external_mcp_acceptance_gate_v37.md`。
+- 已新增只读门禁脚本：`scripts/external_mcp_acceptance_gate.py`。
+- 已新增测试：`tests/test_external_mcp_acceptance_gate_v372.py`。
+- 默认输出目录：`docs/reports/external_mcp_acceptance_gate/`。
+- 门禁覆盖 real mode opt-in、command configured、command allowlist、tool allowlist、timeout config、lifecycle hardening、approval/audit boundary、fake fixture coverage。
+- 输出明确 `external_mcp_connected=false`、`mcp_process_started=false`、`mcp_tools_list_executed=false`、`mcp_tools_call_executed=false`。
+- 本阶段不启动 MCP subprocess，不执行真实 `tools/list` 或 `tools/call`，不宣称真实外部 MCP 生产验收完成。

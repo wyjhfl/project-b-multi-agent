@@ -8,11 +8,11 @@
 
 ## 当前基线
 
-- `v3.4.0` GitHub Release 已由用户手动创建，历史 tag 保持不变。
-- v3.5 已进入 Controlled Pilot Expansion & Evidence Operations 阶段。
-- v3.5 Phase 15.1 Pilot evidence comparison snapshot 已完成。
-- v3.5 Phase 15.2 Operator drill scoring rubric 已完成。
-- 当前建议继续推进 Phase 15.3 Controlled integration dry-run checklist。
+- `v3.6.0` release prep 已完成，本地提交已创建；当前环境 GitHub HTTPS 推送不可用，远端同步需网络恢复后执行。
+- v3.7 已进入 External Integration & Real Provider Acceptance 规划与只读基线阶段。
+- v3.7 Phase 17.1 External integration baseline inventory 已完成。
+- v3.7 Phase 17.2 External MCP acceptance gate 已完成。
+- 当前建议继续推进 Phase 17.3 Real LLM provider acceptance gate。
 - 默认路径继续保持 fake/offline，默认 pytest/CI 不调用真实 LLM。
 - 真实 LLM、真实外部 MCP、OIDC/SSO、PostgreSQL、Redis 等能力只允许在显式 opt-in 与人工受控条件下验收。
 
@@ -136,6 +136,8 @@ docker compose config
 - 真实 LLM provider 生产验收包，包括 preflight、smoke、budget、cache、fallback、PII 脱敏、prompt injection guard 和输出校验。
 - PostgreSQL Store、Redis、NoopRedisClient fallback、迁移和连接失败路径验收。
 - 集成风险登记表、例外审批和供应商 SLA 记录。
+- Phase 17.1 已新增 `docs/external_provider_acceptance_inventory_v37.md`、`scripts/external_provider_acceptance_inventory.py`、`tests/test_external_provider_acceptance_inventory_v371.py`，用于只读盘点 external MCP、real LLM provider、LLM judge、PostgreSQL、Redis、deployment guard、tool approval audit 和 frontend offline build。
+- Phase 17.2 已新增 `docs/external_mcp_acceptance_gate_v37.md`、`scripts/external_mcp_acceptance_gate.py`、`tests/test_external_mcp_acceptance_gate_v372.py`，用于只读复核 real mode opt-in、command allowlist、tool allowlist、超时、生命周期、审批和审计边界。
 
 ### 验收命令/证据
 
