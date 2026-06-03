@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -279,7 +279,7 @@ def build_identity_tenant_boundary_inventory(
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.5.0",
+        "version": "3.6.0",
         "phase": "v3.6 Phase 16.1",
         "mode": "fake_offline_default",
         "status": status,

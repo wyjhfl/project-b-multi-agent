@@ -11,6 +11,8 @@
   --error: #b53030;
   --waiting: #7a4db3;
   --cancelled: #6b7280;
+  --font-ui: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+  --font-mono: "Consolas", "SFMono-Regular", monospace;
 }
 
 * {
@@ -23,7 +25,7 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  font-family: var(--font-geist-sans), "Microsoft YaHei", sans-serif;
+  font-family: var(--font-ui);
   background: var(--bg-app);
   color: var(--text-main);
 }
@@ -225,7 +227,7 @@ a {
 }
 
 .mono {
-  font-family: var(--font-geist-mono), "Consolas", monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 

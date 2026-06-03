@@ -13,7 +13,7 @@ def test_pilot_handoff_checklist_generates_json_and_markdown(tmp_path: Path):
     assert summary["mode"] == "fake_offline_default"
     assert summary["read_only"] is True
     assert summary["real_llm_executed"] is False
-    assert payload["version"] == "3.5.0"
+    assert payload["version"] == "3.6.0"
     assert Path(summary["markdown_path"]).exists()
 
 

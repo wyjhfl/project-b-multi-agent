@@ -206,9 +206,15 @@ def _sanitize_key_value(key: str, value: Any) -> Any:
 def _sanitize_snapshot_payload(payload: Any) -> Any:
     if isinstance(payload, dict):
         sanitized: dict[str, Any] = {}
-        for key, value in payload.items():
+        for index, (key, value) in enumerate(payload.items()):
             key_text = str(key)
-            sanitized[key_text] = _sanitize_key_value(key_text, value)
+            key_lower = key_text.lower()
+            output_key = key_text
+            if key_lower not in _EVIDENCE_SAFE_KEYS and any(marker in key_lower for marker in _PROMPT_KEY_MARKERS):
+                output_key = f"redacted_text_field_{index}"
+            elif any(marker in key_lower for marker in _SENSITIVE_KEY_MARKERS) and key_lower not in _SAFE_TOKEN_KEYS:
+                output_key = f"redacted_sensitive_field_{index}"
+            sanitized[output_key] = _sanitize_key_value(key_text, value)
         return sanitized
     if isinstance(payload, list):
         return [_sanitize_snapshot_payload(item) for item in payload]
@@ -305,7 +311,7 @@ def build_acceptance_snapshot(
         "generated_at": generated_at,
         "status": status,
         "commit": commit,
-        "version": "3.5.0",
+        "version": "3.6.0",
         "environment": {
             "app_env": settings.app_env,
             "mode": "fake_offline_default",

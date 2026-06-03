@@ -579,15 +579,15 @@
 
 - [x] 已新增规划文档：`docs/v3_6_enterprise_identity_tenant_boundary_plan.md`。
 - [x] v3.6 定位为 Enterprise Identity & Tenant Boundary。
-- [x] 当前仅进入规划阶段，版本保持 `3.5.0`。
-- [x] 规划阶段不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- [x] 当前已进入 release prep，版本已同步为 `3.6.0`。
+- [x] release prep 阶段不打 tag、不创建 Release、不移动历史 tag。
 - [x] `v3.5.0` GitHub Release 已创建，历史 tag 不移动、不删除、不重建。
 - [x] 已记录现有身份/RBAC/OIDC 能力：JWT、`/auth/login`、`/auth/me`、`require_permission`、OIDC 配置预检。
 - [x] 已记录当前缺口：JWT payload 未包含 tenant/org/project scope，用户模型未包含组织或租户归属，尚无 tenant/org/project/resource ownership 运行时 enforcement。
 - [x] 明确默认不启用 `AUTH_ENABLED`、`RBAC_ENABLED`、`OIDC_ENABLED`。
 - [x] 明确默认不连接真实外部 IdP，不执行真实 token exchange。
 - [x] 明确不输出真实 secret 原文，不宣称生产级 SSO/OIDC 或多租户完成。
-- [x] Phase 16.1、Phase 16.2 已完成；下一建议阶段为 Phase 16.3 RBAC matrix hardening。
+- [x] Phase 16.1~16.6 已完成；下一建议阶段为 v3.6.0 tag 前最终复核。
 
 ## 57. v3.6 Phase 16.1 身份与租户边界盘点检查（已完成）
 
@@ -612,3 +612,54 @@
 - [x] 已明确服务端 store 字段、审计字段、跨租户拒绝规则和迁移兼容策略。
 - [x] 本阶段不迁移数据库、不改 user store、不改 JWT payload、不启用 tenant enforcement、不改变默认离线 demo。
 - [x] 不宣称生产级 SSO/OIDC 或多租户完成。
+
+## 59. v3.6 Phase 16.3 RBAC 权限矩阵强化检查（已完成）
+
+- [x] 已新增 runbook：`docs/rbac_permission_matrix_v36.md`。
+- [x] 已新增只读矩阵导出脚本：`scripts/rbac_permission_matrix.py`。
+- [x] 已新增测试：`tests/test_rbac_permission_matrix_v363.py`。
+- [x] 默认输出目录：`docs/reports/rbac_permission_matrix/`。
+- [x] 权限矩阵覆盖 admin/operator/viewer/auditor 对关键 API 的读写、审批、审计和工具调用边界。
+- [x] 输出包含 role hierarchy、allowed roles、denied roles、401/403 拒绝证据、权限申请和定期复核流程。
+- [x] 保持现有默认 `rbac_enabled=false` 行为不变。
+- [x] 不新增生产登录系统，不绕过 `require_permission`，不改变默认 API token 要求。
+- [x] 不宣称权限治理已生产完成，不宣称生产级 SSO/OIDC 或多租户完成。
+
+## 60. v3.6 Phase 16.4 OIDC 生命周期演练计划检查（已完成）
+
+- [x] 已新增 runbook：`docs/oidc_lifecycle_drill_v36.md`。
+- [x] 已新增只读演练计划脚本：`scripts/oidc_lifecycle_drill.py`。
+- [x] 已新增测试：`tests/test_oidc_lifecycle_drill_v364.py`。
+- [x] 默认输出目录：`docs/reports/oidc_lifecycle_drill/`。
+- [x] 演练计划覆盖 OIDC 配置预检、token 生命周期、登出与会话失效、JWKS 轮换、client_secret 轮换和失败路径。
+- [x] 缺少真实 IdP opt-in 条件时记录为 `skipped`，不得伪造成 success。
+- [x] 所有 secret 只输出 env name 与 present 布尔状态。
+- [x] 默认不连接真实 IdP，不执行 OIDC token exchange。
+- [x] 不修改 `.env`，不默认启用 `AUTH_ENABLED`、`RBAC_ENABLED`、`OIDC_ENABLED`。
+- [x] 不宣称生产级 SSO/OIDC 或多租户完成。
+
+## 61. v3.6 Phase 16.5 跨租户审计与拒绝证据检查（已完成）
+
+- [x] 已新增 runbook：`docs/cross_tenant_audit_evidence_v36.md`。
+- [x] 已新增只读证据模板脚本：`scripts/cross_tenant_audit_evidence.py`。
+- [x] 已新增测试：`tests/test_cross_tenant_audit_evidence_v365.py`。
+- [x] 默认输出目录：`docs/reports/cross_tenant_audit_evidence/`。
+- [x] 证据模板覆盖 allow、deny、audit record、export redaction、reviewer/owner evidence。
+- [x] 已明确未来 audit event 必需 scope 字段：`organization_id`、`tenant_id`、`project_id`、`resource_id`、`actor_principal_id`、`decision`、`denial_reason`。
+- [x] 支持引用 RBAC matrix、tenant model 文档和 audit export sample，仅消费元数据。
+- [x] 发现 prompt/secret/token/连接串密码原文时输出 `blocked`，且不泄露原文。
+- [x] 不修改 audit store schema，不生成伪造的跨租户通过证据，不启用 tenant enforcement，不改 JWT payload。
+- [x] 不宣称生产级 SSO/OIDC 或多租户完成。
+
+## 62. v3.6 Phase 16.6 release prep 检查（已完成）
+
+- [x] 版本号已同步到 `3.6.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / script version markers / related tests）。
+- [x] 已新增 `RELEASE_NOTES_v3.6.0.md`。
+- [x] 已新增 `docs/release_review_v3.6_enterprise_identity_tenant_boundary.md`。
+- [x] release notes 覆盖 Phase 16.1~16.5、状态边界与默认 fake/offline 约束。
+- [x] release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
+- [x] 前端已移除构建期 Google Fonts 依赖，默认离线 `npm --prefix frontend run build` 可通过。
+- [x] 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
+- [x] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
+- [x] 本轮 release prep 不执行真实外网 LLM，不连接真实外部 IdP。
+- [x] 不宣称公网生产可直接上线，不宣称真实 LLM 生产验收完成，不宣称生产级 SSO/OIDC 或多租户完成。

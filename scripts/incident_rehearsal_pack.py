@@ -315,7 +315,7 @@ def build_incident_rehearsal_pack(
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.5.0",
+        "version": "3.6.0",
         "mode": "fake_offline_default",
         "read_only": True,
         "real_llm_executed": False,

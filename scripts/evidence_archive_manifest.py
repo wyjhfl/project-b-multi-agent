@@ -170,7 +170,7 @@ def build_evidence_archive_manifest(
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.5.0",
+        "version": "3.6.0",
         "manifest_id": manifest_id,
         "status": status,
         "evidence_roots": evidence_root_rows,

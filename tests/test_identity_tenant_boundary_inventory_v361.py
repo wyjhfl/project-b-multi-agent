@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -19,7 +19,7 @@ def test_identity_tenant_boundary_inventory_generates_outputs(tmp_path: Path) ->
     assert summary["real_llm_executed"] is False
     assert summary["real_idp_connected"] is False
     assert summary["tenant_enforcement_enabled"] is False
-    assert payload["version"] == "3.5.0"
+    assert payload["version"] == "3.6.0"
     assert payload["phase"] == "v3.6 Phase 16.1"
     assert payload["output_dir"] == str(tmp_path / "out")
     assert Path(summary["markdown_path"]).exists()

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -20,7 +20,7 @@ def test_governance_exception_register_generates_default_skipped_register(tmp_pa
     payload = _read_payload(summary)
 
     assert summary["status"] == "skipped"
-    assert payload["version"] == "3.5.0"
+    assert payload["version"] == "3.6.0"
     assert payload["mode"] == "fake_offline_default"
     assert payload["read_only"] is True
     assert payload["real_llm_executed"] is False
@@ -49,7 +49,7 @@ def test_governance_exception_register_uses_source_metadata_without_approval(tmp
             path,
             {
                 "status": status,
-                "version": "3.5.0",
+                "version": "3.6.0",
                 "mode": "fake_offline_default",
                 "read_only": True,
                 "real_llm_executed": False,

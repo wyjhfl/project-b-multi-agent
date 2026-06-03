@@ -4,8 +4,8 @@
 
 - v3.6 = **Enterprise Identity & Tenant Boundary**。
 - 核心目标：在 v3.5 已完成受控试点证据运营闭环后，进入企业身份、权限、租户边界和审计隔离的专项设计与验收准备。
-- 当前仅进入规划阶段，版本保持 `3.5.0`。
-- 本轮不改业务逻辑、不改版本号、不打 tag、不创建 GitHub Release。
+- 当前已进入 release prep，版本已同步为 `3.6.0`。
+- 本轮不打 tag、不创建 GitHub Release、不移动历史 tag。
 
 ## 现状基线
 
@@ -149,6 +149,7 @@ docker compose config
 - 权限矩阵可解释每类角色可执行和不可执行的关键动作。
 - 拒绝路径包含 401/403 验收口径。
 - 输出保留默认关闭边界。
+- 本阶段交付物已落地：`docs/rbac_permission_matrix_v36.md`、`scripts/rbac_permission_matrix.py`、`tests/test_rbac_permission_matrix_v363.py`。
 
 ## Phase 16.4：OIDC lifecycle drill plan（P1）
 
@@ -181,6 +182,7 @@ docker compose config
 - 缺少真实 IdP opt-in 条件必须记录为 `skipped`。
 - 所有 secret 只输出 env name 与 present 布尔状态。
 - 生命周期演练清楚区分配置预检、真实 IdP 联调和生产验收。
+- 本阶段交付物已落地：`docs/oidc_lifecycle_drill_v36.md`、`scripts/oidc_lifecycle_drill.py`、`tests/test_oidc_lifecycle_drill_v364.py`。
 
 ## Phase 16.5：Cross-tenant audit and denial evidence（P2）
 
@@ -211,6 +213,9 @@ docker compose config
 
 - 证据模板能覆盖允许、拒绝、审计记录、导出脱敏和复核责任人。
 - 明确哪些能力当前是规划/模板，哪些能力已由现有代码支持。
+- 本阶段交付物已落地：`docs/cross_tenant_audit_evidence_v36.md`、`scripts/cross_tenant_audit_evidence.py`、`tests/test_cross_tenant_audit_evidence_v365.py`。
+- 输出明确 `read_only=true`、`tenant_enforcement_enabled=false`、`audit_store_schema_changed=false`、`secret_plaintext_output=false`、`prompt_plaintext_output=false`。
+- 发现 prompt/secret/token/连接串密码原文输入时必须记录为 `blocked`，且不得输出原文。
 
 ## Phase 16.6：v3.6 release prep（P2）
 
@@ -247,11 +252,14 @@ npm --prefix frontend run build
 - release notes 覆盖 Phase 16.1~16.5、状态边界与默认 fake/offline 约束。
 - release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
 - 明确可进入 tag 决策前复核，但 release prep 当轮是否打 tag 需单独确认。
+- 本阶段交付物已落地：`RELEASE_NOTES_v3.6.0.md`、`docs/release_review_v3.6_enterprise_identity_tenant_boundary.md`。
+- 版本已同步到 `3.6.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、脚本 version markers、相关测试断言。
+- 本轮 release prep 不打 tag、不创建 GitHub Release、不移动历史 tag。
 
 ## 本轮规划验收
 
 - 新增本规划文档。
 - README、AGENTS、生产就绪清单记录 v3.6 规划入口。
-- 本轮不改业务逻辑、不改版本号、不打 tag、不创建 Release。
+- 本轮已完成 release prep 版本同步，但不打 tag、不创建 Release。
 - 本轮不执行真实外网 LLM，不连接真实 IdP。
 - 默认 fake/offline 和默认 pytest/CI 不调用真实 LLM边界保持不变。

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -484,7 +484,7 @@ def build_controlled_integration_dry_run(
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.5.0",
+        "version": "3.6.0",
         "mode": "fake_offline_default",
         "status": status,
         "status_vocabulary": STATUS_VOCABULARY,

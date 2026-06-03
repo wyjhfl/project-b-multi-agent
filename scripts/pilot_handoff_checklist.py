@@ -133,7 +133,7 @@ def build_pilot_handoff_checklist(*, output_dir: str | Path | None = None) -> di
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.5.0",
+        "version": "3.6.0",
         "status": status,
         "mode": "fake_offline_default",
         "read_only": True,
