@@ -2849,6 +2849,164 @@ def test_operations_summary_should_include_production_landing_text_quality_lates
     assert "sk-should-not-leak" not in text
 
 
+def test_operations_summary_should_include_business_system_input_packet_latest_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    report_dir = tmp_path / "docs" / "reports" / "business_system_input_packet"
+    report_dir.mkdir(parents=True)
+    monkeypatch.setenv("BUSINESS_SYSTEM_INPUT_PACKET_REPORT_DIR", str(report_dir))
+    payload = {
+        "generated_at": "2026-06-06T00:00:00+00:00",
+        "status": "needs_input",
+        "ready_for_real_read_smoke": False,
+        "owner_inputs_present": {
+            "business_owner": False,
+            "security_reviewer": True,
+        },
+        "config": {
+            "enabled": False,
+            "read_only": False,
+            "write_enabled": False,
+            "approval_required": False,
+            "audit_required": False,
+            "system_name": "crm",
+            "base_url_env": "BUSINESS_SYSTEM_BASE_URL",
+            "base_url_present": False,
+            "token_env": "BUSINESS_SYSTEM_TOKEN",
+            "token_present": False,
+            "tool_allowlist_count": 1,
+            "write_tool_allowlist_count": 0,
+            "timeout_seconds": 5,
+            "read_probe_path_configured": True,
+            "auth_header_name": "Authorization",
+            "auth_scheme_configured": True,
+        },
+        "missing_conditions": ["owner:business_owner_missing", "token=sk-should-not-leak"],
+        "missing_condition_count": 2,
+        "required_inputs": [
+            {
+                "id": "business_owner_chain",
+                "env": ["BUSINESS_SYSTEM_BUSINESS_OWNER"],
+                "description": "负责人",
+            }
+        ],
+        "local_env_template_lines": [
+            "BUSINESS_SYSTEM_BASE_URL=<secret-managed-url>",
+            "BUSINESS_SYSTEM_TOKEN=<secret-managed-token>",
+        ],
+        "manual_input_checklist": [
+            {
+                "id": "credential",
+                "env": ["BUSINESS_SYSTEM_TOKEN"],
+                "description": "只读 token",
+            }
+        ],
+        "recommended_commands": ["powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"],
+        "business_write_executed": False,
+        "business_data_written": False,
+        "secret_plaintext_output": False,
+        "public_production_direct_launch": "No-Go",
+    }
+    (report_dir / "001_business_system_input_packet.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    data = response.json()
+    packet = data["observability"]["business_system_input_packet"]
+    text = json.dumps(data, ensure_ascii=False)
+
+    assert packet["latest_report_present"] is True
+    assert packet["status"] == "needs_input"
+    assert packet["ready_for_real_read_smoke"] is False
+    assert packet["owner_inputs_present"]["business_owner"] is False
+    assert packet["config"]["base_url_env"] == "BUSINESS_SYSTEM_BASE_URL"
+    assert packet["local_env_template_lines"][0] == "BUSINESS_SYSTEM_BASE_URL=<secret-managed-url>"
+    assert packet["manual_input_checklist"][0]["id"] == "credential"
+    assert packet["recommended_commands"][0].endswith("scripts\\business_system_read_smoke.ps1")
+    assert packet["missing_conditions"] == ["owner:business_owner_missing", "[redacted-secret-like-command]"]
+    assert packet["public_production_direct_launch"] == "No-Go"
+    assert packet["secret_plaintext_output"] is False
+    assert data["observability"]["last_known_report_counts"]["business_system_input_packet_reports"] == 1
+    assert "sk-should-not-leak" not in text
+
+
+def test_operations_summary_should_include_production_landing_evidence_freshness_latest_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    report_dir = tmp_path / "docs" / "reports" / "production_landing_evidence_freshness"
+    report_dir.mkdir(parents=True)
+    monkeypatch.setenv("PRODUCTION_LANDING_EVIDENCE_FRESHNESS_REPORT_DIR", str(report_dir))
+    payload = {
+        "generated_at": "2026-06-06T00:00:00+00:00",
+        "status": "partial",
+        "current_commit": "abcdef1234567890",
+        "worktree_clean": False,
+        "source_count": 2,
+        "stale_source_count": 1,
+        "sources": [
+            {
+                "source_id": "production_landing_status",
+                "present": True,
+                "status": "partial",
+                "generated_at": "2026-06-06T00:00:00+00:00",
+                "report_commit": "abcdef1234567890",
+                "commit_matches_head": True,
+                "secret_like_detected": False,
+                "missing_conditions": [],
+            },
+            {
+                "source_id": "business_system_input_packet",
+                "present": True,
+                "status": "needs_input",
+                "generated_at": "2026-06-06T00:00:00+00:00",
+                "report_commit": "100cdc2",
+                "commit_matches_head": False,
+                "secret_like_detected": True,
+                "missing_conditions": ["token=sk-should-not-leak"],
+            },
+        ],
+        "missing_conditions": ["git:worktree_dirty", "token=sk-should-not-leak"],
+        "public_production_direct_launch": "No-Go",
+        "secret_plaintext_output": False,
+        "auto_approved": False,
+        "auto_closed": False,
+    }
+    (report_dir / "001_production_landing_evidence_freshness.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    data = response.json()
+    freshness = data["observability"]["production_landing_evidence_freshness"]
+    text = json.dumps(data, ensure_ascii=False)
+
+    assert freshness["latest_report_present"] is True
+    assert freshness["status"] == "partial"
+    assert freshness["worktree_clean"] is False
+    assert freshness["stale_source_count"] == 1
+    assert freshness["source_count"] == 2
+    assert freshness["sources"][0]["commit_matches_head"] is True
+    assert freshness["sources"][1]["secret_like_detected"] is True
+    assert freshness["sources"][1]["missing_conditions"] == ["[redacted-secret-like-command]"]
+    assert freshness["missing_conditions"] == ["git:worktree_dirty", "[redacted-secret-like-command]"]
+    assert freshness["public_production_direct_launch"] == "No-Go"
+    assert freshness["auto_approved"] is False
+    assert freshness["auto_closed"] is False
+    assert data["observability"]["last_known_report_counts"]["production_landing_evidence_freshness_reports"] == 1
+    assert "sk-should-not-leak" not in text
+
+
 def test_operations_summary_should_include_operations_console_landing_smoke_latest_report(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
     monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))

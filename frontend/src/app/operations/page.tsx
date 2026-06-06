@@ -1800,6 +1800,70 @@ export default async function OperationsOverviewPage() {
           </section>
 
           <section className="section card">
+            <h2 className="card-title">Production landing evidence freshness (read only)</h2>
+            {!summary.observability.production_landing_evidence_freshness ? (
+              <div className="empty">no production landing evidence freshness summary</div>
+            ) : (
+              <div className="stack">
+                <div className="mono path-break">
+                  status={summary.observability.production_landing_evidence_freshness.status} worktree_clean=
+                  {String(summary.observability.production_landing_evidence_freshness.worktree_clean)} stale_sources=
+                  {summary.observability.production_landing_evidence_freshness.stale_source_count}/
+                  {summary.observability.production_landing_evidence_freshness.source_count}
+                </div>
+                <div className="mono path-break">
+                  current_commit={summary.observability.production_landing_evidence_freshness.current_commit || "-"}
+                </div>
+                <div className="mono path-break">
+                  report_present={String(summary.observability.production_landing_evidence_freshness.latest_report_present)} report_dir=
+                  {summary.observability.production_landing_evidence_freshness.report_dir}
+                </div>
+                <div className="mono path-break">
+                  public_production_direct_launch=
+                  {summary.observability.production_landing_evidence_freshness.public_production_direct_launch} auto_approved=
+                  {String(summary.observability.production_landing_evidence_freshness.auto_approved)} auto_closed=
+                  {String(summary.observability.production_landing_evidence_freshness.auto_closed)} secret_plaintext_output=
+                  {String(summary.observability.production_landing_evidence_freshness.secret_plaintext_output)}
+                </div>
+                <div className="mono path-break">
+                  missing_conditions=
+                  {summary.observability.production_landing_evidence_freshness.missing_conditions.join(" | ") || "-"}
+                </div>
+                {summary.observability.production_landing_evidence_freshness.sources.length === 0 ? (
+                  <div className="empty">no evidence freshness source rows</div>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>source</th>
+                          <th>status</th>
+                          <th>present</th>
+                          <th>head</th>
+                          <th>secret</th>
+                          <th>missing</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {summary.observability.production_landing_evidence_freshness.sources.map((item) => (
+                          <tr key={item.source_id}>
+                            <td className="mono path-break">{item.source_id}</td>
+                            <td>{item.status}</td>
+                            <td>{String(item.present)}</td>
+                            <td>{String(item.commit_matches_head)}</td>
+                            <td>{String(item.secret_like_detected)}</td>
+                            <td className="mono path-break">{item.missing_conditions.join(" | ") || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          <section className="section card">
             <h2 className="card-title">Xiaomi LLM preflight (process env only)</h2>
             {!summary.observability.production_landing_xiaomi_llm_preflight ? (
               <div className="empty">no Xiaomi LLM preflight summary</div>
@@ -1921,6 +1985,68 @@ export default async function OperationsOverviewPage() {
                   <div className="mono path-break">
                     missing_conditions=
                     {summary.observability.operations_console_landing_smoke.missing_conditions.join(" | ")}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          <section className="section card">
+            <h2 className="card-title">Business system input packet (read only)</h2>
+            {!summary.observability.business_system_input_packet ? (
+              <div className="empty">no business input packet summary</div>
+            ) : (
+              <div className="stack">
+                <div className="mono path-break">
+                  status={summary.observability.business_system_input_packet.status} ready_for_real_read_smoke=
+                  {String(summary.observability.business_system_input_packet.ready_for_real_read_smoke)} missing_count=
+                  {summary.observability.business_system_input_packet.missing_condition_count}
+                </div>
+                <div className="mono path-break">
+                  report_present={String(summary.observability.business_system_input_packet.latest_report_present)} report_dir=
+                  {summary.observability.business_system_input_packet.report_dir}
+                </div>
+                <div className="mono path-break">
+                  owners=
+                  {Object.entries(summary.observability.business_system_input_packet.owner_inputs_present)
+                    .map(([key, value]) => `${key}:${String(value)}`)
+                    .join(" ; ") || "-"}
+                </div>
+                <div className="mono path-break">
+                  config_enabled={String(Boolean(summary.observability.business_system_input_packet.config.enabled))} read_only=
+                  {String(Boolean(summary.observability.business_system_input_packet.config.read_only))} write_enabled=
+                  {String(Boolean(summary.observability.business_system_input_packet.config.write_enabled))} base_url_present=
+                  {String(Boolean(summary.observability.business_system_input_packet.config.base_url_present))} token_present=
+                  {String(Boolean(summary.observability.business_system_input_packet.config.token_present))}
+                </div>
+                <div className="mono path-break">
+                  local_env_template=
+                  {summary.observability.business_system_input_packet.local_env_template_lines.slice(0, 8).join(" ; ") ||
+                    "-"}
+                </div>
+                <div className="mono path-break">
+                  manual_checklist=
+                  {summary.observability.business_system_input_packet.manual_input_checklist
+                    .map((item) => item.id)
+                    .join(" ; ") || "-"}
+                </div>
+                <div className="mono path-break">
+                  recommended_commands=
+                  {summary.observability.business_system_input_packet.recommended_commands.join(" ; ") || "-"}
+                </div>
+                <div className="mono path-break">
+                  business_write_executed=
+                  {String(summary.observability.business_system_input_packet.business_write_executed)} business_data_written=
+                  {String(summary.observability.business_system_input_packet.business_data_written)} public_production_direct_launch=
+                  {summary.observability.business_system_input_packet.public_production_direct_launch} secret_plaintext_output=
+                  {String(summary.observability.business_system_input_packet.secret_plaintext_output)}
+                </div>
+                {summary.observability.business_system_input_packet.missing_conditions.length === 0 ? (
+                  <div className="empty">no missing conditions</div>
+                ) : (
+                  <div className="mono path-break">
+                    missing_conditions=
+                    {summary.observability.business_system_input_packet.missing_conditions.join(" | ")}
                   </div>
                 )}
               </div>

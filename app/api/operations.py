@@ -29,6 +29,8 @@ PRODUCTION_PILOT_SIGNOFF_RUNBOOK_PATH = "scripts/production_pilot_signoff_summar
 PRODUCTION_PILOT_SIGNOFF_DEFAULT_DIR = "docs/reports/production_pilot_signoff"
 BUSINESS_SYSTEM_READ_SMOKE_RUNBOOK_PATH = "scripts/business_system_read_smoke.py"
 BUSINESS_SYSTEM_READ_SMOKE_DEFAULT_DIR = "docs/reports/business_system_read_smoke"
+BUSINESS_SYSTEM_INPUT_PACKET_RUNBOOK_PATH = "scripts/business_system_input_packet.py"
+BUSINESS_SYSTEM_INPUT_PACKET_DEFAULT_DIR = "docs/reports/business_system_input_packet"
 BUSINESS_SYSTEM_PRODUCTION_READINESS_RUNBOOK_PATH = "scripts/business_system_production_readiness_brief.py"
 BUSINESS_SYSTEM_PRODUCTION_READINESS_DEFAULT_DIR = "docs/reports/business_system_production_readiness"
 REAL_INTEGRATION_STAGING_SMOKE_RUNBOOK_PATH = "scripts/real_integration_staging_smoke.py"
@@ -90,6 +92,8 @@ MANUAL_SIGNOFF_RECORD_PROMOTE_RUNBOOK_PATH = "scripts/manual_signoff_record_prom
 MANUAL_SIGNOFF_RECORD_PROMOTE_DEFAULT_DIR = "docs/reports/manual_signoff_record_promote"
 PRODUCTION_LANDING_TEXT_QUALITY_RUNBOOK_PATH = "scripts/production_landing_text_quality_check.py"
 PRODUCTION_LANDING_TEXT_QUALITY_DEFAULT_DIR = "docs/reports/production_landing_text_quality"
+PRODUCTION_LANDING_EVIDENCE_FRESHNESS_RUNBOOK_PATH = "scripts/production_landing_evidence_freshness.py"
+PRODUCTION_LANDING_EVIDENCE_FRESHNESS_DEFAULT_DIR = "docs/reports/production_landing_evidence_freshness"
 PRODUCTION_PILOT_EVIDENCE_BUNDLE_RUNBOOK_PATH = "scripts/production_pilot_evidence_bundle.py"
 PRODUCTION_PILOT_EVIDENCE_BUNDLE_DEFAULT_DIR = "docs/reports/production_pilot_evidence_bundle"
 CONTROLLED_PILOT_LAUNCH_GATE_RUNBOOK_PATH = "scripts/controlled_pilot_launch_gate.py"
@@ -123,6 +127,7 @@ V4_EVIDENCE_RUNBOOKS = {
     "production_pilot_bootstrap": PRODUCTION_PILOT_BOOTSTRAP_RUNBOOK_PATH,
     "production_pilot_signoff": PRODUCTION_PILOT_SIGNOFF_RUNBOOK_PATH,
     "business_system_read_smoke": BUSINESS_SYSTEM_READ_SMOKE_RUNBOOK_PATH,
+    "business_system_input_packet": BUSINESS_SYSTEM_INPUT_PACKET_RUNBOOK_PATH,
     "business_system_production_readiness": BUSINESS_SYSTEM_PRODUCTION_READINESS_RUNBOOK_PATH,
     "real_integration_staging_smoke": REAL_INTEGRATION_STAGING_SMOKE_RUNBOOK_PATH,
     "production_landing_input_readiness": PRODUCTION_LANDING_INPUT_READINESS_RUNBOOK_PATH,
@@ -145,6 +150,7 @@ V4_EVIDENCE_RUNBOOKS = {
     "production_landing_signoff_reviewer_packet": PRODUCTION_LANDING_SIGNOFF_REVIEWER_PACKET_RUNBOOK_PATH,
     "manual_signoff_record_promote": MANUAL_SIGNOFF_RECORD_PROMOTE_RUNBOOK_PATH,
     "production_landing_text_quality": PRODUCTION_LANDING_TEXT_QUALITY_RUNBOOK_PATH,
+    "production_landing_evidence_freshness": PRODUCTION_LANDING_EVIDENCE_FRESHNESS_RUNBOOK_PATH,
     "production_pilot_evidence_bundle": PRODUCTION_PILOT_EVIDENCE_BUNDLE_RUNBOOK_PATH,
     "controlled_pilot_launch_gate": CONTROLLED_PILOT_LAUNCH_GATE_RUNBOOK_PATH,
     "controlled_pilot_launch_package": CONTROLLED_PILOT_LAUNCH_PACKAGE_RUNBOOK_PATH,
@@ -169,6 +175,7 @@ V4_EVIDENCE_DIRS = {
     "production_pilot_bootstrap": PRODUCTION_PILOT_BOOTSTRAP_DEFAULT_DIR,
     "production_pilot_signoff": PRODUCTION_PILOT_SIGNOFF_DEFAULT_DIR,
     "business_system_read_smoke": BUSINESS_SYSTEM_READ_SMOKE_DEFAULT_DIR,
+    "business_system_input_packet": BUSINESS_SYSTEM_INPUT_PACKET_DEFAULT_DIR,
     "business_system_production_readiness": BUSINESS_SYSTEM_PRODUCTION_READINESS_DEFAULT_DIR,
     "real_integration_staging_smoke": REAL_INTEGRATION_STAGING_SMOKE_DEFAULT_DIR,
     "production_landing_input_readiness": PRODUCTION_LANDING_INPUT_READINESS_DEFAULT_DIR,
@@ -191,6 +198,7 @@ V4_EVIDENCE_DIRS = {
     "production_landing_signoff_reviewer_packet": PRODUCTION_LANDING_SIGNOFF_REVIEWER_PACKET_DEFAULT_DIR,
     "manual_signoff_record_promote": MANUAL_SIGNOFF_RECORD_PROMOTE_DEFAULT_DIR,
     "production_landing_text_quality": PRODUCTION_LANDING_TEXT_QUALITY_DEFAULT_DIR,
+    "production_landing_evidence_freshness": PRODUCTION_LANDING_EVIDENCE_FRESHNESS_DEFAULT_DIR,
     "production_pilot_evidence_bundle": PRODUCTION_PILOT_EVIDENCE_BUNDLE_DEFAULT_DIR,
     "controlled_pilot_launch_gate": CONTROLLED_PILOT_LAUNCH_GATE_DEFAULT_DIR,
     "controlled_pilot_launch_package": CONTROLLED_PILOT_LAUNCH_PACKAGE_DEFAULT_DIR,
@@ -468,6 +476,11 @@ def _get_business_system_read_smoke_report_dir() -> str:
     return override or BUSINESS_SYSTEM_READ_SMOKE_DEFAULT_DIR
 
 
+def _get_business_system_input_packet_report_dir() -> str:
+    override = (os.getenv("BUSINESS_SYSTEM_INPUT_PACKET_REPORT_DIR", "") or "").strip()
+    return override or BUSINESS_SYSTEM_INPUT_PACKET_DEFAULT_DIR
+
+
 def _get_business_system_production_readiness_report_dir() -> str:
     override = (os.getenv("BUSINESS_SYSTEM_PRODUCTION_READINESS_REPORT_DIR", "") or "").strip()
     return override or BUSINESS_SYSTEM_PRODUCTION_READINESS_DEFAULT_DIR
@@ -571,6 +584,11 @@ def _get_manual_signoff_record_promote_report_dir() -> str:
 def _get_production_landing_text_quality_report_dir() -> str:
     override = (os.getenv("PRODUCTION_LANDING_TEXT_QUALITY_REPORT_DIR", "") or "").strip()
     return override or PRODUCTION_LANDING_TEXT_QUALITY_DEFAULT_DIR
+
+
+def _get_production_landing_evidence_freshness_report_dir() -> str:
+    override = (os.getenv("PRODUCTION_LANDING_EVIDENCE_FRESHNESS_REPORT_DIR", "") or "").strip()
+    return override or PRODUCTION_LANDING_EVIDENCE_FRESHNESS_DEFAULT_DIR
 
 
 def _get_production_pilot_evidence_bundle_report_dir() -> str:
@@ -1603,6 +1621,109 @@ def _collect_business_system_read_smoke_summary() -> dict[str, Any]:
         "business_system_read_smoke": str(go_no_go.get("business_system_read_smoke") or "Needs-Input"),
         "public_production_direct_launch": str(go_no_go.get("public_production_direct_launch") or "No-Go"),
         "manual_signoff_required": bool(go_no_go.get("manual_signoff_required", True)),
+    }
+
+
+def _safe_business_input_items(value: Any, *, limit: int = 8) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for item in value[:limit]:
+        if not isinstance(item, dict):
+            continue
+        env = item.get("env") if isinstance(item.get("env"), list) else []
+        rows.append(
+            {
+                "id": _safe_text_value(item.get("id") or ""),
+                "env": [_safe_text_value(env_item) for env_item in env[:16]],
+                "description": _safe_text_value(item.get("description") or ""),
+            }
+        )
+    return rows
+
+
+def _collect_business_system_input_packet_summary() -> dict[str, Any]:
+    report_dir = _get_business_system_input_packet_report_dir()
+    latest = _latest_json_report(report_dir)
+    base = {
+        "mode": "read_only_latest_report",
+        "runbook_path": BUSINESS_SYSTEM_INPUT_PACKET_RUNBOOK_PATH,
+        "report_dir": report_dir,
+        "directory_exists": Path(report_dir).exists(),
+        "latest_report_present": False,
+        "status": "skipped",
+        "generated_at": "",
+        "ready_for_real_read_smoke": False,
+        "owner_inputs_present": {},
+        "config": {},
+        "missing_conditions": ["business_system_input_packet:report_not_found"],
+        "missing_condition_count": 1,
+        "required_inputs": [],
+        "local_env_template_lines": [],
+        "manual_input_checklist": [],
+        "recommended_commands": [],
+        "business_write_executed": False,
+        "business_data_written": False,
+        "secret_plaintext_output": False,
+        "public_production_direct_launch": "No-Go",
+    }
+    if latest is None:
+        return base
+
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            **base,
+            "directory_exists": True,
+            "latest_report_present": True,
+            "latest_json_path": str(latest),
+            "status": "blocked",
+            "missing_conditions": ["business_system_input_packet:json_parse_failed"],
+        }
+
+    owners = payload.get("owner_inputs_present") if isinstance(payload.get("owner_inputs_present"), dict) else {}
+    config = payload.get("config") if isinstance(payload.get("config"), dict) else {}
+    missing = payload.get("missing_conditions") if isinstance(payload.get("missing_conditions"), list) else []
+    template_lines = payload.get("local_env_template_lines") if isinstance(payload.get("local_env_template_lines"), list) else []
+    commands = payload.get("recommended_commands") if isinstance(payload.get("recommended_commands"), list) else []
+    return {
+        **base,
+        "directory_exists": True,
+        "latest_report_present": True,
+        "latest_json_path": str(latest),
+        "status": _safe_text_value(payload.get("status") or "skipped"),
+        "generated_at": _safe_text_value(payload.get("generated_at") or ""),
+        "ready_for_real_read_smoke": bool(payload.get("ready_for_real_read_smoke", False)),
+        "owner_inputs_present": {str(key): bool(value) for key, value in owners.items()},
+        "config": {
+            "enabled": bool(config.get("enabled", False)),
+            "read_only": bool(config.get("read_only", False)),
+            "write_enabled": bool(config.get("write_enabled", False)),
+            "approval_required": bool(config.get("approval_required", False)),
+            "audit_required": bool(config.get("audit_required", False)),
+            "system_name": _safe_text_value(config.get("system_name") or ""),
+            "base_url_env": _safe_text_value(config.get("base_url_env") or ""),
+            "base_url_present": bool(config.get("base_url_present", False)),
+            "token_env": _safe_text_value(config.get("token_env") or ""),
+            "token_present": bool(config.get("token_present", False)),
+            "tool_allowlist_count": int(config.get("tool_allowlist_count", 0) or 0),
+            "write_tool_allowlist_count": int(config.get("write_tool_allowlist_count", 0) or 0),
+            "timeout_seconds": float(config.get("timeout_seconds", 0) or 0),
+            "read_probe_path_configured": bool(config.get("read_probe_path_configured", False)),
+            "auth_header_name": _safe_text_value(config.get("auth_header_name") or ""),
+            "auth_scheme_configured": bool(config.get("auth_scheme_configured", False)),
+        },
+        "missing_conditions": [_safe_text_value(item) for item in missing[:32]],
+        "missing_condition_count": int(payload.get("missing_condition_count") or len(missing)),
+        "required_inputs": _safe_business_input_items(payload.get("required_inputs"), limit=8),
+        "local_env_template_lines": [_safe_text_value(item) for item in template_lines[:32]],
+        "manual_input_checklist": _safe_business_input_items(payload.get("manual_input_checklist"), limit=8),
+        "recommended_commands": [_safe_text_value(item) for item in commands[:8]],
+        "business_write_executed": bool(payload.get("business_write_executed", False)),
+        "business_data_written": bool(payload.get("business_data_written", False)),
+        "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
+        "public_production_direct_launch": _safe_text_value(payload.get("public_production_direct_launch") or "No-Go"),
     }
 
 
@@ -4183,6 +4304,100 @@ def _collect_production_landing_text_quality_summary() -> dict[str, Any]:
     }
 
 
+def _safe_evidence_freshness_sources(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    rows = []
+    for item in value[:24]:
+        if not isinstance(item, dict):
+            continue
+        missing = item.get("missing_conditions") if isinstance(item.get("missing_conditions"), list) else []
+        rows.append(
+            {
+                "source_id": _safe_text_value(item.get("source_id") or ""),
+                "present": bool(item.get("present", False)),
+                "status": _safe_text_value(item.get("status") or "unknown"),
+                "generated_at": _safe_text_value(item.get("generated_at") or ""),
+                "report_commit": _safe_text_value(item.get("report_commit") or ""),
+                "commit_matches_head": bool(item.get("commit_matches_head", False)),
+                "secret_like_detected": bool(item.get("secret_like_detected", False)),
+                "missing_conditions": [_safe_text_value(condition) for condition in missing[:16]],
+            }
+        )
+    return rows
+
+
+def _collect_production_landing_evidence_freshness_summary() -> dict[str, Any]:
+    report_dir = _get_production_landing_evidence_freshness_report_dir()
+    latest = _latest_json_report(report_dir)
+    if latest is None:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": PRODUCTION_LANDING_EVIDENCE_FRESHNESS_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": Path(report_dir).exists(),
+            "latest_report_present": False,
+            "status": "skipped",
+            "generated_at": "",
+            "current_commit": "",
+            "worktree_clean": False,
+            "source_count": 0,
+            "stale_source_count": 0,
+            "sources": [],
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+            "auto_approved": False,
+            "auto_closed": False,
+        }
+
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": PRODUCTION_LANDING_EVIDENCE_FRESHNESS_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": True,
+            "latest_report_present": True,
+            "latest_json_path": str(latest),
+            "status": "blocked",
+            "generated_at": "",
+            "current_commit": "",
+            "worktree_clean": False,
+            "source_count": 0,
+            "stale_source_count": 1,
+            "sources": [],
+            "missing_conditions": ["production_landing_evidence_freshness:json_parse_failed"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+            "auto_approved": False,
+            "auto_closed": False,
+        }
+
+    missing = payload.get("missing_conditions") if isinstance(payload.get("missing_conditions"), list) else []
+    return {
+        "mode": "read_only_latest_report",
+        "runbook_path": PRODUCTION_LANDING_EVIDENCE_FRESHNESS_RUNBOOK_PATH,
+        "report_dir": report_dir,
+        "directory_exists": True,
+        "latest_report_present": True,
+        "latest_json_path": str(latest),
+        "status": _safe_text_value(payload.get("status") or "skipped"),
+        "generated_at": _safe_text_value(payload.get("generated_at") or ""),
+        "current_commit": _safe_text_value(payload.get("current_commit") or payload.get("commit") or ""),
+        "worktree_clean": bool(payload.get("worktree_clean", False)),
+        "source_count": int(payload.get("source_count", 0) or 0),
+        "stale_source_count": int(payload.get("stale_source_count", 0) or 0),
+        "sources": _safe_evidence_freshness_sources(payload.get("sources")),
+        "missing_conditions": [_safe_text_value(condition) for condition in missing[:32]],
+        "public_production_direct_launch": _safe_text_value(payload.get("public_production_direct_launch") or "No-Go"),
+        "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
+        "auto_approved": bool(payload.get("auto_approved", False)),
+        "auto_closed": bool(payload.get("auto_closed", False)),
+    }
+
+
 def _collect_v4_evidence_summary() -> dict[str, Any]:
     entries = {
         key: {
@@ -4222,6 +4437,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     production_runtime_smoke = _collect_production_runtime_smoke_summary()
     production_pilot_signoff = _collect_production_pilot_signoff_summary()
     business_system_read_smoke = _collect_business_system_read_smoke_summary()
+    business_system_input_packet = _collect_business_system_input_packet_summary()
     business_system_production_readiness = _collect_business_system_production_readiness_summary()
     real_integration_staging_smoke = _collect_real_integration_staging_smoke_summary()
     real_production_environment_checklist = _collect_real_production_environment_checklist_summary()
@@ -4266,6 +4482,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     production_landing_signoff_reviewer_packet = _collect_production_landing_signoff_reviewer_packet_summary()
     manual_signoff_record_promote = _collect_manual_signoff_record_promote_summary()
     production_landing_text_quality = _collect_production_landing_text_quality_summary()
+    production_landing_evidence_freshness = _collect_production_landing_evidence_freshness_summary()
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -4294,6 +4511,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
             "production_runtime_smoke": production_runtime_smoke,
             "production_pilot_signoff": production_pilot_signoff,
             "business_system_read_smoke": business_system_read_smoke,
+            "business_system_input_packet": business_system_input_packet,
             "business_system_production_readiness": business_system_production_readiness,
             "real_integration_staging_smoke": real_integration_staging_smoke,
             "real_production_environment_checklist": real_production_environment_checklist,
@@ -4324,6 +4542,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
             "production_landing_signoff_reviewer_packet": production_landing_signoff_reviewer_packet,
             "manual_signoff_record_promote": manual_signoff_record_promote,
             "production_landing_text_quality": production_landing_text_quality,
+            "production_landing_evidence_freshness": production_landing_evidence_freshness,
             "v4_evidence": v4_evidence,
             "last_known_report_counts": {
                 "pilot_reports": int(pilot_reports.get("total_reports", 0) or 0),
@@ -4343,6 +4562,9 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
                 ),
                 "business_system_read_smoke_reports": int(
                     _count_json_reports(_get_business_system_read_smoke_report_dir()).get("json_report_count", 0) or 0
+                ),
+                "business_system_input_packet_reports": int(
+                    _count_json_reports(_get_business_system_input_packet_report_dir()).get("json_report_count", 0) or 0
                 ),
                 "business_system_production_readiness_reports": int(
                     _count_json_reports(_get_business_system_production_readiness_report_dir()).get(
@@ -4473,6 +4695,12 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
                 ),
                 "production_landing_text_quality_reports": int(
                     _count_json_reports(_get_production_landing_text_quality_report_dir()).get(
+                        "json_report_count", 0
+                    )
+                    or 0
+                ),
+                "production_landing_evidence_freshness_reports": int(
+                    _count_json_reports(_get_production_landing_evidence_freshness_report_dir()).get(
                         "json_report_count", 0
                     )
                     or 0

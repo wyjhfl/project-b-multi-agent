@@ -581,6 +581,30 @@ export interface BusinessSystemReadSmokeSummary {
   manual_signoff_required: boolean;
 }
 
+export interface BusinessSystemInputPacketSummary {
+  mode: string;
+  runbook_path: string;
+  report_dir: string;
+  directory_exists: boolean;
+  latest_report_present: boolean;
+  latest_json_path?: string;
+  status: string;
+  generated_at: string;
+  ready_for_real_read_smoke: boolean;
+  owner_inputs_present: Record<string, boolean>;
+  config: Record<string, unknown>;
+  missing_conditions: string[];
+  missing_condition_count: number;
+  required_inputs: Array<{ id: string; env: string[]; description: string }>;
+  local_env_template_lines: string[];
+  manual_input_checklist: Array<{ id: string; env: string[]; description: string }>;
+  recommended_commands: string[];
+  business_write_executed: boolean;
+  business_data_written: boolean;
+  secret_plaintext_output: boolean;
+  public_production_direct_launch: string;
+}
+
 export interface BusinessSystemProductionReadinessSummary {
   mode: string;
   runbook_path: string;
@@ -1518,6 +1542,36 @@ export interface ProductionLandingTextQualitySummary {
   auto_closed: boolean;
 }
 
+export interface ProductionLandingEvidenceFreshnessSummary {
+  mode: string;
+  runbook_path: string;
+  report_dir: string;
+  directory_exists: boolean;
+  latest_report_present: boolean;
+  latest_json_path?: string;
+  status: string;
+  generated_at: string;
+  current_commit: string;
+  worktree_clean: boolean;
+  source_count: number;
+  stale_source_count: number;
+  sources: Array<{
+    source_id: string;
+    present: boolean;
+    status: string;
+    generated_at: string;
+    report_commit: string;
+    commit_matches_head: boolean;
+    secret_like_detected: boolean;
+    missing_conditions: string[];
+  }>;
+  missing_conditions: string[];
+  public_production_direct_launch: string;
+  secret_plaintext_output: boolean;
+  auto_approved: boolean;
+  auto_closed: boolean;
+}
+
 export interface OperationsSummary {
   generated_at: string;
   mode: string;
@@ -1609,6 +1663,7 @@ export interface OperationsSummary {
       production_runtime_smoke_reports?: number;
       production_pilot_signoff_reports?: number;
       business_system_read_smoke_reports?: number;
+      business_system_input_packet_reports?: number;
       business_system_production_readiness_reports?: number;
       real_integration_staging_smoke_reports?: number;
       real_production_environment_checklist_reports?: number;
@@ -1639,12 +1694,14 @@ export interface OperationsSummary {
       production_landing_signoff_reviewer_packet_reports?: number;
       manual_signoff_record_promote_reports?: number;
       production_landing_text_quality_reports?: number;
+      production_landing_evidence_freshness_reports?: number;
     };
     production_pilot_bootstrap?: ProductionPilotBootstrapSummary;
     frontend_production_build?: FrontendProductionBuildSummary;
     production_runtime_smoke?: ProductionRuntimeSmokeSummary;
     production_pilot_signoff?: ProductionPilotSignoffSummary;
     business_system_read_smoke?: BusinessSystemReadSmokeSummary;
+    business_system_input_packet?: BusinessSystemInputPacketSummary;
     business_system_production_readiness?: BusinessSystemProductionReadinessSummary;
     real_integration_staging_smoke?: RealIntegrationStagingSmokeSummary;
     real_production_environment_checklist?: RealProductionEnvironmentChecklistSummary;
@@ -1675,6 +1732,7 @@ export interface OperationsSummary {
     production_landing_signoff_reviewer_packet?: ProductionLandingSignoffReviewerPacketSummary;
     manual_signoff_record_promote?: ManualSignoffRecordPromoteSummary;
     production_landing_text_quality?: ProductionLandingTextQualitySummary;
+    production_landing_evidence_freshness?: ProductionLandingEvidenceFreshnessSummary;
     v4_evidence?: V4EvidenceSummary;
   };
   demo_evidence: {
