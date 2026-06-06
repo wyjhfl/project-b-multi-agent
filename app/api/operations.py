@@ -33,6 +33,8 @@ BUSINESS_SYSTEM_INPUT_PACKET_RUNBOOK_PATH = "scripts/business_system_input_packe
 BUSINESS_SYSTEM_INPUT_PACKET_DEFAULT_DIR = "docs/reports/business_system_input_packet"
 BUSINESS_SYSTEM_PRODUCTION_READINESS_RUNBOOK_PATH = "scripts/business_system_production_readiness_brief.py"
 BUSINESS_SYSTEM_PRODUCTION_READINESS_DEFAULT_DIR = "docs/reports/business_system_production_readiness"
+BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_RUNBOOK_PATH = "scripts/business_system_landing_execution_pack.py"
+BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_DEFAULT_DIR = "docs/reports/business_system_landing_execution_pack"
 REAL_INTEGRATION_STAGING_SMOKE_RUNBOOK_PATH = "scripts/real_integration_staging_smoke.py"
 REAL_INTEGRATION_STAGING_SMOKE_DEFAULT_DIR = "docs/reports/real_integration_staging_smoke"
 REAL_PRODUCTION_ENVIRONMENT_CHECKLIST_RUNBOOK_PATH = "docs/v4_5_real_production_environment_landing_plan.md"
@@ -129,6 +131,7 @@ V4_EVIDENCE_RUNBOOKS = {
     "business_system_read_smoke": BUSINESS_SYSTEM_READ_SMOKE_RUNBOOK_PATH,
     "business_system_input_packet": BUSINESS_SYSTEM_INPUT_PACKET_RUNBOOK_PATH,
     "business_system_production_readiness": BUSINESS_SYSTEM_PRODUCTION_READINESS_RUNBOOK_PATH,
+    "business_system_landing_execution_pack": BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_RUNBOOK_PATH,
     "real_integration_staging_smoke": REAL_INTEGRATION_STAGING_SMOKE_RUNBOOK_PATH,
     "production_landing_input_readiness": PRODUCTION_LANDING_INPUT_READINESS_RUNBOOK_PATH,
     "production_landing_env_check": PRODUCTION_LANDING_ENV_CHECK_RUNBOOK_PATH,
@@ -177,6 +180,7 @@ V4_EVIDENCE_DIRS = {
     "business_system_read_smoke": BUSINESS_SYSTEM_READ_SMOKE_DEFAULT_DIR,
     "business_system_input_packet": BUSINESS_SYSTEM_INPUT_PACKET_DEFAULT_DIR,
     "business_system_production_readiness": BUSINESS_SYSTEM_PRODUCTION_READINESS_DEFAULT_DIR,
+    "business_system_landing_execution_pack": BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_DEFAULT_DIR,
     "real_integration_staging_smoke": REAL_INTEGRATION_STAGING_SMOKE_DEFAULT_DIR,
     "production_landing_input_readiness": PRODUCTION_LANDING_INPUT_READINESS_DEFAULT_DIR,
     "production_landing_env_check": PRODUCTION_LANDING_ENV_CHECK_DEFAULT_DIR,
@@ -484,6 +488,11 @@ def _get_business_system_input_packet_report_dir() -> str:
 def _get_business_system_production_readiness_report_dir() -> str:
     override = (os.getenv("BUSINESS_SYSTEM_PRODUCTION_READINESS_REPORT_DIR", "") or "").strip()
     return override or BUSINESS_SYSTEM_PRODUCTION_READINESS_DEFAULT_DIR
+
+
+def _get_business_system_landing_execution_pack_report_dir() -> str:
+    override = (os.getenv("BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_REPORT_DIR", "") or "").strip()
+    return override or BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_DEFAULT_DIR
 
 
 def _get_real_integration_staging_smoke_report_dir() -> str:
@@ -1824,6 +1833,107 @@ def _collect_business_system_production_readiness_summary() -> dict[str, Any]:
         "business_data_written": bool(payload.get("business_data_written", False)),
         "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
         "public_production_direct_launch": str(payload.get("public_production_direct_launch") or "No-Go"),
+    }
+
+
+def _collect_business_system_landing_execution_pack_summary() -> dict[str, Any]:
+    report_dir = _get_business_system_landing_execution_pack_report_dir()
+    latest = _latest_json_report(report_dir)
+    base = {
+        "mode": "read_only_latest_report",
+        "runbook_path": BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_RUNBOOK_PATH,
+        "report_dir": report_dir,
+        "directory_exists": Path(report_dir).exists(),
+        "latest_report_present": False,
+        "status": "skipped",
+        "generated_at": "",
+        "ready_for_real_read_smoke": False,
+        "real_read_smoke_complete": False,
+        "safe_next_action": "complete_business_system_inputs",
+        "recommended_next_command": "",
+        "recommended_commands": [],
+        "manual_input_checklist": [],
+        "missing_conditions": ["business_system_landing_execution_pack:report_not_found"],
+        "missing_condition_count": 1,
+        "missing_by_category": {},
+        "source_statuses": {},
+        "evidence_paths": {},
+        "owner_inputs_present": {},
+        "business_system_read_smoke": {},
+        "manual_signoff_required": True,
+        "business_write_executed": False,
+        "business_data_written": False,
+        "audit_data_written": False,
+        "metrics_data_written": False,
+        "secret_plaintext_output": False,
+        "public_production_direct_launch": "No-Go",
+    }
+    if latest is None:
+        return base
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            **base,
+            "directory_exists": True,
+            "latest_report_present": True,
+            "latest_json_path": str(latest),
+            "status": "blocked",
+            "missing_conditions": ["business_system_landing_execution_pack:json_parse_failed"],
+            "missing_condition_count": 1,
+        }
+
+    missing = payload.get("missing_conditions") if isinstance(payload.get("missing_conditions"), list) else []
+    commands = payload.get("recommended_commands") if isinstance(payload.get("recommended_commands"), list) else []
+    manual_inputs = (
+        payload.get("manual_input_checklist") if isinstance(payload.get("manual_input_checklist"), list) else []
+    )
+    missing_by_category = (
+        payload.get("missing_by_category") if isinstance(payload.get("missing_by_category"), dict) else {}
+    )
+    source_statuses = payload.get("source_statuses") if isinstance(payload.get("source_statuses"), dict) else {}
+    evidence_paths = payload.get("evidence_paths") if isinstance(payload.get("evidence_paths"), dict) else {}
+    owners = payload.get("owner_inputs_present") if isinstance(payload.get("owner_inputs_present"), dict) else {}
+    smoke = payload.get("business_system_read_smoke") if isinstance(payload.get("business_system_read_smoke"), dict) else {}
+    return {
+        **base,
+        "directory_exists": True,
+        "latest_report_present": True,
+        "latest_json_path": str(latest),
+        "status": _safe_text_value(payload.get("status") or "skipped"),
+        "generated_at": _safe_text_value(payload.get("generated_at") or ""),
+        "ready_for_real_read_smoke": bool(payload.get("ready_for_real_read_smoke", False)),
+        "real_read_smoke_complete": bool(payload.get("real_read_smoke_complete", False)),
+        "safe_next_action": _safe_text_value(payload.get("safe_next_action") or ""),
+        "recommended_next_command": _safe_text_value(payload.get("recommended_next_command") or ""),
+        "recommended_commands": [_safe_text_value(item) for item in commands[:8]],
+        "manual_input_checklist": _safe_business_input_items(manual_inputs, limit=8),
+        "missing_conditions": [_safe_text_value(item) for item in missing[:32]],
+        "missing_condition_count": int(payload.get("missing_condition_count") or len(missing)),
+        "missing_by_category": {
+            str(key): [_safe_text_value(item) for item in value[:16]]
+            for key, value in missing_by_category.items()
+            if isinstance(value, list)
+        },
+        "source_statuses": {str(key): _safe_text_value(value) for key, value in source_statuses.items()},
+        "evidence_paths": {str(key): _safe_text_value(value) for key, value in evidence_paths.items()},
+        "owner_inputs_present": {str(key): bool(value) for key, value in owners.items()},
+        "business_system_read_smoke": {
+            "status": _safe_text_value(smoke.get("status") or "missing"),
+            "business_system_connected": bool(smoke.get("business_system_connected", False)),
+            "business_read_executed": bool(smoke.get("business_read_executed", False)),
+            "business_write_executed": bool(smoke.get("business_write_executed", False)),
+            "business_data_written": bool(smoke.get("business_data_written", False)),
+            "local_business_mock_used": bool(smoke.get("local_business_mock_used", False)),
+            "secret_plaintext_output": bool(smoke.get("secret_plaintext_output", False)),
+        },
+        "manual_signoff_required": bool(payload.get("manual_signoff_required", True)),
+        "business_write_executed": bool(payload.get("business_write_executed", False)),
+        "business_data_written": bool(payload.get("business_data_written", False)),
+        "audit_data_written": bool(payload.get("audit_data_written", False)),
+        "metrics_data_written": bool(payload.get("metrics_data_written", False)),
+        "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
+        "public_production_direct_launch": _safe_text_value(payload.get("public_production_direct_launch") or "No-Go"),
     }
 
 
@@ -4464,6 +4574,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     business_system_read_smoke = _collect_business_system_read_smoke_summary()
     business_system_input_packet = _collect_business_system_input_packet_summary()
     business_system_production_readiness = _collect_business_system_production_readiness_summary()
+    business_system_landing_execution_pack = _collect_business_system_landing_execution_pack_summary()
     real_integration_staging_smoke = _collect_real_integration_staging_smoke_summary()
     real_production_environment_checklist = _collect_real_production_environment_checklist_summary()
     production_landing_input_readiness = _collect_production_landing_input_readiness_summary()
@@ -4539,6 +4650,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
             "business_system_read_smoke": business_system_read_smoke,
             "business_system_input_packet": business_system_input_packet,
             "business_system_production_readiness": business_system_production_readiness,
+            "business_system_landing_execution_pack": business_system_landing_execution_pack,
             "real_integration_staging_smoke": real_integration_staging_smoke,
             "real_production_environment_checklist": real_production_environment_checklist,
             "production_landing_input_readiness": production_landing_input_readiness,
@@ -4594,6 +4706,12 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
                 ),
                 "business_system_production_readiness_reports": int(
                     _count_json_reports(_get_business_system_production_readiness_report_dir()).get(
+                        "json_report_count", 0
+                    )
+                    or 0
+                ),
+                "business_system_landing_execution_pack_reports": int(
+                    _count_json_reports(_get_business_system_landing_execution_pack_report_dir()).get(
                         "json_report_count", 0
                     )
                     or 0

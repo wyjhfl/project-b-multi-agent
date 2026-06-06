@@ -56,6 +56,10 @@ def test_operations_summary_should_return_empty_states_when_report_dir_missing(m
         "BUSINESS_SYSTEM_PRODUCTION_READINESS_REPORT_DIR",
         str(tmp_path / "missing_business_system_production_readiness"),
     )
+    monkeypatch.setenv(
+        "BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_REPORT_DIR",
+        str(tmp_path / "missing_business_system_landing_execution_pack"),
+    )
     monkeypatch.setenv("REAL_INTEGRATION_STAGING_SMOKE_REPORT_DIR", str(tmp_path / "missing_real_integration_smoke"))
     monkeypatch.setenv(
         "REAL_PRODUCTION_ENVIRONMENT_CHECKLIST_REPORT_DIR",
@@ -148,6 +152,10 @@ def test_operations_summary_should_return_empty_states_when_report_dir_missing(m
     assert (
         data["observability"]["v4_evidence"]["entries"]["business_system_production_readiness"]["runbook_path"]
         == "scripts/business_system_production_readiness_brief.py"
+    )
+    assert (
+        data["observability"]["v4_evidence"]["entries"]["business_system_landing_execution_pack"]["runbook_path"]
+        == "scripts/business_system_landing_execution_pack.py"
     )
     assert data["observability"]["v4_evidence"]["entries"]["real_integration_staging_smoke"]["runbook_path"] == "scripts/real_integration_staging_smoke.py"
     assert data["observability"]["v4_evidence"]["entries"]["production_landing_input_readiness"]["runbook_path"] == "scripts/production_landing_input_readiness.py"
@@ -2937,6 +2945,91 @@ def test_operations_summary_should_include_business_system_input_packet_latest_r
     assert packet["public_production_direct_launch"] == "No-Go"
     assert packet["secret_plaintext_output"] is False
     assert data["observability"]["last_known_report_counts"]["business_system_input_packet_reports"] == 1
+    assert "sk-should-not-leak" not in text
+
+
+def test_operations_summary_should_include_business_system_landing_execution_pack_latest_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    report_dir = tmp_path / "docs" / "reports" / "business_system_landing_execution_pack"
+    report_dir.mkdir(parents=True)
+    monkeypatch.setenv("BUSINESS_SYSTEM_LANDING_EXECUTION_PACK_REPORT_DIR", str(report_dir))
+    payload = {
+        "generated_at": "2026-06-06T01:00:00+00:00",
+        "status": "needs_input",
+        "ready_for_real_read_smoke": True,
+        "real_read_smoke_complete": False,
+        "safe_next_action": "execute_real_read_smoke",
+        "recommended_next_command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv",
+        "recommended_commands": [
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv"
+        ],
+        "manual_input_checklist": [
+            {
+                "id": "credential",
+                "env": ["BUSINESS_SYSTEM_TOKEN"],
+                "description": "只读 token 仅进入当前进程环境。",
+            }
+        ],
+        "missing_conditions": ["evidence:business_system_real_read_smoke_not_executed", "token=sk-should-not-leak"],
+        "missing_condition_count": 2,
+        "missing_by_category": {
+            "evidence": ["evidence:business_system_real_read_smoke_not_executed"],
+            "security_boundary": ["token=sk-should-not-leak"],
+        },
+        "source_statuses": {
+            "business_system_input_packet": "ready",
+            "business_system_production_readiness": "needs_input",
+            "business_system_read_smoke": "skipped",
+        },
+        "evidence_paths": {
+            "business_system_input_packet": "docs/reports/business_system_input_packet/latest.json",
+        },
+        "owner_inputs_present": {"business_owner": True},
+        "business_system_read_smoke": {
+            "status": "skipped",
+            "business_system_connected": False,
+            "business_read_executed": False,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "secret_plaintext_output": False,
+        },
+        "manual_signoff_required": True,
+        "business_write_executed": False,
+        "business_data_written": False,
+        "audit_data_written": False,
+        "metrics_data_written": False,
+        "secret_plaintext_output": False,
+        "public_production_direct_launch": "No-Go",
+    }
+    (report_dir / "001_business_system_landing_execution_pack.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    data = response.json()
+    pack = data["observability"]["business_system_landing_execution_pack"]
+    text = json.dumps(data, ensure_ascii=False)
+
+    assert pack["latest_report_present"] is True
+    assert pack["status"] == "needs_input"
+    assert pack["ready_for_real_read_smoke"] is True
+    assert pack["real_read_smoke_complete"] is False
+    assert pack["safe_next_action"] == "execute_real_read_smoke"
+    assert pack["recommended_next_command"].endswith("scripts\\business_system_read_smoke.ps1 -UseExistingEnv")
+    assert pack["manual_input_checklist"][0]["id"] == "credential"
+    assert pack["missing_by_category"]["security_boundary"] == ["[redacted-secret-like-command]"]
+    assert pack["source_statuses"]["business_system_input_packet"] == "ready"
+    assert pack["business_system_read_smoke"]["business_read_executed"] is False
+    assert pack["public_production_direct_launch"] == "No-Go"
+    assert pack["secret_plaintext_output"] is False
+    assert data["observability"]["last_known_report_counts"]["business_system_landing_execution_pack_reports"] == 1
     assert "sk-should-not-leak" not in text
 
 

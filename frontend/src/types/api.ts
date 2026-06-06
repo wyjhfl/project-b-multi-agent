@@ -640,6 +640,45 @@ export interface BusinessSystemProductionReadinessSummary {
   public_production_direct_launch: string;
 }
 
+export interface BusinessSystemLandingExecutionPackSummary {
+  mode: string;
+  runbook_path: string;
+  report_dir: string;
+  directory_exists: boolean;
+  latest_report_present: boolean;
+  latest_json_path?: string;
+  status: string;
+  generated_at: string;
+  ready_for_real_read_smoke: boolean;
+  real_read_smoke_complete: boolean;
+  safe_next_action: string;
+  recommended_next_command: string;
+  recommended_commands: string[];
+  manual_input_checklist: Array<{ id: string; env: string[]; description: string }>;
+  missing_conditions: string[];
+  missing_condition_count: number;
+  missing_by_category: Record<string, string[]>;
+  source_statuses: Record<string, string>;
+  evidence_paths: Record<string, string>;
+  owner_inputs_present: Record<string, boolean>;
+  business_system_read_smoke: {
+    status: string;
+    business_system_connected: boolean;
+    business_read_executed: boolean;
+    business_write_executed: boolean;
+    business_data_written: boolean;
+    local_business_mock_used: boolean;
+    secret_plaintext_output: boolean;
+  };
+  manual_signoff_required: boolean;
+  business_write_executed: boolean;
+  business_data_written: boolean;
+  audit_data_written: boolean;
+  metrics_data_written: boolean;
+  secret_plaintext_output: boolean;
+  public_production_direct_launch: string;
+}
+
 export interface RealIntegrationStagingSmokeSummary {
   mode: string;
   runbook_path: string;
@@ -1672,6 +1711,7 @@ export interface OperationsSummary {
       business_system_read_smoke_reports?: number;
       business_system_input_packet_reports?: number;
       business_system_production_readiness_reports?: number;
+      business_system_landing_execution_pack_reports?: number;
       real_integration_staging_smoke_reports?: number;
       real_production_environment_checklist_reports?: number;
       production_landing_input_readiness_reports?: number;
@@ -1710,6 +1750,7 @@ export interface OperationsSummary {
     business_system_read_smoke?: BusinessSystemReadSmokeSummary;
     business_system_input_packet?: BusinessSystemInputPacketSummary;
     business_system_production_readiness?: BusinessSystemProductionReadinessSummary;
+    business_system_landing_execution_pack?: BusinessSystemLandingExecutionPackSummary;
     real_integration_staging_smoke?: RealIntegrationStagingSmokeSummary;
     real_production_environment_checklist?: RealProductionEnvironmentChecklistSummary;
     production_landing_input_readiness?: ProductionLandingInputReadinessSummary;
