@@ -38,6 +38,8 @@ DEFAULT_TARGETS = [
     ROOT_DIR / "scripts" / "xiaomi_llm_landing_resume.ps1",
 ]
 OPTIONAL_TARGETS = {
+    ROOT_DIR / "docs" / "reports" / "manual_signoff_package" / "manual_signoff_record.template.json",
+    ROOT_DIR / "docs" / "reports" / "manual_signoff_package" / "manual_signoff_record.draft.json",
     ROOT_DIR / "docs" / "reports" / "manual_signoff_package" / "manual_signoff_record.json",
 }
 

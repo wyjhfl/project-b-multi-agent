@@ -83,6 +83,28 @@ def test_production_landing_text_quality_check_skips_missing_optional_target(
     assert optional_row["required"] is False
 
 
+def test_production_landing_text_quality_check_skips_missing_ignored_report_targets(
+    tmp_path: Path, monkeypatch
+) -> None:
+    required = tmp_path / "runbook.md"
+    report_dir = tmp_path / "docs" / "reports" / "manual_signoff_package"
+    template = report_dir / "manual_signoff_record.template.json"
+    draft = report_dir / "manual_signoff_record.draft.json"
+    final = report_dir / "manual_signoff_record.json"
+    required.write_text("Production landing Runbook\n", encoding="utf-8")
+    monkeypatch.setattr(text_quality, "DEFAULT_TARGETS", [required, template, draft, final])
+    monkeypatch.setattr(text_quality, "OPTIONAL_TARGETS", {template, draft, final})
+
+    summary = build_production_landing_text_quality_check(output_dir=tmp_path / "out")
+    payload = _payload(summary)
+    optional_rows = [item for item in payload["files"] if item["path"] != str(required)]
+
+    assert summary["status"] == "success"
+    assert len(optional_rows) == 3
+    assert {item["status"] for item in optional_rows} == {"skipped"}
+    assert {item["required"] for item in optional_rows} == {False}
+
+
 def test_production_landing_text_quality_default_targets_include_business_system_files() -> None:
     targets = {path.as_posix() for path in text_quality.DEFAULT_TARGETS}
 
