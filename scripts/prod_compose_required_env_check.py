@@ -25,14 +25,22 @@ def _safe_tail(text: str, max_lines: int = 20) -> list[str]:
 
 def _mentions_required_env_error(text: str, required_env_keys: tuple[str, ...]) -> bool:
     lower_text = text.lower()
+    mentions_key = any(key in text for key in required_env_keys)
+    if not mentions_key:
+        return False
     mentions_required = (
         "required variable" in lower_text
         or " is required" in lower_text
         or "missing a value" in lower_text
         or "interpolating" in lower_text
+        or "variable is not set" in lower_text
+        or "parameter is unset" in lower_text
     )
-    mentions_key = any(key in text for key in required_env_keys)
-    return mentions_required and mentions_key
+    expected_messages = [
+        f"{key} is required".lower()
+        for key in required_env_keys
+    ]
+    return mentions_required or any(message in lower_text for message in expected_messages)
 
 
 def _read_text(path: Path) -> str:

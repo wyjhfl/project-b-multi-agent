@@ -112,6 +112,37 @@ services:
     assert "compose:prod_config_failed_without_required_env_error" in payload["missing_conditions"]
 
 
+def test_prod_compose_required_env_check_accepts_alternate_required_env_wording(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _write_compose(
+        tmp_path,
+        """
+services:
+  app:
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+""".strip(),
+    )
+
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=1,
+            stdout="",
+            stderr="service app: environment variable DATABASE_URL is required",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    payload = build_prod_compose_required_env_check(root_dir=tmp_path)
+
+    assert payload["status"] == "success"
+    assert payload["missing_conditions"] == []
+
+
 def test_prod_compose_required_env_check_blocks_missing_required_interpolation(tmp_path: Path) -> None:
     _write_compose(
         tmp_path,

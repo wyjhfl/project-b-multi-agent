@@ -191,6 +191,29 @@ def test_business_system_read_smoke_execute_blocks_unsafe_write_or_missing_contr
     assert payload["business_data_written"] is False
 
 
+def test_business_system_read_smoke_execute_preflight_blocks_invalid_connection_config(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "https://user:pass@business.example.test#fragment", token="safe-token\r\nX-Bad: yes")
+    monkeypatch.setenv("BUSINESS_SYSTEM_AUTH_HEADER_NAME", "Authorization: X-Bad")
+    monkeypatch.setenv("BUSINESS_SYSTEM_AUTH_SCHEME", "Bearer\r\nX-Bad: yes")
+    monkeypatch.setenv("BUSINESS_SYSTEM_READ_PROBE_PATH", "//evil.example.test/health")
+
+    summary = build_business_system_read_smoke(output_dir=tmp_path / "out", execute=True)
+    payload = _read_payload(summary)
+
+    assert payload["status"] == "blocked"
+    assert "env_target:BUSINESS_SYSTEM_BASE_URL_invalid" in payload["missing_conditions"]
+    assert "env_target:BUSINESS_SYSTEM_TOKEN_invalid" in payload["missing_conditions"]
+    assert "env:BUSINESS_SYSTEM_AUTH_HEADER_NAME_invalid" in payload["missing_conditions"]
+    assert "env:BUSINESS_SYSTEM_AUTH_SCHEME_invalid" in payload["missing_conditions"]
+    assert "env:BUSINESS_SYSTEM_READ_PROBE_PATH_invalid" in payload["missing_conditions"]
+    assert payload["smoke"] == {}
+    assert payload["business_system_connected"] is False
+    assert payload["business_read_executed"] is False
+
+
 def test_business_system_registers_read_probe_only_when_allowlisted(monkeypatch) -> None:
     _clear_env(monkeypatch)
     _set_opt_in(monkeypatch, "http://127.0.0.1:1")

@@ -19,6 +19,7 @@ from app.harness.gateway.tool_gateway import ToolGateway
 from app.harness.policy.engine import PolicyEngine
 from app.harness.policy.operation_whitelist import OperationWhitelist
 from app.integrations.business_system import (
+    business_system_preflight_missing_conditions,
     load_business_system_config,
     redact_secret_like,
     register_business_system_tools,
@@ -113,6 +114,7 @@ def _missing_conditions(execute: bool) -> list[str]:
         missing.append("env:BUSINESS_SYSTEM_TOKEN_ENV")
     elif not config.token_present:
         missing.append("env_target:BUSINESS_SYSTEM_TOKEN_ENV_missing")
+    missing.extend(business_system_preflight_missing_conditions(config))
     return sorted(set(missing))
 
 

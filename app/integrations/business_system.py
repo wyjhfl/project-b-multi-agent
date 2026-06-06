@@ -150,6 +150,21 @@ def _is_safe_probe_path(value: str) -> bool:
     return value.startswith("/") and not value.startswith("//") and not _contains_control_chars(value)
 
 
+def business_system_preflight_missing_conditions(config: BusinessSystemConfig) -> list[str]:
+    missing: list[str] = []
+    if config.base_url_env and config.base_url_present and not _is_http_url(_base_url_from_env(config)):
+        missing.append("env_target:BUSINESS_SYSTEM_BASE_URL_invalid")
+    if config.token_env and config.token_present and _contains_control_chars(_token_from_env(config)):
+        missing.append("env_target:BUSINESS_SYSTEM_TOKEN_invalid")
+    if not _is_safe_header_name(config.auth_header_name):
+        missing.append("env:BUSINESS_SYSTEM_AUTH_HEADER_NAME_invalid")
+    if not _is_safe_auth_scheme(config.auth_scheme):
+        missing.append("env:BUSINESS_SYSTEM_AUTH_SCHEME_invalid")
+    if not _is_safe_probe_path(config.read_probe_path):
+        missing.append("env:BUSINESS_SYSTEM_READ_PROBE_PATH_invalid")
+    return sorted(set(missing))
+
+
 def _auth_header(config: BusinessSystemConfig) -> dict[str, str]:
     token = _token_from_env(config)
     header_name = config.auth_header_name or "Authorization"
