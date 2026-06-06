@@ -102,14 +102,20 @@ def _resolve_cli_default_inputs(
     *,
     closure_index: str | Path | None,
     signoff_record: str | Path | None,
+    output_dir: str | Path | None = None,
 ) -> tuple[str | Path | None, str | Path | None]:
     resolved_index = closure_index or _latest_json(DEFAULT_CLOSURE_INDEX_DIR, "*_closure_evidence_index.json")
-    resolved_record = signoff_record or _default_signoff_record_path()
+    resolved_record = signoff_record or _default_signoff_record_path(output_dir)
     return resolved_index, resolved_record
 
 
-def _default_signoff_record_path() -> Path | None:
-    for path in (DEFAULT_FILLED_SIGNOFF_RECORD, DEFAULT_DRAFT_SIGNOFF_RECORD, DEFAULT_SIGNOFF_RECORD):
+def _default_signoff_record_path(output_dir: str | Path | None = None) -> Path | None:
+    base_dir = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+    for path in (
+        base_dir / "manual_signoff_record.json",
+        base_dir / "manual_signoff_record.draft.json",
+        base_dir / "manual_signoff_record.template.json",
+    ):
         if path.exists():
             return path
     return None
@@ -614,6 +620,7 @@ def main() -> int:
     closure_index, signoff_record = _resolve_cli_default_inputs(
         closure_index=args.closure_index,
         signoff_record=args.signoff_record,
+        output_dir=args.output_dir,
     )
     summary = build_manual_signoff_package(
         output_dir=args.output_dir,

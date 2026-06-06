@@ -26,6 +26,12 @@ ALLOWED_ACTIONS = {
     "business-smoke": ["scripts/business_system_read_smoke.py", "--execute"],
     "local-business-smoke": ["scripts/production_landing_local_business_smoke.py"],
 }
+BUSINESS_OWNER_ENV = {
+    "business_owner": "BUSINESS_SYSTEM_BUSINESS_OWNER",
+    "security_reviewer": "BUSINESS_SYSTEM_SECURITY_REVIEWER",
+    "operations_owner": "BUSINESS_SYSTEM_OPERATIONS_OWNER",
+    "data_owner": "BUSINESS_SYSTEM_DATA_OWNER",
+}
 
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
@@ -69,6 +75,31 @@ def _redact_text(text: str) -> str:
 
 def _safe_lines(text: str, limit: int = 80) -> list[str]:
     return [_redact_text(line) for line in text.splitlines()[:limit]]
+
+
+def _business_owner_values(
+    *,
+    business_owner: str = "",
+    security_reviewer: str = "",
+    operations_owner: str = "",
+    data_owner: str = "",
+) -> dict[str, str]:
+    return {
+        "BUSINESS_SYSTEM_BUSINESS_OWNER": business_owner.strip(),
+        "BUSINESS_SYSTEM_SECURITY_REVIEWER": security_reviewer.strip(),
+        "BUSINESS_SYSTEM_OPERATIONS_OWNER": operations_owner.strip(),
+        "BUSINESS_SYSTEM_DATA_OWNER": data_owner.strip(),
+    }
+
+
+def _inject_business_owner_env(env: dict[str, str], owner_values: dict[str, str]) -> dict[str, bool]:
+    present: dict[str, bool] = {}
+    for env_key in BUSINESS_OWNER_ENV.values():
+        value = owner_values.get(env_key, "").strip()
+        if value:
+            env[env_key] = value
+        present[env_key] = bool((env.get(env_key, "") or "").strip())
+    return present
 
 
 def _extract_child_status(stdout: str, return_code: int) -> tuple[str, dict[str, Any]]:
@@ -149,6 +180,10 @@ def build_production_landing_env_runner(
     env_path: str | Path | None = None,
     output_dir: str | Path | None = None,
     timeout_seconds: int = 120,
+    business_owner: str = "",
+    security_reviewer: str = "",
+    operations_owner: str = "",
+    data_owner: str = "",
 ) -> dict[str, Any]:
     if action not in ALLOWED_ACTIONS:
         raise ValueError(f"unsupported action: {action}")
@@ -173,8 +208,35 @@ def build_production_landing_env_runner(
         )
     elif action == "xiaomi-llm-preflight":
         action_args.extend(["--output-dir", str(output_root / "child_xiaomi_llm_preflight")])
-    command = [sys.executable, *action_args]
     env = {**os.environ, **env_values}
+    owner_env_present = _inject_business_owner_env(
+        env,
+        _business_owner_values(
+            business_owner=business_owner,
+            security_reviewer=security_reviewer,
+            operations_owner=operations_owner,
+            data_owner=data_owner,
+        ),
+    )
+    if action == "business-smoke":
+        command = [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "scripts\\business_system_read_smoke.ps1",
+            "-UseExistingEnv",
+            "-EnvPath",
+            str(path),
+        ]
+        display_command = (
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 "
+            "-UseExistingEnv -EnvPath <local-env-path>"
+        )
+    else:
+        command = [sys.executable, *action_args]
+        display_command = "python " + " ".join(action_args)
     result = subprocess.run(
         command,
         cwd=str(ROOT_DIR),
@@ -200,7 +262,7 @@ def build_production_landing_env_runner(
         "env_path": str(path),
         "env_file_present": path.exists(),
         "env_key_count": len(env_values),
-        "command": "python " + " ".join(action_args),
+        "command": display_command,
         "return_code": result.returncode,
         "child_status": child_status,
         "child_summary": {
@@ -210,6 +272,7 @@ def build_production_landing_env_runner(
             "secret_plaintext_output": bool(child_summary.get("secret_plaintext_output", False)),
         },
         "child_xiaomi_preflight": _child_xiaomi_preflight_summary(child_detail) if action == "xiaomi-llm-preflight" else {},
+        "business_owner_env_present": owner_env_present if action == "business-smoke" else {},
         "stdout": stdout_lines,
         "stderr": stderr_lines,
         "secret_plaintext_output": False,
@@ -257,6 +320,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--env-path", default=str(DEFAULT_ENV_PATH))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--timeout-seconds", type=int, default=120)
+    parser.add_argument("--business-owner", default="")
+    parser.add_argument("--security-reviewer", default="")
+    parser.add_argument("--operations-owner", default="")
+    parser.add_argument("--data-owner", default="")
     return parser
 
 
@@ -267,6 +334,10 @@ def main() -> int:
         env_path=args.env_path,
         output_dir=args.output_dir,
         timeout_seconds=args.timeout_seconds,
+        business_owner=args.business_owner,
+        security_reviewer=args.security_reviewer,
+        operations_owner=args.operations_owner,
+        data_owner=args.data_owner,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"json_path={summary['json_path']}")

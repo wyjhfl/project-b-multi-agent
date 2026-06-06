@@ -29,6 +29,7 @@ def test_business_system_read_smoke_ps1_uses_process_env_only_without_plaintext_
     assert "SecurityReviewer" in text
     assert "OperationsOwner" in text
     assert "DataOwner" in text
+    assert "EnvPath" in text
     assert "SkipReadinessBrief" in text
     assert "SkipLandingResume" in text
     assert "Assert-OwnerValue" in text
@@ -77,6 +78,7 @@ def test_business_system_read_smoke_ps1_runs_readiness_after_smoke_and_restores_
     assert "landing_resume=running" in text
     assert "landing_resume=done" in text
     assert "SkipBusinessPreparation" in text
+    assert '"-EnvPath", $EnvPath' in text
     assert "business_system_production_readiness_brief.py failed" in text
     assert "business_system_input_packet.py failed" in text
     assert "business_system_landing_execution_pack.py failed" in text
@@ -95,6 +97,9 @@ def test_business_system_landing_resume_ps1_refreshes_landing_chain_without_plai
     assert "business_system_input_packet.py" in text
     assert "business_system_production_readiness_brief.py" in text
     assert "business_system_landing_execution_pack.py" in text
+    assert "production_landing_env_check.py" in text
+    assert "production_landing_execution_gate.py" in text
+    assert "EnvPath" in text
     assert "production_landing_status.py" in text
     assert "production_landing_final_verification.py" in text
     assert "production_landing_text_quality_check.py" in text

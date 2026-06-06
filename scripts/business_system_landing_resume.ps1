@@ -1,7 +1,8 @@
 Param(
   [switch]$UseExistingEnv,
   [switch]$CheckPythonOnly,
-  [switch]$SkipBusinessPreparation
+  [switch]$SkipBusinessPreparation,
+  [string]$EnvPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -86,6 +87,20 @@ if (-not $SkipBusinessPreparation) {
   Write-Host "[business_system_landing_resume] step=business-execution-pack" -ForegroundColor Yellow
   Invoke-CheckedPython @((Join-Path $repoRoot "scripts/business_system_landing_execution_pack.py"))
 }
+
+Write-Host "[business_system_landing_resume] step=production-env-check" -ForegroundColor Yellow
+$envCheckArguments = @((Join-Path $repoRoot "scripts/production_landing_env_check.py"))
+if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+  $envCheckArguments += @("--env-path", $EnvPath)
+}
+Invoke-CheckedPython $envCheckArguments
+
+Write-Host "[business_system_landing_resume] step=production-execution-gate" -ForegroundColor Yellow
+$executionGateArguments = @((Join-Path $repoRoot "scripts/production_landing_execution_gate.py"))
+if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+  $executionGateArguments += @("--env-path", $EnvPath)
+}
+Invoke-CheckedPython $executionGateArguments
 
 Write-Host "[business_system_landing_resume] step=production-landing-status" -ForegroundColor Yellow
 Invoke-CheckedPython @((Join-Path $repoRoot "scripts/production_landing_status.py"))

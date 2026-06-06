@@ -49,6 +49,10 @@ def test_production_landing_env_runner_runs_env_check_with_local_env_without_lea
                 "BUSINESS_SYSTEM_BASE_URL=https://business.example.test",
                 "BUSINESS_SYSTEM_TOKEN=business-local-token-not-output",
                 "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=wyj",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=wyj",
+                "BUSINESS_SYSTEM_DATA_OWNER=wyj",
             ]
         )
         + "\n",
@@ -361,6 +365,10 @@ def test_production_landing_env_runner_passes_business_auth_header_env_to_busine
                 "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
                 "BUSINESS_SYSTEM_AUTH_HEADER_NAME=X-API-Key",
                 "BUSINESS_SYSTEM_AUTH_SCHEME=",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=owner-secret-like-not-output",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=reviewer-secret-like-not-output",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=ops-secret-like-not-output",
+                "BUSINESS_SYSTEM_DATA_OWNER=data-secret-like-not-output",
             ]
         )
         + "\n",
@@ -375,9 +383,11 @@ def test_production_landing_env_runner_passes_business_auth_header_env_to_busine
     captured: dict[str, str] = {}
 
     def fake_run(command, **kwargs):
+        captured["command"] = " ".join(command)
         captured["auth_header"] = kwargs["env"]["BUSINESS_SYSTEM_AUTH_HEADER_NAME"]
         captured["auth_scheme"] = kwargs["env"]["BUSINESS_SYSTEM_AUTH_SCHEME"]
         captured["token"] = kwargs["env"]["BUSINESS_SYSTEM_TOKEN"]
+        captured["business_owner"] = kwargs["env"]["BUSINESS_SYSTEM_BUSINESS_OWNER"]
         return FakeCompleted()
 
     monkeypatch.setattr(runner, "_run_git", lambda args: "abc12345")
@@ -393,7 +403,12 @@ def test_production_landing_env_runner_passes_business_auth_header_env_to_busine
     )
 
     assert summary["status"] == "success"
+    assert "business_system_read_smoke.ps1" in captured["command"]
+    assert "-UseExistingEnv" in captured["command"]
+    assert "-EnvPath" in captured["command"]
     assert captured["auth_header"] == "X-API-Key"
     assert captured["auth_scheme"] == ""
     assert captured["token"] == "business-local-token-not-output"
+    assert captured["business_owner"] == "owner-secret-like-not-output"
     assert "business-local-token-not-output" not in merged
+    assert "owner-secret-like-not-output" not in merged

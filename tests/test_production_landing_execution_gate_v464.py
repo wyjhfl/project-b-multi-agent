@@ -187,6 +187,10 @@ def test_production_landing_execution_gate_allows_filled_requested_domains_witho
                 "BUSINESS_SYSTEM_BASE_URL=https://business.example.test",
                 "BUSINESS_SYSTEM_TOKEN=business-local-token-not-output",
                 "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=wyj",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=wyj",
+                "BUSINESS_SYSTEM_DATA_OWNER=wyj",
             ]
         )
         + "\n",

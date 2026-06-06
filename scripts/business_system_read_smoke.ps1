@@ -9,6 +9,7 @@ Param(
   [string]$SecurityReviewer = "",
   [string]$OperationsOwner = "",
   [string]$DataOwner = "",
+  [string]$EnvPath = "",
   [switch]$SkipReadinessBrief,
   [switch]$SkipLandingResume
 )
@@ -184,10 +185,10 @@ try {
     Write-Host "[business_system_read_smoke] input=existing_process_env" -ForegroundColor Cyan
   }
 
-  $effectiveBusinessOwner = Read-OrUseOwnerValue -Prompt "business_owner name or staff id" -CurrentValue $BusinessOwner
-  $effectiveSecurityReviewer = Read-OrUseOwnerValue -Prompt "security_reviewer name or staff id" -CurrentValue $SecurityReviewer
-  $effectiveOperationsOwner = Read-OrUseOwnerValue -Prompt "operations_owner name or staff id" -CurrentValue $OperationsOwner
-  $effectiveDataOwner = Read-OrUseOwnerValue -Prompt "data_owner name or staff id" -CurrentValue $DataOwner
+  $effectiveBusinessOwner = Read-OrUseOwnerValue -Prompt "business_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($BusinessOwner)) { $BusinessOwner } else { $previousOwnerEnv["BUSINESS_SYSTEM_BUSINESS_OWNER"] }))
+  $effectiveSecurityReviewer = Read-OrUseOwnerValue -Prompt "security_reviewer name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($SecurityReviewer)) { $SecurityReviewer } else { $previousOwnerEnv["BUSINESS_SYSTEM_SECURITY_REVIEWER"] }))
+  $effectiveOperationsOwner = Read-OrUseOwnerValue -Prompt "operations_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($OperationsOwner)) { $OperationsOwner } else { $previousOwnerEnv["BUSINESS_SYSTEM_OPERATIONS_OWNER"] }))
+  $effectiveDataOwner = Read-OrUseOwnerValue -Prompt "data_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($DataOwner)) { $DataOwner } else { $previousOwnerEnv["BUSINESS_SYSTEM_DATA_OWNER"] }))
   Assert-OwnerValue -Name "BUSINESS_SYSTEM_BUSINESS_OWNER" -Value $effectiveBusinessOwner
   Assert-OwnerValue -Name "BUSINESS_SYSTEM_SECURITY_REVIEWER" -Value $effectiveSecurityReviewer
   Assert-OwnerValue -Name "BUSINESS_SYSTEM_OPERATIONS_OWNER" -Value $effectiveOperationsOwner
@@ -264,6 +265,9 @@ try {
     )
     if (-not $SkipReadinessBrief) {
       $resumeArguments += "-SkipBusinessPreparation"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+      $resumeArguments += @("-EnvPath", $EnvPath)
     }
     & powershell.exe @resumeArguments
     $resumeExitCode = $LASTEXITCODE
