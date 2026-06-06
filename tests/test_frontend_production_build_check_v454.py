@@ -46,7 +46,8 @@ def test_frontend_production_build_check_execute_success(tmp_path: Path, monkeyp
     assert payload["build_command"] == "npm.cmd run build"
     assert payload["frontend_dir_present"] is True
     assert payload["package_json_present"] is True
-    assert payload["node_modules_present"] is True
+    assert payload["package_lock_present"] is True
+    assert isinstance(payload["node_modules_present"], bool)
     assert payload["secret_plaintext_output"] is False
     assert "Compiled successfully" in merged or "Compiled successfully" in json.dumps(payload, ensure_ascii=False)
 
@@ -89,7 +90,7 @@ def test_frontend_production_build_check_execute_failure(tmp_path: Path, monkeyp
     assert "Build failed" in json.dumps(payload, ensure_ascii=False)
 
 
-def test_frontend_production_build_check_blocks_without_node_modules(tmp_path: Path, monkeypatch) -> None:
+def test_frontend_production_build_check_blocks_without_package_lock(tmp_path: Path, monkeypatch) -> None:
     import scripts.frontend_production_build_check as module
 
     frontend = tmp_path / "frontend"
@@ -102,4 +103,4 @@ def test_frontend_production_build_check_blocks_without_node_modules(tmp_path: P
 
     assert payload["status"] == "blocked"
     assert payload["build_executed"] is False
-    assert "local:frontend_node_modules_missing" in payload["missing_conditions"]
+    assert "local:frontend_package_lock_missing" in payload["missing_conditions"]

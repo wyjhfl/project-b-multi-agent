@@ -97,6 +97,7 @@ def build_frontend_production_build_check(
         commit = "redacted"
     frontend_present = FRONTEND_DIR.exists() and FRONTEND_DIR.is_dir()
     package_json_present = (FRONTEND_DIR / "package.json").exists()
+    package_lock_present = (FRONTEND_DIR / "package-lock.json").exists()
     node_modules_present = (FRONTEND_DIR / "node_modules").exists()
     missing_conditions: list[str] = []
     build_output_tail: list[str] = []
@@ -112,8 +113,8 @@ def build_frontend_production_build_check(
     elif not package_json_present:
         missing_conditions.append("local:frontend_package_json_missing")
         status = "blocked"
-    elif not node_modules_present:
-        missing_conditions.append("local:frontend_node_modules_missing")
+    elif not package_lock_present:
+        missing_conditions.append("local:frontend_package_lock_missing")
         status = "blocked"
     else:
         completed = subprocess.run(
@@ -140,6 +141,7 @@ def build_frontend_production_build_check(
         "execute": execute,
         "frontend_dir_present": frontend_present,
         "package_json_present": package_json_present,
+        "package_lock_present": package_lock_present,
         "node_modules_present": node_modules_present,
         "build_command": " ".join(BUILD_COMMAND),
         "build_executed": bool(execute and not missing_conditions),
@@ -173,6 +175,7 @@ def build_frontend_production_build_check(
         "return_code": return_code,
         "frontend_dir_present": frontend_present,
         "package_json_present": package_json_present,
+        "package_lock_present": package_lock_present,
         "node_modules_present": node_modules_present,
         "missing_conditions": missing_conditions,
         "secret_plaintext_output": False,
