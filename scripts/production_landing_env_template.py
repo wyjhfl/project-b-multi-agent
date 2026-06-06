@@ -45,6 +45,15 @@ def _is_gitignored_path(path: Path) -> bool:
         rel = str(path.resolve().relative_to(ROOT_DIR.resolve())).replace("\\", "/")
     except ValueError:
         return False
+    gitignore_path = ROOT_DIR / ".gitignore"
+    if rel.startswith("local/") and gitignore_path.exists():
+        ignored_patterns = {
+            line.strip().rstrip("/")
+            for line in gitignore_path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        }
+        if "local" in ignored_patterns:
+            return True
     try:
         result = subprocess.run(
             ["git", "check-ignore", "-q", rel],
