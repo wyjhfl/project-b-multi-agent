@@ -74,7 +74,7 @@ def build_production_landing_local_mcp_bootstrap(*, env_path: str | Path | None 
         "MCP_STAGING_SMOKE_EXECUTE": "true",
         "MCP_MODE": "real",
         "MCP_SERVER_COMMAND": command,
-        "MCP_SERVER_ARGS": f"{str(FAKE_MCP_SERVER).replace('\\', '/')} normal",
+        "MCP_SERVER_ARGS": f"{FAKE_MCP_SERVER.as_posix()} normal",
         "MCP_SERVER_WORKDIR": str(ROOT_DIR),
         "MCP_SERVER_ENV_ALLOWLIST": "",
         "MCP_SERVER_COMMAND_ALLOWLIST": command,
