@@ -220,7 +220,7 @@ def build_external_mcp_acceptance_gate(*, output_dir: str | Path | None = None) 
     payload = {
         "generated_at": generated_at,
         "commit": commit,
-        "version": "3.6.0",
+        "version": "3.7.0",
         "phase": "v3.7 Phase 17.2",
         "mode": "fake_offline_default",
         "status": status,

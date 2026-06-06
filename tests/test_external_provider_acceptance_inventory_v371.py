@@ -19,7 +19,7 @@ def test_external_provider_inventory_generates_outputs(tmp_path: Path) -> None:
     assert summary["real_llm_executed"] is False
     assert summary["external_mcp_connected"] is False
     assert summary["business_system_connected"] is False
-    assert payload["version"] == "3.6.0"
+    assert payload["version"] == "3.7.0"
     assert payload["phase"] == "v3.7 Phase 17.1"
     assert payload["integration_count"] == 8
     assert Path(summary["markdown_path"]).exists()

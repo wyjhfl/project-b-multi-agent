@@ -1,5 +1,29 @@
 # v3.7 External Integration & Real Provider Acceptance 规划
 
+## 当前推进状态：Phase 17.4 已完成
+
+- Phase 17.4 交付物已落地：`docs/store_redis_readiness_drill_v37.md`、`scripts/store_redis_readiness_drill.py`、`tests/test_store_redis_readiness_drill_v374.py`。
+- 输出覆盖 PostgreSQL Store opt-in、Store Factory、SQLite fallback、Alembic migration precheck、Redis opt-in、NoopRedisClient fallback、进程内限流边界、deployment guard、审计/指标 store 边界和 compose readiness。
+- 输出明确 `database_connected=false`、`redis_connected=false`、`migration_executed=false`、`business_data_written=false`、`audit_data_written=false`、`metrics_data_written=false`。
+- 本阶段不连接真实 PostgreSQL/Redis，不执行 Alembic migration，不写业务/审计/指标数据，不读取或输出 `DATABASE_URL`、`REDIS_URL`、`JWT_SECRET` 等 secret 原文。
+- 当前仍不宣称 PostgreSQL、Redis 或多实例限流生产验收完成；下一建议阶段为 Phase 17.5 Business system integration safety checklist。
+
+## 当前推进状态：Phase 17.5 已完成
+
+- Phase 17.5 交付物已落地：`docs/business_system_integration_safety_checklist_v37.md`、`scripts/business_system_integration_safety_checklist.py`、`tests/test_business_system_integration_safety_checklist_v375.py`。
+- 输出覆盖业务系统 opt-in、secret target、ToolGateway/PolicyEngine/OperationWhitelist、allowlist 与超时、写入边界、审批恢复、审计证据、request/prompt safety、回滚与失败恢复证据。
+- 输出明确 `business_system_connected=false`、`business_read_executed=false`、`business_write_executed=false`、`business_data_written=false`、`approval_bypassed=false`、`audit_bypassed=false`。
+- 本阶段不连接真实业务系统，不执行真实读写，不创建/更新/删除业务数据，不读取或输出 token/API key/client_secret/业务系统 URL 原文。
+- 当前仍不宣称真实业务系统生产集成验收完成；下一建议阶段为 Phase 17.6 v3.7 release prep。
+
+## 当前推进状态：Phase 17.6 release prep 已完成
+
+- 版本已同步到 `3.7.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、v3.7 脚本 version markers、相关测试断言。
+- release prep 交付物已落地：`RELEASE_NOTES_v3.7.0.md`、`docs/release_review_v3.7_external_integration_real_provider_acceptance.md`。
+- Phase 17.1~17.5 纳入 v3.7.0 release prep 范围。
+- 本轮不打 tag、不创建 GitHub Release、不移动历史 tag。
+- 默认 fake/offline、默认 pytest/CI 不调用真实 LLM、默认不连接真实外部 MCP/业务系统/PostgreSQL/Redis/IdP 边界保持不变。
+
 ## 定位
 
 - v3.7 = **External Integration & Real Provider Acceptance**。
@@ -97,6 +121,13 @@ docker compose config
 - real provider acceptance gate runbook。
 - 只读验收摘要脚本。
 - opt-in smoke 证据索引与 blocked/skipped 语义复核。
+
+### 完成状态
+
+- 本阶段交付物已落地：`docs/real_llm_provider_acceptance_gate_v37.md`、`scripts/real_llm_provider_acceptance_gate.py`、`tests/test_real_llm_provider_acceptance_gate_v373.py`。
+- 输出明确 `real_llm_executed=false`、`provider_network_check_executed=false`、`pilot_report_content_read=false`。
+- 可选索引 pilot report 目录时仅读取文件元数据，不读取报告正文。
+- 本阶段不调用真实外网 LLM，不执行 provider network check，不宣称真实 LLM 生产验收完成。
 
 ## Phase 17.4：Store and Redis production readiness drill（P1）
 

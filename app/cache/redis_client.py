@@ -36,6 +36,11 @@ class NoopRedisClient:
         pass
 
 
+def reset_redis_client() -> None:
+    global _redis_client
+    _redis_client = None
+
+
 def get_redis_client() -> NoopRedisClient | Any:
     global _redis_client
     if _redis_client is not None:
@@ -49,7 +54,7 @@ def get_redis_client() -> NoopRedisClient | Any:
         import redis as redis_lib
         _redis_client = redis_lib.from_url(settings.redis_url, decode_responses=True)
         _redis_client.ping()
-        logger.info("Redis connected: %s", settings.redis_url)
+        logger.info("Redis connected")
     except Exception as exc:
         logger.warning("Redis connection failed: %s, falling back to NoopRedisClient", exc)
         _redis_client = NoopRedisClient()
@@ -57,13 +62,36 @@ def get_redis_client() -> NoopRedisClient | Any:
     return _redis_client
 
 
+def _probe_redis_connection() -> dict[str, str]:
+    try:
+        import redis as redis_lib
+
+        client = redis_lib.from_url(settings.redis_url, decode_responses=True, socket_connect_timeout=5, socket_timeout=5)
+        try:
+            client.ping()
+            return {"status": "ok", "backend": "redis"}
+        finally:
+            try:
+                client.close()
+            except Exception:
+                pass
+    except Exception as e:
+        return {"status": "error", "backend": "redis", "error": str(e)}
+
+
 def check_redis_health() -> dict[str, str]:
     if not settings.redis_enabled:
         return {"status": "disabled", "backend": "noop"}
+    if _redis_client is None:
+        return _probe_redis_connection()
     try:
         client = get_redis_client()
         if isinstance(client, NoopRedisClient):
-            return {"status": "disabled", "backend": "noop"}
+            probe = _probe_redis_connection()
+            if probe.get("status") == "ok":
+                reset_redis_client()
+                return probe
+            return probe
         client.ping()
         return {"status": "ok", "backend": "redis"}
     except Exception as e:

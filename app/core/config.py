@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     cors_allow_headers: str = "Authorization,Content-Type"
     security_headers_enabled: bool = True
     rate_limit_enabled: bool = False
+    rate_limit_backend: str = "memory"
     rate_limit_requests_per_minute: int = 120
     rate_limit_burst: int = 60
     rate_limit_exempt_paths: str = "/health"
@@ -83,6 +84,7 @@ class Settings(BaseSettings):
     mcp_server_workdir: str = ""
     mcp_server_env_allowlist: str = ""
     mcp_server_command_allowlist: str = ""
+    mcp_tool_allowlist: str = ""
 
     database_url: str = ""
     redis_url: str = "redis://localhost:6379/0"

@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import time
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+
 from app.auth.jwt import create_access_token, decode_access_token
 from app.auth.models import User, UserRole
 from app.auth.password import hash_password, verify_password
+from app.storage.models import Base
 from app.storage.user_store import InMemoryUserStore
 
 
@@ -110,6 +114,94 @@ class TestUserStore:
         store.seed_default_admin_if_empty()
         admin = store.get_user_by_username("admin")
         assert UserRole.viewer in admin.roles
+
+    def test_user_store_factory_uses_memory_by_default(self, monkeypatch):
+        from app.core.config import settings
+        from app.storage.factory import get_user_store
+
+        monkeypatch.setattr(settings, "storage_backend", "sqlite")
+        monkeypatch.setattr(settings, "database_url", "")
+
+        store = get_user_store()
+        assert isinstance(store, InMemoryUserStore)
+
+    def test_user_store_factory_uses_postgres_when_configured(self, monkeypatch):
+        from app.core.config import settings
+        from app.storage.factory import get_user_store
+        from app.storage.postgres.user_store import PostgresUserStore
+
+        monkeypatch.setattr(settings, "storage_backend", "postgres")
+        monkeypatch.setattr(settings, "database_url", "postgresql+psycopg://user:pass@localhost:5432/project_b")
+        monkeypatch.setattr("app.storage.postgres.user_store.get_session_factory", lambda: sessionmaker(class_=Session))
+
+        store = get_user_store()
+        assert isinstance(store, PostgresUserStore)
+
+
+class TestPostgresUserStore:
+
+    def _store(self, tmp_path, monkeypatch):
+        from app.storage.postgres.user_store import PostgresUserStore
+
+        db_path = tmp_path / "users.sqlite"
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        Base.metadata.create_all(engine)
+        factory = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+        monkeypatch.setattr("app.storage.postgres.user_store.get_session_factory", lambda: factory)
+        return PostgresUserStore()
+
+    def test_create_and_get_user(self, tmp_path, monkeypatch):
+        store = self._store(tmp_path, monkeypatch)
+        created = store.create_user("admin", "pass123", [UserRole.admin, UserRole.auditor])
+
+        loaded = store.get_user_by_username("admin")
+
+        assert loaded is not None
+        assert loaded.user_id == created.user_id
+        assert loaded.username == "admin"
+        assert loaded.roles == [UserRole.admin, UserRole.auditor]
+
+    def test_duplicate_user_raises(self, tmp_path, monkeypatch):
+        store = self._store(tmp_path, monkeypatch)
+        store.create_user("admin", "pass123", [UserRole.admin])
+
+        try:
+            store.create_user("admin", "other", [UserRole.viewer])
+            assert False, "Should have raised ValueError"
+        except ValueError:
+            pass
+
+    def test_authenticate_user(self, tmp_path, monkeypatch):
+        store = self._store(tmp_path, monkeypatch)
+        store.create_user("admin", "pass123", [UserRole.admin])
+
+        assert store.authenticate_user("admin", "pass123") is not None
+        assert store.authenticate_user("admin", "wrong") is None
+        assert store.authenticate_user("nobody", "pass123") is None
+
+    def test_disabled_user_cannot_authenticate(self, tmp_path, monkeypatch):
+        store = self._store(tmp_path, monkeypatch)
+        store.create_user("viewer", "pass123", [UserRole.viewer], disabled=True)
+
+        assert store.authenticate_user("viewer", "pass123") is None
+
+    def test_seed_default_admin_if_empty(self, tmp_path, monkeypatch):
+        store = self._store(tmp_path, monkeypatch)
+        store.seed_default_admin_if_empty()
+
+        assert store.get_user_by_username("admin") is not None
+        assert store.get_user_by_username("operator") is not None
+        assert store.get_user_by_username("viewer") is not None
+        assert store.get_user_by_username("auditor") is not None
+
+    def test_seed_default_admin_does_not_overwrite_existing_users(self, tmp_path, monkeypatch):
+        store = self._store(tmp_path, monkeypatch)
+        store.create_user("custom", "pass123", [UserRole.viewer])
+
+        store.seed_default_admin_if_empty()
+
+        assert store.get_user_by_username("custom") is not None
+        assert store.get_user_by_username("admin") is None
 
 
 class TestAuthAPI:

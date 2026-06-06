@@ -74,7 +74,6 @@ class LLMProvider(ABC):
         """Provider 名称标识。"""
         ...
 
-    @abstractmethod
     def generate(self, prompt: str) -> str:
         """兼容旧接口：返回纯文本内容。"""
         ...
@@ -219,6 +218,11 @@ class LiteLLMProvider(LLMProvider):
         if not self._api_key:
             raise ProviderConfigError("LiteLLMProvider 需要 LLM_API_KEY 配置，当前为空。")
 
+    def _litellm_model_name(self) -> str:
+        if self._base_url and "/" not in self._model:
+            return f"openai/{self._model}"
+        return self._model
+
     def generate(self, prompt: str) -> str:
         return self.generate_with_metadata(prompt).content
 
@@ -230,7 +234,7 @@ class LiteLLMProvider(LLMProvider):
         while attempt <= self._max_retries:
             try:
                 payload: dict[str, Any] = {
-                    "model": self._model,
+                    "model": self._litellm_model_name(),
                     "messages": [{"role": "user", "content": prompt}],
                     "api_key": self._api_key,
                     "timeout": self._timeout_seconds,
@@ -242,6 +246,8 @@ class LiteLLMProvider(LLMProvider):
                 return self._normalize_response(response, started)
             except Exception as exc:
                 mapped = self._map_exception(exc)
+                if self._base_url and isinstance(mapped, ProviderResponseError):
+                    return self._generate_openai_compatible(prompt, started)
                 last_error = mapped
                 if attempt >= self._max_retries:
                     raise mapped
@@ -252,6 +258,72 @@ class LiteLLMProvider(LLMProvider):
         if last_error is None:
             raise ProviderResponseError("LiteLLMProvider 未知异常。")
         raise last_error
+
+    def _generate_openai_compatible(self, prompt: str, started: float) -> LLMGenerateMetadata:
+        try:
+            import httpx
+        except ImportError as exc:
+            raise ProviderConfigError("OpenAI-compatible fallback 需要 httpx。") from exc
+
+        url = self._base_url.rstrip("/") + "/chat/completions"
+        try:
+            response = httpx.post(
+                url,
+                headers={
+                    "Authorization": f"Bearer {self._api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self._model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": self._temperature,
+                },
+                timeout=self._timeout_seconds,
+            )
+        except httpx.TimeoutException as exc:
+            raise ProviderTimeoutError(str(exc)) from exc
+        except httpx.HTTPError as exc:
+            raise ProviderResponseError(str(exc)) from exc
+
+        if response.status_code in {401, 403}:
+            raise ProviderAuthError(f"OpenAI-compatible endpoint auth failed: {response.status_code}")
+        if response.status_code == 429:
+            raise ProviderRateLimitError("OpenAI-compatible endpoint rate limited")
+        if response.status_code >= 400:
+            raise ProviderResponseError(f"OpenAI-compatible endpoint returned {response.status_code}")
+
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise ProviderResponseError("OpenAI-compatible endpoint returned non-json response") from exc
+
+        choices = payload.get("choices") if isinstance(payload, dict) else None
+        if not choices:
+            raise ProviderResponseError("OpenAI-compatible endpoint response missing choices")
+        message = choices[0].get("message") if isinstance(choices[0], dict) else None
+        content = message.get("content") if isinstance(message, dict) else None
+        if content is None:
+            raise ProviderResponseError("OpenAI-compatible endpoint response missing message.content")
+
+        usage = payload.get("usage") if isinstance(payload, dict) else {}
+        if not isinstance(usage, dict):
+            usage = {}
+        prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
+        completion_tokens = int(usage.get("completion_tokens", 0) or 0)
+        total_tokens = int(usage.get("total_tokens", prompt_tokens + completion_tokens) or 0)
+
+        return LLMGenerateMetadata(
+            content=str(content),
+            provider=self.name,
+            model=str(payload.get("model") or self._model),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            cost=0.0,
+            request_id=str(payload.get("id") or ""),
+            latency_ms=(time.perf_counter() - started) * 1000.0,
+            error_type=None,
+        )
 
     def _import_litellm(self):
         try:

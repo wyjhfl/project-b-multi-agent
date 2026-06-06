@@ -102,6 +102,77 @@ def test_litellm_provider_success_with_usage_metadata(monkeypatch):
     assert metadata.error_type is None
 
 
+def test_litellm_provider_prefixes_openai_compatible_base_url_model(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "mimo-v2.5-pro")
+    monkeypatch.setattr(settings, "llm_timeout_seconds", 10.0)
+    monkeypatch.setattr(settings, "llm_max_retries", 0)
+    captured: dict[str, str] = {}
+
+    usage = types.SimpleNamespace(prompt_tokens=1, completion_tokens=1, total_tokens=2)
+    message = types.SimpleNamespace(content="ok")
+    choice = types.SimpleNamespace(message=message)
+    response = types.SimpleNamespace(
+        usage=usage,
+        choices=[choice],
+        id="req-openai-compatible",
+        _hidden_params={"response_cost": 0.0},
+    )
+
+    def _completion(**kwargs):
+        captured["model"] = kwargs["model"]
+        captured["api_base"] = kwargs["api_base"]
+        return response
+
+    provider = LiteLLMProvider(base_url="https://token-plan-cn.xiaomimimo.com/v1")
+    monkeypatch.setattr(provider, "_import_litellm", lambda: types.SimpleNamespace(completion=_completion))
+
+    metadata = provider.generate_with_metadata("hello")
+
+    assert captured["model"] == "openai/mimo-v2.5-pro"
+    assert captured["api_base"] == "https://token-plan-cn.xiaomimimo.com/v1"
+    assert metadata.model == "mimo-v2.5-pro"
+
+
+def test_litellm_provider_openai_compatible_fallback_normalizes_metadata(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "mimo-v2.5-pro")
+    monkeypatch.setattr(settings, "llm_timeout_seconds", 10.0)
+    monkeypatch.setattr(settings, "llm_max_retries", 0)
+
+    class _Response:
+        status_code = 200
+
+        def json(self):
+            return {
+                "id": "req-xiaomi",
+                "model": "mimo-v2.5-pro",
+                "choices": [{"message": {"content": "ok"}}],
+                "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+            }
+
+    captured: dict[str, object] = {}
+
+    def _post(url, headers, json, timeout):
+        captured["url"] = url
+        captured["auth_header"] = headers["Authorization"]
+        captured["model"] = json["model"]
+        captured["timeout"] = timeout
+        return _Response()
+
+    provider = LiteLLMProvider(base_url="https://token-plan-cn.xiaomimimo.com/v1")
+    monkeypatch.setattr("httpx.post", _post)
+
+    metadata = provider._generate_openai_compatible("hello", 0.0)
+    assert captured["url"] == "https://token-plan-cn.xiaomimimo.com/v1/chat/completions"
+    assert captured["auth_header"] == "Bearer demo-key"
+    assert captured["model"] == "mimo-v2.5-pro"
+    assert metadata.content == "ok"
+    assert metadata.model == "mimo-v2.5-pro"
+    assert metadata.prompt_tokens == 3
+    assert metadata.total_tokens == 5
+
+
 @pytest.mark.parametrize(
     ("exc", "expected"),
     [

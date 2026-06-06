@@ -228,6 +228,39 @@ def test_gateway_call_stdio_tools_success():
     client.close()
 
 
+def test_gateway_mcp_tool_allowlist_filters_discovery():
+    gateway = ToolGateway()
+    fake = FakeMCPClient()
+    gateway.register_mcp_server("fake_ops_mcp", fake, tool_allowlist="date_lookup")
+    specs = gateway.discover_mcp_tools("fake_ops_mcp")
+
+    assert [spec.tool_name for spec in specs] == ["date_lookup"]
+    assert gateway.get_tool("calculator") is None
+
+    record = gateway.call("date_lookup")
+    assert record.success is True
+
+
+def test_gateway_mcp_tool_allowlist_blocks_direct_registered_call():
+    gateway = ToolGateway()
+    fake = FakeMCPClient()
+    gateway.register_mcp_server("fake_ops_mcp", fake, tool_allowlist="date_lookup")
+    gateway._registry["calculator"] = ToolSpec(
+        tool_name="calculator",
+        description="blocked mcp tool",
+        source="mcp",
+        server_name="fake_ops_mcp",
+        mcp_tool_name="calculator",
+        is_local=False,
+    )
+
+    record = gateway.call("calculator", {"operation": "add", "a": 1, "b": 2})
+
+    assert record.status == ToolCallStatus.failed
+    assert record.success is False
+    assert "MCP_TOOL_ALLOWLIST" in (record.error or "")
+
+
 def test_gateway_call_stdio_tool_error_returns_failed_record():
     gateway = ToolGateway()
     client = StdioMCPClient(

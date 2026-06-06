@@ -148,11 +148,13 @@ def test_real_mode_allowlist_allows_stdio_tools(monkeypatch):
     monkeypatch.setattr(settings, "mcp_server_workdir", "")
     monkeypatch.setattr(settings, "mcp_server_env_allowlist", "")
     monkeypatch.setattr(settings, "mcp_server_command_allowlist", command)
+    monkeypatch.setattr(settings, "mcp_tool_allowlist", "stdio_date_lookup")
 
     gateway = get_gateway()
     tools = gateway.list_tools()
     tool_names = [t.tool_name for t in tools]
     assert "stdio_date_lookup" in tool_names
+    assert "stdio_refund_update" not in tool_names
     assert "get_today_gmv" in tool_names
     reset_runtime_for_test()
 
@@ -194,6 +196,7 @@ def test_real_mode_tools_api_call_stdio_smoke(monkeypatch):
     monkeypatch.setattr(settings, "mcp_server_workdir", "")
     monkeypatch.setattr(settings, "mcp_server_env_allowlist", "")
     monkeypatch.setattr(settings, "mcp_server_command_allowlist", command)
+    monkeypatch.setattr(settings, "mcp_tool_allowlist", "stdio_date_lookup")
 
     response = client.post("/tools/stdio_date_lookup/call", json={"arguments": {}})
     assert response.status_code == 200

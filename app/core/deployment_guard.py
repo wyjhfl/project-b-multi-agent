@@ -292,6 +292,30 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
         detail="RATE_LIMIT_BURST 必须大于或等于 0。",
     )
 
+    rate_limit_backend = (current.rate_limit_backend or "memory").strip().lower()
+    _add_check(
+        result,
+        name="rate_limit_backend_valid",
+        passed=rate_limit_backend in {"memory", "redis"},
+        level="error",
+        detail="RATE_LIMIT_BACKEND 必须为 memory 或 redis。",
+    )
+    if rate_limit_backend == "redis":
+        _add_check(
+            result,
+            name="rate_limit_redis_enabled",
+            passed=bool(current.redis_enabled),
+            level="error",
+            detail="RATE_LIMIT_BACKEND=redis 时要求 REDIS_ENABLED=true。",
+        )
+        _add_check(
+            result,
+            name="rate_limit_redis_url",
+            passed=bool((current.redis_url or "").strip()),
+            level="error",
+            detail="RATE_LIMIT_BACKEND=redis 时要求 REDIS_URL 非空。",
+        )
+
     try:
         _ = parse_csv_config(current.rate_limit_exempt_paths)
         exempt_ok = True
@@ -351,6 +375,14 @@ def run_deployment_checks(runtime_settings: Settings | None = None) -> Deploymen
             passed=bool((current.mcp_server_command_allowlist or "").strip()),
             level="error",
             detail="MCP_MODE=real 时 MCP_SERVER_COMMAND_ALLOWLIST 必须非空。",
+        )
+
+        _add_check(
+            result,
+            name="mcp_tool_allowlist",
+            passed=bool((current.mcp_tool_allowlist or "").strip()),
+            level="error",
+            detail="MCP_MODE=real 时 MCP_TOOL_ALLOWLIST 必须非空。",
         )
 
     if bool(current.real_llm_acceptance_enabled):

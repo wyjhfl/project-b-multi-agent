@@ -21,6 +21,7 @@ def _set_production_secure_defaults(monkeypatch):
     monkeypatch.setattr(settings, "redis_url", "")
     monkeypatch.setattr(settings, "mcp_mode", "fake")
     monkeypatch.setattr(settings, "mcp_server_command_allowlist", "")
+    monkeypatch.setattr(settings, "mcp_tool_allowlist", "")
     monkeypatch.setattr(settings, "real_llm_acceptance_enabled", False)
     monkeypatch.setattr(settings, "real_llm_model", "")
     monkeypatch.setattr(settings, "real_llm_api_key_env", "OPENAI_API_KEY")
@@ -30,6 +31,7 @@ def _set_production_secure_defaults(monkeypatch):
     monkeypatch.setattr(settings, "request_size_limit_enabled", True)
     monkeypatch.setattr(settings, "request_size_limit_bytes", 1048576)
     monkeypatch.setattr(settings, "rate_limit_enabled", True)
+    monkeypatch.setattr(settings, "rate_limit_backend", "memory")
     monkeypatch.setattr(settings, "rate_limit_requests_per_minute", 120)
     monkeypatch.setattr(settings, "rate_limit_burst", 60)
     monkeypatch.setattr(settings, "structured_logging_enabled", True)
@@ -73,6 +75,7 @@ def test_production_mode_required_fields(monkeypatch):
     monkeypatch.setattr(settings, "redis_url", "")
     monkeypatch.setattr(settings, "mcp_mode", "real")
     monkeypatch.setattr(settings, "mcp_server_command_allowlist", "")
+    monkeypatch.setattr(settings, "mcp_tool_allowlist", "")
     monkeypatch.setattr(settings, "real_llm_acceptance_enabled", True)
     monkeypatch.setattr(settings, "real_llm_model", "")
     monkeypatch.setattr(settings, "real_llm_api_key_env", "MISSING_REAL_LLM_KEY_ENV")
@@ -82,6 +85,7 @@ def test_production_mode_required_fields(monkeypatch):
     monkeypatch.setattr(settings, "request_size_limit_enabled", False)
     monkeypatch.setattr(settings, "request_size_limit_bytes", 0)
     monkeypatch.setattr(settings, "rate_limit_enabled", False)
+    monkeypatch.setattr(settings, "rate_limit_backend", "invalid")
     monkeypatch.setattr(settings, "rate_limit_requests_per_minute", 0)
     monkeypatch.setattr(settings, "rate_limit_burst", -1)
     monkeypatch.setattr(settings, "structured_logging_enabled", False)
@@ -102,6 +106,7 @@ def test_production_mode_required_fields(monkeypatch):
     assert any("database_url_required" in item for item in result.errors)
     assert any("redis_url_required" in item for item in result.errors)
     assert any("mcp_server_command_allowlist" in item for item in result.errors)
+    assert any("mcp_tool_allowlist" in item for item in result.errors)
     assert any("real_llm_model" in item for item in result.errors)
     assert any("real_llm_api_key_present" in item for item in result.errors)
     assert any("cors_allow_origins" in item for item in result.errors)
@@ -109,6 +114,7 @@ def test_production_mode_required_fields(monkeypatch):
     assert any("request_size_limit_enabled" in item for item in result.errors)
     assert any("request_size_limit_bytes" in item for item in result.errors)
     assert any("rate_limit_enabled" in item for item in result.errors)
+    assert any("rate_limit_backend_valid" in item for item in result.errors)
     assert any("rate_limit_requests_per_minute" in item for item in result.errors)
     assert any("rate_limit_burst" in item for item in result.errors)
     assert any("structured_logging_enabled" in item for item in result.errors)
@@ -236,6 +242,30 @@ def test_production_rejects_rate_limit_disabled(monkeypatch):
     result = run_deployment_checks()
     assert result.ok is False
     assert any("rate_limit_enabled" in item for item in result.errors)
+
+
+def test_production_redis_rate_limit_backend_requires_redis(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "rate_limit_backend", "redis")
+    monkeypatch.setattr(settings, "redis_enabled", False)
+    monkeypatch.setattr(settings, "redis_url", "")
+
+    result = run_deployment_checks()
+
+    assert result.ok is False
+    assert any("rate_limit_redis_enabled" in item for item in result.errors)
+    assert any("rate_limit_redis_url" in item for item in result.errors)
+
+
+def test_production_redis_rate_limit_backend_passes_with_redis_config(monkeypatch):
+    _set_production_secure_defaults(monkeypatch)
+    monkeypatch.setattr(settings, "rate_limit_backend", "redis")
+    monkeypatch.setattr(settings, "redis_enabled", True)
+    monkeypatch.setattr(settings, "redis_url", "redis://redis:6379/0")
+
+    result = run_deployment_checks()
+
+    assert result.ok is True
 
 
 def test_production_rejects_structured_logging_disabled(monkeypatch):

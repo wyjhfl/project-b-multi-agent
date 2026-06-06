@@ -227,7 +227,11 @@ def _register_mcp_tools(gateway: ToolGateway) -> None:
                 env_allowlist=settings.mcp_server_env_allowlist,
                 command_allowlist=settings.mcp_server_command_allowlist,
             )
-            gateway.register_mcp_server(settings.mcp_server_name, client)
+            gateway.register_mcp_server(
+                settings.mcp_server_name,
+                client,
+                tool_allowlist=settings.mcp_tool_allowlist,
+            )
             discovered = gateway.discover_mcp_tools(settings.mcp_server_name)
             if not discovered:
                 logging.warning(
@@ -386,7 +390,7 @@ def reset_runtime_for_test() -> None:
 
 app = FastAPI(
     title="Project B: Harness-native 运营中台 Agent",
-    version="3.6.0",
+    version="4.3.0",
 )
 
 app.add_middleware(BasicAbuseGuardMiddleware)
@@ -451,7 +455,7 @@ async def health_check():
     return {
         "status": "ok",
         "service": "project-b-multi-agent",
-        "version": "3.6.0",
+        "version": "4.3.0",
         "storage_backend": settings.storage_backend,
         "auth_enabled": settings.auth_enabled,
         "rbac_enabled": settings.rbac_enabled,

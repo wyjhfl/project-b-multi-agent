@@ -7,6 +7,7 @@ build/
 .eggs/
 *.egg
 .env
+local/
 .venv/
 venv/
 ENV/
@@ -22,7 +23,10 @@ htmlcov/
 .coverage
 data/db/*.db
 data/db/*.sqlite
+.git-xdg/
+.codex-env/
 frontend/node_modules/
 frontend/.next/
 frontend/.turbo/
 frontend/out/
+docs/reports/

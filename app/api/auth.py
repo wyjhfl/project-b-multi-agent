@@ -16,8 +16,8 @@ _user_store = None
 def _get_user_store():
     global _user_store
     if _user_store is None:
-        from app.storage.user_store import InMemoryUserStore
-        _user_store = InMemoryUserStore()
+        from app.storage.factory import get_user_store
+        _user_store = get_user_store()
         _user_store.seed_default_admin_if_empty()
     return _user_store
 

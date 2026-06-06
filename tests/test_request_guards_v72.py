@@ -11,6 +11,20 @@ client = TestClient(app)
 
 def _reset_rate_limiter_state():
     guard_mod._RATE_LIMITER._requests.clear()
+    guard_mod._REDIS_RATE_LIMITER._fallback._requests.clear()
+
+
+class FakeRedisCounter:
+    def __init__(self) -> None:
+        self.values: dict[str, int] = {}
+        self.expirations: dict[str, int] = {}
+
+    def incr(self, key: str) -> int:
+        self.values[key] = self.values.get(key, 0) + 1
+        return self.values[key]
+
+    def expire(self, key: str, seconds: int) -> None:
+        self.expirations[key] = seconds
 
 
 def _assert_security_headers(headers) -> None:
@@ -98,6 +112,40 @@ def test_rate_limit_response_has_cors_for_allowed_origin(monkeypatch):
     assert first.status_code == 200
     assert second.status_code == 429
     assert second.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_redis_rate_limiter_blocks_after_capacity(monkeypatch):
+    import app.cache.redis_client as redis_mod
+
+    fake_redis = FakeRedisCounter()
+    monkeypatch.setattr(settings, "redis_enabled", True)
+    monkeypatch.setattr(redis_mod, "get_redis_client", lambda: fake_redis)
+
+    limiter = guard_mod.RedisRateLimiter()
+    first = limiter.allow("client:/path", max_requests=1, burst=0, window_seconds=60)
+    second = limiter.allow("client:/path", max_requests=1, burst=0, window_seconds=60)
+
+    assert first == (True, 0)
+    assert second[0] is False
+    assert second[1] >= 1
+    assert list(fake_redis.expirations.values()) == [60]
+
+
+def test_redis_rate_limiter_falls_back_to_memory_when_noop(monkeypatch):
+    import app.cache.redis_client as redis_mod
+    from app.cache.redis_client import NoopRedisClient
+
+    monkeypatch.setattr(settings, "redis_enabled", False)
+    monkeypatch.setattr(redis_mod, "get_redis_client", lambda: NoopRedisClient())
+
+    fallback = guard_mod.InMemoryRateLimiter()
+    limiter = guard_mod.RedisRateLimiter(fallback=fallback)
+
+    assert limiter.allow("client:/fallback", max_requests=1, burst=0, window_seconds=60) == (True, 0)
+    blocked, retry_after = limiter.allow("client:/fallback", max_requests=1, burst=0, window_seconds=60)
+
+    assert blocked is False
+    assert retry_after >= 1
 
 
 def test_options_preflight_not_blocked(monkeypatch):

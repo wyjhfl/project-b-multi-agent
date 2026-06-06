@@ -1,5 +1,91 @@
 # AGENTS.md — 仓库级规则
 
+## v4.4 Phase 24.1 Real integration readiness matrix（当前推进中）
+
+- 规划文档：`docs/v4_4_real_integration_landing_plan.md`。
+- 已新增只读矩阵脚本：`scripts/real_integration_readiness_matrix.py`。
+- 已新增测试：`tests/test_real_integration_readiness_matrix_v441.py`。
+- 默认输出目录：`docs/reports/real_integration_readiness/`。
+- 覆盖真实 LLM、PostgreSQL、Redis、真实 MCP Server 的 opt-in 条件、本地证据、缺口和下一步动作。
+- 输出明确 `real_llm_executed=false`, `database_connected=false`, `redis_connected=false`, `external_mcp_connected=false`, `migration_executed=false`, `business_data_written=false`, `audit_data_written=false`, `metrics_data_written=false`。
+- 保持只读边界：不调用真实 LLM，不连接真实 PostgreSQL/Redis/MCP，不执行 Alembic migration，不读取或输出 secret 原文。
+- 当前仍不宣称真实 LLM、PostgreSQL、Redis 或真实 MCP Server 生产验收完成。
+
+## v4.4 Phase 24.2 MCP tool allowlist runtime guard（当前推进中）
+
+- `MCP_TOOL_ALLOWLIST` 已进入 `Settings`、`.env.example`、`.env.production.example`、`ToolGateway`、`app.main` 真实 MCP 注册路径和 deployment guard。
+- `ToolGateway` 在 MCP discovery 阶段过滤未列入 allowlist 的工具，并在 MCP call 阶段做二次拦截。
+- `MCP_MODE=real` 的 production deployment guard 现在要求 `MCP_SERVER_COMMAND_ALLOWLIST` 与 `MCP_TOOL_ALLOWLIST` 均非空。
+- 默认 `MCP_MODE=fake` 不变；未配置 `MCP_TOOL_ALLOWLIST` 时 fake/offline 与历史本地测试路径不受影响。
+- 真实 MCP 工具调用仍必须经过 ToolGateway、PolicyEngine、审批链路和审计链路，不允许绕过。
+
+## v4.4 Phase 24.3 Redis rate limit backend opt-in（当前推进中）
+
+- `RATE_LIMIT_BACKEND` 已进入 `Settings`、`.env.example`、`.env.production.example`、`RateLimitMiddleware` 和 deployment guard。
+- 默认 `RATE_LIMIT_BACKEND=memory`，保持原有离线/单实例路径不变。
+- `RATE_LIMIT_BACKEND=redis` 时使用 Redis `INCR` + `EXPIRE` 做固定窗口计数；Redis disabled、NoopRedisClient 或 Redis 异常时回落 memory backend。
+- deployment guard 校验 `RATE_LIMIT_BACKEND` 只能为 `memory/redis`；当选择 `redis` 时要求 `REDIS_ENABLED=true` 与 `REDIS_URL` 非空。
+- Redis 连接成功日志不输出 `REDIS_URL` 原文。
+- 当前仍不宣称真实 Redis 多实例限流生产验收完成；真实生产验收仍需受控 Redis smoke、故障恢复、断连降级和观测证据。
+
+## v4.4 Phase 24.4 Real integration smoke plan/gate（当前推进中）
+
+- 已新增只读 smoke plan 文档：`docs/real_integration_smoke_plan_v44.md`。
+- 已新增只读 smoke plan 脚本：`scripts/real_integration_smoke_plan.py`。
+- 已新增测试：`tests/test_real_integration_smoke_plan_v443.py`。
+- 已新增只读 env profile 文档：`docs/real_integration_env_profile_v44.md`。
+- 已新增只读 env profile 脚本：`scripts/real_integration_env_profile.py`。
+- 已新增测试：`tests/test_real_integration_env_profile_v444.py`。
+- 默认输出目录：`docs/reports/real_integration_smoke_plan/`。
+- env profile 默认输出目录：`docs/reports/real_integration_env_profile/`。
+- 覆盖 `real_llm`、`postgres`、`redis`、`external_mcp` 四个域的 opt-in 条件、env present、`REAL_LLM_API_KEY_ENV` 指向 env 的 present 布尔、计划 smoke 步骤、缺口和阻断项。
+- env profile 只读解析 `.env.example` 与 `.env.production.example` 的键名和占位状态；生产模板已补齐 v4.4 real LLM smoke/preflight 相关键，但默认仍关闭，当前环境未 opt-in 时必须保持 `skipped`，不得伪造成可执行。
+- 当前入口只做计划门禁，不提供执行真实连接的 CLI 参数；所有执行标志保持 false。
+- 默认无 opt-in 时 `status=skipped`；四域条件齐备但未执行真实连接时 `status=partial` 且 `combined_staging_gate=Manual-Review`。
+- 保持只读边界：不调用真实 LLM，不连接真实 PostgreSQL/Redis/MCP，不执行 Alembic migration，不写业务/审计/指标数据，不读取或输出 secret 原文。
+
+## v4.4 Phase 24.5 Combined real integration staging gate（当前推进中）
+
+- 已新增只读组合门禁文档：`docs/real_integration_staging_gate_v44.md`。
+- 已新增只读组合门禁脚本：`scripts/real_integration_staging_gate.py`。
+- 已新增测试：`tests/test_real_integration_staging_gate_v442.py`。
+- 默认输出目录：`docs/reports/real_integration_staging_gate/`。
+- 组合消费 `real_integration_readiness`、`real_llm_provider_acceptance_gate`、`external_mcp_acceptance_gate`、`store_redis_readiness_drill` 四类 JSON 证据，只读取结构化字段，不读取 Markdown 正文。
+- 缺少证据或上游证据为 `skipped/failed` 时组合 gate 保持 `skipped`；发现 secret-like 内容、异常执行 flag 或上游 `blocked` 时组合 gate 必须 `blocked`，不得伪造成 `success`。
+- 输出明确 `real_llm_executed=false`, `database_connected=false`, `redis_connected=false`, `external_mcp_connected=false`, `migration_executed=false`, `business_data_written=false`, `audit_data_written=false`, `metrics_data_written=false`, `secret_plaintext_output=false`。
+- `combined_staging_gate=Manual-Review` 只表示进入人工复核，不代表自动上线；`public_production_direct_launch` 始终为 `No-Go`。
+- 保持只读边界：不调用真实 LLM，不连接真实 PostgreSQL/Redis/MCP，不执行 Alembic migration，不写业务/审计/指标数据，不读取或输出 secret 原文。
+
+## v3.7 Phase 17.4 Store and Redis production readiness drill（当前已完成）
+
+- 交付物：`docs/store_redis_readiness_drill_v37.md`, `scripts/store_redis_readiness_drill.py`, `tests/test_store_redis_readiness_drill_v374.py`.
+- 默认输出目录：`docs/reports/store_redis_readiness_drill/`.
+- 覆盖 PostgreSQL Store opt-in、Store Factory、SQLite fallback、Alembic migration precheck、Redis opt-in、NoopRedisClient fallback、进程内限流边界、deployment guard、审计/指标 store 边界和 compose readiness。
+- 输出明确 `database_connected=false`, `redis_connected=false`, `migration_executed=false`, `business_data_written=false`, `audit_data_written=false`, `metrics_data_written=false`.
+- 保持只读边界：不连接真实 PostgreSQL，不连接真实 Redis，不执行 Alembic migration，不写业务/审计/指标数据，不读取或输出 `DATABASE_URL`、`REDIS_URL`、`JWT_SECRET` 等 secret 原文。
+- 当前仍不宣称 PostgreSQL、Redis 或多实例限流生产验收完成。
+- Phase 17.5 与 v3.7.0 release prep 已完成；tag/Release 待用户单独确认。
+
+## v3.7 Phase 17.5 Business system integration safety checklist（当前已完成）
+
+- 交付物：`docs/business_system_integration_safety_checklist_v37.md`, `scripts/business_system_integration_safety_checklist.py`, `tests/test_business_system_integration_safety_checklist_v375.py`.
+- 默认输出目录：`docs/reports/business_system_integration_safety/`.
+- 覆盖业务系统 opt-in、secret target、ToolGateway/PolicyEngine/OperationWhitelist、allowlist 与超时、写入边界、审批恢复、审计证据、request/prompt safety、回滚与失败恢复证据。
+- 输出明确 `business_system_connected=false`, `business_read_executed=false`, `business_write_executed=false`, `business_data_written=false`, `approval_bypassed=false`, `audit_bypassed=false`.
+- 保持只读边界：不连接真实业务系统，不执行真实读写，不创建/更新/删除业务数据，不绕过 ToolGateway、PolicyEngine、审批链路或审计链路，不读取或输出 token/API key/client_secret/业务系统 URL 原文。
+- 当前仍不宣称真实业务系统生产集成验收完成。
+- 建议下一阶段：Phase 17.6 v3.7 release prep。
+
+## v3.7.0 release prep（当前已完成）
+
+- 版本已同步到 `3.7.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、v3.7 脚本 version markers、相关测试断言。
+- 已新增 `RELEASE_NOTES_v3.7.0.md`。
+- 已新增 `docs/release_review_v3.7_external_integration_real_provider_acceptance.md`。
+- Phase 17.1~17.5 纳入 v3.7.0 release prep 范围。
+- 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
+- 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；默认不连接真实外部 MCP、真实业务系统、真实 PostgreSQL、真实 Redis 或真实 IdP。
+- 不宣称公网生产可直接上线，不宣称真实 LLM/MCP/PostgreSQL/Redis/业务系统生产验收完成，不宣称生产级 SSO/OIDC、多租户或复杂 BI 全量完成。
+
 ## 语言
 
 - 所有文档和注释使用**简体中文**
@@ -510,7 +596,7 @@
 - 当前先进入规划与只读基线阶段，版本保持 `3.6.0`。
 - 本轮不打 tag、不创建 GitHub Release、不移动历史 tag。
 - 由于当前环境 GitHub HTTPS 推送不可用，`v3.6.0` release prep 提交已在本地完成，远端同步需网络恢复后执行。
-- Phase 17.1~17.2 已完成；建议下一阶段：Phase 17.3 Real LLM provider acceptance gate。
+- Phase 17.1~17.5 与 v3.7.0 release prep 已完成；tag/Release 待用户单独确认。
 
 ## v3.7 Phase 17.1 External integration baseline inventory（已完成）
 
@@ -532,3 +618,279 @@
 - 门禁覆盖 real mode opt-in、command configured、command allowlist、tool allowlist、timeout config、lifecycle hardening、approval/audit boundary、fake fixture coverage。
 - 输出明确 `external_mcp_connected=false`、`mcp_process_started=false`、`mcp_tools_list_executed=false`、`mcp_tools_call_executed=false`。
 - 本阶段不启动 MCP subprocess，不执行真实 `tools/list` 或 `tools/call`，不宣称真实外部 MCP 生产验收完成。
+
+## v3.7 Phase 17.3 Real LLM provider acceptance gate（已完成）
+
+- 已新增 runbook：`docs/real_llm_provider_acceptance_gate_v37.md`。
+- 已新增只读门禁脚本：`scripts/real_llm_provider_acceptance_gate.py`。
+- 已新增测试：`tests/test_real_llm_provider_acceptance_gate_v373.py`。
+- 默认输出目录：`docs/reports/real_llm_provider_acceptance_gate/`。
+- 门禁覆盖 preflight config、network check gate、smoke opt-in、budget/cache/fallback、PII/prompt guardrails、report redaction、judge acceptance、evidence index。
+- 输出明确 `real_llm_executed=false`、`provider_network_check_executed=false`、`pilot_report_content_read=false`。
+- 可选索引 pilot report 目录时仅读取文件元数据，不读取报告正文。
+- 本阶段不调用真实外网 LLM，不执行 provider network check，不宣称真实 LLM 生产验收完成。
+## v3.8 Phase 18.1 SRE observability baseline（当前已完成）
+
+- 已新增 SRE 观测基线 runbook：`docs/sre_observability_baseline_v38.md`。
+- 已新增只读基线脚本：`scripts/sre_observability_baseline.py`。
+- 已新增测试：`tests/test_sre_observability_baseline_v381.py`。
+- 默认输出目录：`docs/reports/sre_observability_baseline/`。
+- 覆盖 runtime metrics/cost API、runtime snapshot、operations summary、audit export、structured logging、failure diagnostics、backup/restore runbook、外部 APM、告警、容量、备份与 DR 缺口。
+- 默认不启动服务，不访问在线 `/health`、`/metrics`、`/operations`、`/runtime/snapshot`，不连接真实 APM、日志平台、告警平台或值班系统。
+- 默认不执行真实压测、备份恢复或灾备切换，不删除用户数据，不自动清理报告，不修改 `.env`。
+- 缺少 SRE/APM/告警/容量/备份/DR opt-in 条件时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把本地 metrics store、只读脚本或 runbook 宣称为企业级 SRE 验收完成。
+## v3.8 Phase 18.2 SLO/SLI and alerting runbook pack（当前已完成）
+
+- 已新增 SLO/告警 runbook：`docs/slo_alerting_runbook_pack_v38.md`。
+- 已新增只读脚本：`scripts/slo_alerting_runbook_pack.py`。
+- 已新增测试：`tests/test_slo_alerting_runbook_pack_v382.py`。
+- 默认输出目录：`docs/reports/slo_alerting_runbook/`。
+- 覆盖 SLO/SLI 指标来源、SLO 目标配置、structured logging 告警上下文、告警分级与路由、on-call 升级、alert dry-run 证据、incident runbook 串联和回归测试覆盖。
+- 默认不启动服务，不访问在线端点，不连接真实 APM、日志平台、告警平台或值班系统。
+- 默认不发送真实告警，不通知真实 on-call，不调用真实 webhook，不执行真实 incident 升级。
+- 缺少 SLO/告警/on-call/dry-run opt-in 或演练证据时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把 runbook、placeholder env 或本地 metrics store 宣称为企业级 SLO/告警验收完成。
+## v3.8 Phase 18.3 Backup/restore and DR drill evidence pack（当前已完成）
+
+- 已新增备份恢复与 DR 证据 runbook：`docs/backup_restore_dr_evidence_pack_v38.md`。
+- 已新增只读脚本：`scripts/backup_restore_dr_evidence_pack.py`。
+- 已新增测试：`tests/test_backup_restore_dr_evidence_pack_v383.py`。
+- 默认输出目录：`docs/reports/backup_restore_dr_evidence/`。
+- 覆盖备份范围、部署与迁移边界、RTO/RPO 配置、备份演练证据、恢复 dry-run 证据、DR failover 证据、runbook 串联和回归测试覆盖。
+- 默认不启动服务，不连接真实 PostgreSQL、Redis、对象存储、IdP、LLM provider 或外部 MCP。
+- 默认不执行真实备份、恢复、灾备切换或 Alembic migration，不写业务/审计/指标数据。
+- 缺少备份/恢复/DR opt-in 或演练证据时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把 runbook、placeholder env 或本地 SQLite 文件宣称为 RTO/RPO 或 DR 生产验收完成。
+## v3.8 Phase 18.4 Capacity and load-test readiness plan（当前已完成）
+
+- 已新增容量与压测准备 runbook：`docs/capacity_load_test_readiness_plan_v38.md`。
+- 已新增只读脚本：`scripts/capacity_load_test_readiness_plan.py`。
+- 已新增测试：`tests/test_capacity_load_test_readiness_plan_v384.py`。
+- 默认输出目录：`docs/reports/capacity_load_test_readiness/`。
+- 覆盖关键 API 入口、流量模型目标、request guard、容量测试可观测性、load-test dry-run 证据、soak test 证据、runbook 串联和回归测试覆盖。
+- 默认不启动服务，不访问在线端点，不执行真实压测、soak test、并发请求或容量探测。
+- 默认不连接真实 PostgreSQL、Redis、APM、日志平台、告警平台、IdP、LLM provider、外部 MCP 或业务系统。
+- 缺少容量/压测/soak opt-in 或报告证据时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把 runbook、placeholder env 或本地测试通过宣称为生产容量上限验收完成。
+## v3.8.0 release prep（当前已完成）
+
+- 版本已同步到 `3.8.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、v3.8 脚本 version markers、相关测试断言。
+- 已新增 `RELEASE_NOTES_v3.8.0.md`。
+- 已新增 `docs/release_review_v3.8_sre_observability_dr.md`。
+- Phase 18.1~18.4 纳入 v3.8.0 release prep 范围。
+- 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
+- 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；默认不连接真实 APM、日志、告警、对象存储、PostgreSQL、Redis、IdP、外部 MCP 或业务系统。
+- 不宣称公网生产可直接上线，不宣称企业级 SRE、RTO/RPO、DR、容量上限、真实 LLM 生产验收、生产级 SSO/OIDC 或多租户完成。
+## v3.9 Compliance Security Hardening 路线规划（当前）
+
+- 规划文档：`docs/v3_9_compliance_security_hardening_plan.md`。
+- v3.9 定位：Compliance Security Hardening。
+- 当前先进入只读基线与 runbook 阶段，版本保持 `3.8.0`。
+- 本轮不打 tag，不创建 GitHub Release，不移动历史 tag。
+- 保持默认 fake/offline，默认 pytest/CI 不调用真实 LLM。
+- 默认不连接真实 IdP、APM、日志平台、告警平台、对象存储、PostgreSQL、Redis、外部 MCP 或业务系统。
+- 默认不执行真实安全扫描、真实密钥轮换、真实权限变更、真实审计导出、真实发布、真实回滚或真实外部系统调用。
+- 不宣称公网生产可直接上线，不宣称企业级合规、安全治理、发布门禁或密钥治理完成。
+
+## v3.9 Phase 19.1 Compliance security baseline inventory（当前已完成）
+
+- 已新增合规安全基线 runbook：`docs/compliance_security_baseline_v39.md`。
+- 已新增只读脚本：`scripts/compliance_security_baseline.py`。
+- 已新增测试：`tests/test_compliance_security_baseline_v391.py`。
+- 默认输出目录：`docs/reports/compliance_security_baseline/`。
+- 覆盖 deployment guard、安全响应头、request guard、结构化日志脱敏、审计留存与导出、RBAC、OIDC、prompt injection、PII guard、跨租户审计和 release review 证据缺口。
+- 默认不启动服务，不访问在线端点，不连接真实外部系统。
+- 默认不执行真实安全扫描、审计导出、密钥轮换、权限变更、发布或回滚。
+- 缺少正式合规签核、审计复核、发布门禁复核或密钥轮换演练证据时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把配置模板、只读脚本或 runbook 宣称为企业级合规、安全治理或发布门禁验收完成。
+## v3.9 Phase 19.2 Secret rotation and leakage response pack（当前已完成）
+
+- 已新增密钥轮换与泄漏响应 runbook：`docs/secret_rotation_leakage_response_pack_v39.md`。
+- 已新增只读脚本：`scripts/secret_rotation_leakage_response_pack.py`。
+- 已新增测试：`tests/test_secret_rotation_leakage_response_pack_v392.py`。
+- 默认输出目录：`docs/reports/secret_rotation_leakage_response/`。
+- 覆盖 JWT/OIDC/数据库/Redis/LLM/MCP/业务系统/告警 webhook 等 secret surface、脱敏审计边界、身份密钥生命周期、外部集成密钥边界、治理例外串联、轮换/泄漏响应/撤销恢复演练证据缺口。
+- 默认不读取 `.env` 或真实 secret 值，不连接真实 KMS、Vault、云平台、IdP、LLM provider、外部 MCP、数据库、Redis、告警平台或业务系统。
+- 默认不执行真实密钥创建、轮换、撤销、禁用、泄漏扫描或告警通知。
+- 缺少轮换、泄漏响应或撤销恢复演练证据时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把配置模板、env name、只读脚本或 runbook 宣称为企业级密钥治理完成。
+## v3.9 Phase 19.3 Release gate and rollback governance pack（当前已完成）
+
+- 已新增发布门禁与回滚治理 runbook：`docs/release_gate_rollback_governance_pack_v39.md`。
+- 已新增只读脚本：`scripts/release_gate_rollback_governance_pack.py`。
+- 已新增测试：`tests/test_release_gate_rollback_governance_pack_v393.py`。
+- 默认输出目录：`docs/reports/release_gate_rollback_governance/`。
+- 覆盖 deployment guard、compose、Alembic、release notes、release review、变更审批、发布签核、回滚演练、治理例外和安全合规串联证据缺口。
+- 默认不启动服务，不访问在线端点，不执行 git tag、GitHub Release、部署、迁移、回滚、数据恢复或外部系统调用。
+- 缺少变更审批、发布签核或回滚演练证据时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把 release notes、release review、runbook 或配置模板宣称为生产发布门禁或回滚验收完成。
+## v3.9 Phase 19.4 Security regression and compliance evidence pack（当前已完成）
+
+- 已新增安全回归与合规证据 runbook：`docs/security_regression_compliance_evidence_pack_v39.md`。
+- 已新增只读脚本：`scripts/security_regression_compliance_evidence_pack.py`。
+- 已新增测试：`tests/test_security_regression_compliance_evidence_pack_v394.py`。
+- 默认输出目录：`docs/reports/security_regression_compliance_evidence/`。
+- 覆盖 prompt injection、PII 泄漏、SQL guard、边界防护、身份/RBAC、跨租户拒绝、审计导出脱敏、发布门禁和合规证据串联缺口。
+- 默认不启动服务，不访问在线端点，不执行真实 SAST、DAST、依赖扫描、红队测试、外部审计或外部系统调用。
+- 缺少外部安全扫描、正式安全签核或合规证据复核时必须记录为 `skipped`，不得伪造成 `success`。
+- 保持边界：不读取或输出真实 secret 原文，不把本地测试存在性、runbook 或只读证据索引宣称为企业级安全合规验收完成。
+## v3.9.0 release prep（当前已完成）
+
+- 版本已同步到 `3.9.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、v3.9 脚本 version markers、相关测试断言。
+- 已新增 `RELEASE_NOTES_v3.9.0.md`。
+- 已新增 `docs/release_review_v3.9_compliance_security_hardening.md`。
+- Phase 19.1~19.4 纳入 v3.9.0 release prep 范围。
+- 本轮验证：v3.9 聚焦验证 56 passed；v3.9 安全/合规回归 161 passed；全量 `python -m pytest -q` 为 920 passed, 4 skipped, 2 warnings；`git diff --check` 仅 CRLF 提示。
+- 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
+- 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；默认不连接真实外部系统。
+- 不宣称公网生产可直接上线，不宣称企业级合规、安全治理、密钥治理、发布门禁、回滚验收、真实 LLM 生产验收、生产级 SSO/OIDC 或多租户完成。
+
+## v4.0 Phase 20.1 Production launch readiness evidence review pack（当前已完成）
+
+- 规划文档：`docs/v4_0_production_launch_readiness_plan.md`。
+- 已新增 runbook：`docs/production_launch_readiness_review_v40.md`。
+- 已新增只读脚本：`scripts/production_launch_readiness_review.py`。
+- 已新增测试：`tests/test_production_launch_readiness_review_v401.py`。
+- 默认输出目录：`docs/reports/production_launch_readiness/`。
+- 覆盖 v3.5~v3.9 试点收口、证据归档、真实 provider 验收、SRE/DR、容量、安全合规、发布门禁和回滚治理证据入口。
+- 默认状态为 `partial`，Go/No-Go 建议为 `Manual-Review`，公网生产直上为 `No-Go`；不把缺失真实验收证据伪造成 `success`。
+- 已根据子 agent 审查收紧上游 `blocked/failed`、输入不足 `skipped`、secret-like JSON 键值脱敏和 blocked 状态下 `controlled_internal_pilot=No-Go` 语义。
+- 已根据子 agent 审查补强 `external_system_connected` 边界违规识别。
+- 验证通过：v4.0 Phase 20.1 单测 7 passed；v4.0 + v3.9 关联测试随 Phase 20.2 更新为 34 passed, 1 warning；`git diff --check` 仅 CRLF 提示。
+- 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，不连接真实外部系统，不读取或输出真实 secret 原文，不执行真实部署、迁移、发布、回滚、压测、备份恢复、DR failover、安全扫描、审计导出、密钥轮换或权限变更。
+- 本阶段不改版本号，不打 tag，不创建 GitHub Release，不宣称生产上线批准完成。
+
+## v4.0 Phase 20.2 Launch blocker register（当前已完成）
+
+- 已新增 runbook：`docs/launch_blocker_register_v40.md`。
+- 已新增只读脚本：`scripts/launch_blocker_register.py`。
+- 已新增测试：`tests/test_launch_blocker_register_v402.py`。
+- 默认输出目录：`docs/reports/launch_blockers/`。
+- 将 Phase 20.1 的 production blockers 和 missing conditions 整理为人工跟踪台账，字段覆盖 blocker id、来源、风险描述、影响范围、责任人、到期时间、补偿控制、关闭证据、状态、审批状态和下一步动作。
+- 默认无上游输入或上游 `skipped` 时输出 `skipped`；存在待关闭 blocker 时输出 `partial`；上游 `blocked/failed`、secret-like 输入、自动批准/关闭标记或边界违规时输出 `blocked`。
+- 保持 `auto_approved=false`、`auto_closed=false`；不自动批准上线，不自动关闭阻断项，不宣称生产 Go。
+- 已根据子 agent 审查补强上游 `skipped` 保留、`auto_approved/auto_closed` 阻断和 success 语义文档。
+- 验证通过：v4.0 Phase 20.1/20.2 + v3.9 关键安全合规关联测试 34 passed, 1 warning；`git diff --check` 仅 CRLF 提示。
+- 保持边界：默认 fake/offline，默认 pytest/CI 不调用真实 LLM，不连接真实外部系统，不读取或输出真实 secret 原文，不执行真实生产操作。
+
+## v4.0 Phase 20.3 Production runbook finalization（当前已完成）
+
+- 已新增 runbook：`docs/production_runbook_finalization_v40.md`。
+- 已新增只读脚本：`scripts/production_runbook_finalization.py`。
+- 已新增测试：`tests/test_production_runbook_finalization_v403.py`。
+- 默认输出目录：`docs/reports/production_runbook_finalization/`。
+- 汇总部署、回滚、incident、DR、密钥轮换、审计导出、SLO/告警、容量、Launch Readiness 和 blocker register 的本地 runbook 入口。
+- 默认仅检查本地文件存在性和可选上游 JSON 结构化字段，不读取 Markdown 报告正文。
+- 输出明确 `deployment_executed=false`、`rollback_executed=false`、`alert_sent=false`、`oncall_notified=false`、`auto_approved=false`、`auto_closed=false`。
+- 保持边界：默认 fake/offline，不连接真实外部系统，不读取或输出真实 secret 原文，不执行真实生产操作，不把 runbook 入口存在性伪造成生产 Go。
+- 已根据子 agent 审查补强：缺少上游 Phase 20.1/20.2 JSON 时输出 `skipped`，透传 blocker 计数与上游 Go/No-Go，audit log/export 验证入口纳入必需项。
+- 验证通过：v4.0 Phase 20.1/20.2/20.3 + v3.9 关键安全合规关联测试 39 passed；`git diff --check` 仅 CRLF 提示。
+
+## v4.1 Phase 21.1 Launch blocker closure workflow（当前已完成）
+
+- 交付物：`docs/v4_1_evidence_execution_closure_plan.md`, `docs/launch_blocker_closure_workflow_v41.md`, `scripts/launch_blocker_closure_workflow.py`, `tests/test_launch_blocker_closure_workflow_v411.py`。
+- 默认输出目录：`docs/reports/launch_blocker_closure/`。
+- 输入为 v4.0 Launch Blocker Register JSON 与可选脱敏 closure evidence JSON。
+- 仅判断 blocker 是否具备进入人工复核的 owner、due_at、补偿控制、证据引用、reviewer 与审批状态。
+- 即使所有 blocker 证据齐全，也保持整体 `partial` + `Manual-Review`，不自动产出 `success`，不宣称生产 Go。
+- 输出明确 `auto_approved=false`, `auto_closed=false`, `production_direct_launch=No-Go`, `real_llm_executed=false`, `external_mcp_connected=false`, `external_system_connected=false`。
+- 保持只读边界：不读取 Markdown 正文，不修改上游报告，不修改 `.env`，不读取或输出真实 secret 原文，不连接真实外部系统，不执行真实部署/迁移/发布/回滚/压测/备份恢复/DR failover/安全扫描/审计导出/密钥轮换/权限变更。
+- 当前仍不宣称上线 blocker 已关闭，不宣称生产发布批准完成。
+- 验证通过：v4.1 Phase 21.1 单测 8 passed。
+
+## v4.1 Phase 21.2 Closure evidence index（当前已完成）
+
+- 交付物：`docs/closure_evidence_index_v41.md`, `scripts/closure_evidence_index.py`, `tests/test_closure_evidence_index_v412.py`。
+- 默认输入目录：`docs/reports/launch_blocker_closure/`。
+- 默认输出目录：`docs/reports/closure_evidence_index/`。
+- 仅索引 closure workflow JSON 的结构化元数据，汇总 report count、latest report、closure item totals 与状态分布。
+- 不读取 Markdown 报告正文，不展开证据报告内容，不修改、不移动、不删除输入证据，不自动执行 retention 清理。
+- 检测到 secret-like 输入、非只读报告、自动审批/自动关闭标记或上游 blocked/failed 时输出 `blocked`。
+- 输出明确 `production_direct_launch=No-Go`, `auto_approved=false`, `auto_closed=false`, `real_llm_executed=false`, `external_mcp_connected=false`, `external_system_connected=false`。
+- 当前仍不宣称上线 blocker 已关闭，不宣称生产发布批准完成。
+- 验证通过：v4.1 Phase 21.2 单测 5 passed。
+
+## v4.1 Phase 21.3 Manual signoff package（当前已完成）
+
+- 交付物：`docs/manual_signoff_package_v41.md`, `scripts/manual_signoff_package.py`, `tests/test_manual_signoff_package_v413.py`。
+- 默认输出目录：`docs/reports/manual_signoff_package/`。
+- 输入为 Closure Evidence Index JSON。
+- 生成 release manager、security reviewer、business owner、operations owner 所需人工复核项。
+- 签核包生成完成仍保持整体 `partial` + `Manual-Review`，输出明确 `manual_signoff_required=true`, `manual_signoff_completed=false`, `auto_signed=false`。
+- 检测到上游 blocked/failed、secret-like 输入、非只读报告、自动审批/自动关闭标记或 release/tag 标记时输出 `blocked`。
+- 保持只读边界：不读取 Markdown 正文，不读取或输出真实 secret 原文，不自动签核，不自动批准上线，不自动关闭 blocker，不执行真实发布/回滚/外部系统连接/生产变更。
+- 当前仍不宣称生产发布批准完成。
+- 验证通过：v4.1 Phase 21.3 单测 5 passed。
+
+## v4.2 Phase 22.1 Controlled production acceptance drill（当前已完成）
+
+- 交付物：`docs/v4_2_controlled_production_acceptance_plan.md`, `docs/controlled_production_acceptance_drill_v42.md`, `scripts/controlled_production_acceptance_drill.py`, `tests/test_controlled_production_acceptance_drill_v421.py`。
+- 默认输出目录：`docs/reports/controlled_production_acceptance/`。
+- 覆盖 real LLM、OIDC/SSO、external MCP、PostgreSQL、Redis、业务系统、APM/logging/alerting、backup/restore/DR、capacity/load/soak、security/compliance、release/rollback gate。
+- 仅消费脱敏 acceptance evidence JSON，不连接真实外部系统，不执行真实生产验收动作。
+- 缺少验收证据或上游 skipped 时输出 `skipped`；证据可进入人工复核时输出 `partial` + `Manual-Review`；检测到 secret-like、真实执行/连接、release/tag、自动审批/自动关闭标记时输出 `blocked`。
+- 输出明确 `real_llm_executed=false`, `external_mcp_connected=false`, `database_connected=false`, `redis_connected=false`, `business_system_connected=false`, `auto_approved=false`, `auto_closed=false`, `production_direct_launch=No-Go`。
+- 当前仍不宣称真实生产验收完成，不宣称公网生产可直接上线。
+- 验证通过：v4.2 Phase 22.1 单测 6 passed。
+
+## v4.2 Phase 22.2 Acceptance drill evidence index（当前已完成）
+
+- 交付物：`docs/acceptance_drill_evidence_index_v42.md`, `scripts/acceptance_drill_evidence_index.py`, `tests/test_acceptance_drill_evidence_index_v422.py`。
+- 默认输入目录：`docs/reports/controlled_production_acceptance/`。
+- 默认输出目录：`docs/reports/acceptance_drill_index/`。
+- 仅扫描受控生产验收演练 JSON 报告，不读取 Markdown 报告正文，不展开证据报告内容。
+- 检测到 secret-like 输入、非只读报告、真实执行/连接标记、release/tag、自动审批/自动关闭标记或上游 blocked/failed 时输出 `blocked`。
+- 输出明确 `production_direct_launch=No-Go`, `auto_approved=false`, `auto_closed=false`, `real_llm_executed=false`, `external_mcp_connected=false`。
+- 当前仍不宣称真实生产验收完成。
+- 验证通过：v4.2 Phase 22.2 单测 5 passed。
+
+## v4.2 Phase 22.3 Production acceptance gap register（当前已完成）
+
+- 交付物：`docs/production_acceptance_gap_register_v42.md`, `scripts/production_acceptance_gap_register.py`, `tests/test_production_acceptance_gap_register_v423.py`。
+- 默认输出目录：`docs/reports/production_acceptance_gaps/`。
+- 输入为 Acceptance Drill Evidence Index JSON。
+- 将 skipped/blocked 域整理为人工跟踪 gap，字段覆盖 gap id、来源、风险描述、影响范围、责任人、到期时间、补偿控制、关闭证据、状态、审批状态和下一步动作。
+- 默认 gap 需要人工 owner、due_at、补偿控制和关闭证据，不自动关闭，不自动审批。
+- 检测到上游 blocked/failed、secret-like 输入、非只读报告、真实执行/连接标记、release/tag、自动审批/自动关闭标记时输出 `blocked`。
+- 输出明确 `production_direct_launch=No-Go`, `auto_approved=false`, `auto_closed=false`, `real_llm_executed=false`, `external_mcp_connected=false`。
+- 当前仍不宣称真实生产验收完成。
+- 验证通过：v4.2 Phase 22.3 单测 6 passed。
+
+## v4.3 Phase 23.1 Operations summary v4 evidence entry（当前已完成）
+
+- 交付物：`docs/v4_3_operational_governance_console_readiness_plan.md`, `app/api/operations.py`, `tests/test_operations_summary_v312.py`。
+- `/operations/summary` 的 `observability.v4_evidence` 纳入 v4.1/v4.2 证据 runbook 与默认报告目录计数。
+- 覆盖 launch blocker closure、closure evidence index、manual signoff package、controlled production acceptance、acceptance drill index、production acceptance gaps。
+- 仅统计 JSON 报告数量，不读取报告正文，不连接真实外部系统，不执行真实 LLM，不自动审批，不自动关闭 blocker/gap。
+- `last_known_report_counts` 新增 `v4_evidence_reports`。
+- 当前仍不宣称真实生产验收完成，不宣称运营台具备生产级全量治理能力。
+- 验证通过：operations summary 回归 2 passed, 1 warning。
+
+## v4.3 Phase 23.2 Frontend v4 evidence read-only view（当前已完成）
+
+- 交付物：`frontend/src/types/api.ts`, `frontend/src/app/operations/page.tsx`, `docs/v4_3_operational_governance_console_readiness_plan.md`。
+- 前端 `/operations` 已展示 `observability.v4_evidence` 的模式、边界、总 JSON 报告数和各证据入口 runbook/目录计数。
+- 页面仅展示后端聚合的结构化元数据，不读取报告正文。
+- 不新增生成、删除、清理、审批、关闭 blocker/gap 或触发验收的按钮。
+- 保持默认 fake/offline，不触发真实 LLM，不连接真实外部系统，不输出 secret 原文。
+- 当前仍不宣称真实生产验收完成，不宣称运营台具备生产级全量治理能力。
+
+## v4.3 Phase 23.3 Operations governance empty/status semantics polish（当前已完成）
+
+- 交付物：`frontend/src/app/operations/page.tsx`, `docs/v4_3_operational_governance_console_readiness_plan.md`。
+- `/operations` 已新增 v4 evidence entry state：`directory_missing`, `no_json_reports`, `metadata_available`。
+- `metadata_available` 仅表示目录中存在 JSON 元数据，不代表验收通过。
+- 页面已补充 `skipped`, `blocked`, `partial`, `success` 的运营语义；`partial/success` 仍不等于生产上线批准。
+- 保持只读边界：不读取报告正文，不触发真实 LLM，不连接真实外部系统，不输出 secret 原文。
+- 当前仍不宣称真实生产验收完成，不宣称运营台具备生产级全量治理能力。
+
+## v4.3.0 release prep（当前已完成）
+
+- 版本已同步到 `4.3.0`：`pyproject.toml`、FastAPI version、`/health.version`、MCP stdio fallback、相关测试断言。
+- 已新增 `RELEASE_NOTES_v4.3.0.md`。
+- 已新增 `docs/release_review_v4.3_operational_governance_console_readiness.md`。
+- Phase 20.1~23.4 纳入 v4.3.0 release prep 范围。
+- 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
+- 保持默认 fake/offline；默认 pytest/CI 不调用真实 LLM；默认不连接真实外部系统。
+- 不宣称公网生产可直接上线，不宣称真实 LLM/MCP/IdP/PostgreSQL/Redis/业务系统生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI、企业级 SRE/DR/容量验收完成。

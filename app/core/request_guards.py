@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 import time
 from collections import defaultdict
+from typing import Protocol
 
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -57,7 +58,46 @@ class InMemoryRateLimiter:
             return True, 0
 
 
+class RateLimiterBackend(Protocol):
+    def allow(self, key: str, max_requests: int, burst: int, window_seconds: int = 60) -> tuple[bool, int]:
+        ...
+
+
+class RedisRateLimiter:
+    def __init__(self, fallback: InMemoryRateLimiter | None = None) -> None:
+        self._fallback = fallback or InMemoryRateLimiter()
+
+    def allow(self, key: str, max_requests: int, burst: int, window_seconds: int = 60) -> tuple[bool, int]:
+        from app.cache.redis_client import NoopRedisClient, get_redis_client
+
+        client = get_redis_client()
+        if isinstance(client, NoopRedisClient):
+            return self._fallback.allow(key, max_requests, burst, window_seconds)
+
+        now = time.time()
+        capacity = max(1, max_requests + max(0, burst))
+        bucket = int(now // window_seconds)
+        redis_key = f"rate_limit:{bucket}:{key}"
+        try:
+            count = int(client.incr(redis_key))
+            if count == 1:
+                client.expire(redis_key, window_seconds)
+            if count > capacity:
+                retry_after = max(1, int(window_seconds - (now % window_seconds)))
+                return False, retry_after
+            return True, 0
+        except Exception:
+            return self._fallback.allow(key, max_requests, burst, window_seconds)
+
+
 _RATE_LIMITER = InMemoryRateLimiter()
+_REDIS_RATE_LIMITER = RedisRateLimiter(fallback=_RATE_LIMITER)
+
+
+def _get_rate_limiter() -> RateLimiterBackend:
+    if (settings.rate_limit_backend or "memory").strip().lower() == "redis":
+        return _REDIS_RATE_LIMITER
+    return _RATE_LIMITER
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -76,7 +116,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         client_ip = request.client.host if request.client else "unknown"
         key = f"{client_ip}:{request.url.path}"
-        allowed, retry_after = _RATE_LIMITER.allow(
+        allowed, retry_after = _get_rate_limiter().allow(
             key=key,
             max_requests=max(1, int(settings.rate_limit_requests_per_minute)),
             burst=max(0, int(settings.rate_limit_burst)),

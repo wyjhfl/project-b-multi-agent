@@ -1,5 +1,47 @@
 # 生产就绪检查清单（v3.4.0 release prep / Pilot Hardening & Operator Experience）
 
+## 67. v3.7 Phase 17.4 Store and Redis production readiness drill 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/store_redis_readiness_drill_v37.md`。
+- [x] 已新增只读演练脚本：`scripts/store_redis_readiness_drill.py`。
+- [x] 已新增测试：`tests/test_store_redis_readiness_drill_v374.py`。
+- [x] 默认输出目录：`docs/reports/store_redis_readiness_drill/`。
+- [x] 覆盖 PostgreSQL Store opt-in、Store Factory、SQLite fallback、Alembic migration precheck、Redis opt-in、NoopRedisClient fallback、进程内限流边界、deployment guard、审计/指标 store 边界和 compose readiness。
+- [x] 输出明确 `database_connected=false`、`redis_connected=false`、`migration_executed=false`、`business_data_written=false`、`audit_data_written=false`、`metrics_data_written=false`。
+- [x] 不连接真实 PostgreSQL，不连接真实 Redis，不执行 Alembic migration，不写业务/审计/指标数据。
+- [x] 不读取或输出 `DATABASE_URL`、`REDIS_URL`、`JWT_SECRET` 等 secret 原文。
+- [x] 缺少 PostgreSQL/Redis opt-in 条件时记录为 `skipped`，不伪造成 `success`。
+- [x] 不宣称 PostgreSQL、Redis 或多实例限流生产验收完成；下一建议阶段为 Phase 17.5 Business system integration safety checklist。
+
+## 68. v3.7 Phase 17.5 Business system integration safety checklist 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/business_system_integration_safety_checklist_v37.md`。
+- [x] 已新增只读安全清单脚本：`scripts/business_system_integration_safety_checklist.py`。
+- [x] 已新增测试：`tests/test_business_system_integration_safety_checklist_v375.py`。
+- [x] 默认输出目录：`docs/reports/business_system_integration_safety/`。
+- [x] 覆盖业务系统 opt-in、secret target、ToolGateway/PolicyEngine/OperationWhitelist、allowlist 与超时、写入边界、审批恢复、审计证据、request/prompt safety、回滚与失败恢复证据。
+- [x] 输出明确 `business_system_connected=false`、`business_read_executed=false`、`business_write_executed=false`、`business_data_written=false`、`approval_bypassed=false`、`audit_bypassed=false`。
+- [x] 不连接真实业务系统，不执行真实读写，不创建/更新/删除业务数据。
+- [x] 不绕过 ToolGateway、PolicyEngine、审批链路或审计链路。
+- [x] 不读取或输出 token、API key、client_secret、连接串密码或业务系统 URL 原文。
+- [x] 缺少写入 allowlist、审批、审计、回滚或失败恢复证据时记录为 `skipped`，不伪造成 `success`。
+- [x] 不宣称真实业务系统生产集成验收完成；下一建议阶段为 Phase 17.6 v3.7 release prep。
+
+## 69. v3.7.0 release prep 检查（当前已完成）
+
+- [x] 版本号已同步到 `3.7.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / v3.7 script version markers / related tests）。
+- [x] 已新增 `RELEASE_NOTES_v3.7.0.md`。
+- [x] 已新增 `docs/release_review_v3.7_external_integration_real_provider_acceptance.md`。
+- [x] release notes 覆盖 Phase 17.1~17.5、状态语义与默认 fake/offline 约束。
+- [x] release review 覆盖 scope、changed docs/scripts/tests/modules、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
+- [x] 本轮 release prep 不打 tag、不创建 GitHub Release、不移动历史 tag。
+- [x] 默认 fake/offline 与默认 pytest/CI 不调用真实 LLM 边界保持明确。
+- [x] 本轮不连接真实外部 MCP、真实业务系统、真实 PostgreSQL、真实 Redis 或真实 IdP。
+- [x] 不宣称公网生产可直接上线，不宣称真实 LLM/MCP/PostgreSQL/Redis/业务系统生产验收完成。
+- [x] 全量回归 `python -m pytest -q`：880 passed, 4 skipped, 2 warnings。
+- [x] `docker compose config` 与 prod override config 通过，仅 Docker config 读权限 warning。
+- [x] `git diff --check` 通过，仅 CRLF 转换提示。
+
 > 目标：用于企业内网试点的准生产可投入使用检查，不等于公网生产上线批准。
 
 ## 1. 配置安全
@@ -673,7 +715,7 @@
 - [x] 明确默认 fake/offline，默认 pytest/CI 不调用真实 LLM。
 - [x] 明确默认不连接真实外部 MCP，不连接真实业务系统。
 - [x] 明确不读取或输出真实 secret 原文。
-- [x] Phase 17.1~17.2 已完成；下一建议阶段为 Phase 17.3 Real LLM provider acceptance gate。
+- [x] Phase 17.1~17.5 与 v3.7.0 release prep 已完成；tag/Release 待用户单独确认。
 
 ## 64. v3.7 Phase 17.1 外部集成与真实 provider 基线盘点检查（已完成）
 
@@ -698,3 +740,251 @@
 - [x] 不启动 MCP subprocess，不执行真实 `tools/list` 或 `tools/call`。
 - [x] 不绕过 ToolGateway、PolicyEngine、审批链路或审计链路。
 - [x] 不宣称真实外部 MCP 生产验收完成。
+
+## 66. v3.7 Phase 17.3 Real LLM provider acceptance gate 检查（已完成）
+
+- [x] 已新增 runbook：`docs/real_llm_provider_acceptance_gate_v37.md`。
+- [x] 已新增只读门禁脚本：`scripts/real_llm_provider_acceptance_gate.py`。
+- [x] 已新增测试：`tests/test_real_llm_provider_acceptance_gate_v373.py`。
+- [x] 默认输出目录：`docs/reports/real_llm_provider_acceptance_gate/`。
+- [x] 门禁覆盖 preflight config、network check gate、smoke opt-in、budget/cache/fallback、PII/prompt guardrails、report redaction、judge acceptance、evidence index。
+- [x] 输出明确 `real_llm_executed=false`、`provider_network_check_executed=false`、`pilot_report_content_read=false`。
+- [x] 可选索引 pilot report 目录时仅读取文件元数据，不读取报告正文。
+- [x] 不调用真实外网 LLM，不执行 provider network check。
+- [x] 不读取或输出真实 API key、token、client_secret 或连接串密码原文。
+- [x] 不宣称真实 LLM 生产验收完成。
+## 68. v3.8 Phase 18.1 SRE observability baseline 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/sre_observability_baseline_v38.md`。
+- [x] 已新增只读脚本：`scripts/sre_observability_baseline.py`。
+- [x] 已新增测试：`tests/test_sre_observability_baseline_v381.py`。
+- [x] 默认输出目录：`docs/reports/sre_observability_baseline/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖 runtime metrics/cost API、runtime snapshot、operations summary、audit export、structured logging、failure diagnostics、backup/restore runbook、外部 APM、告警、容量、备份与 DR 缺口。
+- [x] 默认不启动服务，不访问在线 `/health`、`/metrics`、`/operations`、`/runtime/snapshot`。
+- [x] 默认不连接真实 APM、日志平台、告警平台或值班系统。
+- [x] 默认不执行真实压测、备份恢复或灾备切换，不删除用户数据，不自动清理报告，不修改 `.env`。
+- [x] 缺少 SRE/APM/告警/容量/备份/DR opt-in 条件时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码或告警 webhook 原文。
+- [x] 不宣称企业级 SRE、RTO/RPO、SLO/SLI、告警触发或生产 DR 验收已完成。
+## 69. v3.8 Phase 18.2 SLO/SLI and alerting runbook pack 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/slo_alerting_runbook_pack_v38.md`。
+- [x] 已新增只读脚本：`scripts/slo_alerting_runbook_pack.py`。
+- [x] 已新增测试：`tests/test_slo_alerting_runbook_pack_v382.py`。
+- [x] 默认输出目录：`docs/reports/slo_alerting_runbook/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖 SLO/SLI 指标来源、SLO 目标配置、structured logging 告警上下文、告警分级与路由、on-call 升级、alert dry-run 证据、incident runbook 串联和回归测试覆盖。
+- [x] 默认不启动服务，不访问在线 `/health`、`/metrics`、`/operations`、`/runtime/snapshot`。
+- [x] 默认不连接真实 APM、日志平台、告警平台或值班系统。
+- [x] 默认不发送真实告警，不通知真实 on-call，不调用真实 webhook，不执行真实 incident 升级。
+- [x] 缺少 SLO/告警/on-call/dry-run opt-in 或演练证据时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码或告警 webhook 原文。
+- [x] 不宣称企业级 SLO/SLI、告警触发、on-call 响应或 incident 升级生产验收已完成。
+## 70. v3.8 Phase 18.3 Backup/restore and DR drill evidence pack 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/backup_restore_dr_evidence_pack_v38.md`。
+- [x] 已新增只读脚本：`scripts/backup_restore_dr_evidence_pack.py`。
+- [x] 已新增测试：`tests/test_backup_restore_dr_evidence_pack_v383.py`。
+- [x] 默认输出目录：`docs/reports/backup_restore_dr_evidence/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖备份范围、部署与迁移边界、RTO/RPO 配置、备份演练证据、恢复 dry-run 证据、DR failover 证据、runbook 串联和回归测试覆盖。
+- [x] 默认不启动服务，不连接真实 PostgreSQL、Redis、对象存储、IdP、LLM provider 或外部 MCP。
+- [x] 默认不执行真实备份，不执行真实恢复，不执行灾备切换，不执行 Alembic migration。
+- [x] 默认不写业务数据、审计数据或指标数据，不删除用户数据，不移动或清理报告，不修改 `.env`。
+- [x] 缺少备份/恢复/DR opt-in 或演练证据时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、`DATABASE_URL`、`REDIS_URL` 或对象存储凭证原文。
+- [x] 不宣称 RTO/RPO、真实恢复、DR failover 或生产 DR 验收已完成。
+## 71. v3.8 Phase 18.4 Capacity and load-test readiness plan 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/capacity_load_test_readiness_plan_v38.md`。
+- [x] 已新增只读脚本：`scripts/capacity_load_test_readiness_plan.py`。
+- [x] 已新增测试：`tests/test_capacity_load_test_readiness_plan_v384.py`。
+- [x] 默认输出目录：`docs/reports/capacity_load_test_readiness/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖关键 API 入口、流量模型目标、request guard、容量测试可观测性、load-test dry-run 证据、soak test 证据、runbook 串联和回归测试覆盖。
+- [x] 默认不启动服务，不访问在线端点，不执行真实压测、soak test、并发请求或容量探测。
+- [x] 默认不连接真实 PostgreSQL、Redis、APM、日志平台、告警平台、IdP、LLM provider、外部 MCP 或业务系统。
+- [x] 默认不写业务数据、审计数据或指标数据，不删除用户数据，不清理报告，不修改 `.env`。
+- [x] 缺少容量/压测/soak opt-in 或报告证据时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码或压测目标 URL 原文。
+- [x] 不宣称真实压测、长期稳定性或生产容量上限验收已完成。
+## 72. v3.8.0 release prep 检查（当前已完成）
+
+- [x] 版本号已同步到 `3.8.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / v3.8 script version markers / related tests）。
+- [x] 已新增 `RELEASE_NOTES_v3.8.0.md`。
+- [x] 已新增 `docs/release_review_v3.8_sre_observability_dr.md`。
+- [x] release notes 覆盖 Phase 18.1~18.4、状态语义与默认 fake/offline 约束。
+- [x] release review 覆盖 scope、changed files、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
+- [x] 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
+- [x] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
+- [x] 本轮不连接真实 APM、日志、告警、对象存储、PostgreSQL、Redis、IdP、外部 MCP 或业务系统。
+- [x] 本轮不执行真实告警、on-call 通知、压测、备份恢复、DR failover 或 Alembic migration。
+- [x] 全量回归 `python -m pytest -q` 通过：900 passed, 4 skipped, 2 warnings。
+- [x] `git diff --check` 通过，仅 CRLF 提示。
+- [x] 不宣称公网生产可直接上线，不宣称企业级 SRE、RTO/RPO、DR、容量上限、真实 LLM 生产验收、生产级 SSO/OIDC 或多租户完成。
+## 73. v3.9 Compliance Security Hardening 规划入口检查（当前）
+
+- [x] 已新增规划文档：`docs/v3_9_compliance_security_hardening_plan.md`。
+- [x] v3.9 定位为 Compliance Security Hardening。
+- [x] 当前已进入 v3.9.0 release prep，版本已同步到 `3.9.0`。
+- [x] 本轮不打 tag，不创建 GitHub Release，不移动历史 tag。
+- [x] 默认 fake/offline，默认 pytest/CI 不调用真实 LLM。
+- [x] 默认不连接真实 IdP、APM、日志平台、告警平台、对象存储、PostgreSQL、Redis、外部 MCP 或业务系统。
+- [x] 默认不执行真实安全扫描、真实密钥轮换、真实权限变更、真实审计导出、真实发布或真实回滚。
+- [x] 不读取或输出真实 secret 原文，不宣称企业级合规、安全治理、发布门禁或密钥治理完成。
+
+## 74. v3.9 Phase 19.1 Compliance security baseline inventory 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/compliance_security_baseline_v39.md`。
+- [x] 已新增只读脚本：`scripts/compliance_security_baseline.py`。
+- [x] 已新增测试：`tests/test_compliance_security_baseline_v391.py`。
+- [x] 默认输出目录：`docs/reports/compliance_security_baseline/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖 deployment guard、安全响应头、request guard、结构化日志脱敏、审计留存与导出、RBAC、OIDC、prompt injection、PII guard、跨租户审计和 release review 证据缺口。
+- [x] 默认不启动服务，不访问在线端点，不连接真实外部系统。
+- [x] 默认不执行真实安全扫描、审计导出、密钥轮换、权限变更、发布或回滚。
+- [x] 缺少正式合规签核、审计复核、发布门禁复核或密钥轮换演练证据时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码、告警 webhook 或生产 URL 原文。
+- [x] 不宣称企业级合规、安全治理、发布门禁或密钥治理验收完成。
+## 75. v3.9 Phase 19.2 Secret rotation and leakage response pack 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/secret_rotation_leakage_response_pack_v39.md`。
+- [x] 已新增只读脚本：`scripts/secret_rotation_leakage_response_pack.py`。
+- [x] 已新增测试：`tests/test_secret_rotation_leakage_response_pack_v392.py`。
+- [x] 默认输出目录：`docs/reports/secret_rotation_leakage_response/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖 JWT/OIDC/数据库/Redis/LLM/MCP/业务系统/告警 webhook 等 secret surface、脱敏审计边界、身份密钥生命周期、外部集成密钥边界、治理例外串联、轮换/泄漏响应/撤销恢复演练证据缺口。
+- [x] 默认不读取 `.env` 或真实 secret 值。
+- [x] 默认不连接真实 KMS、Vault、云平台、IdP、LLM provider、外部 MCP、数据库、Redis、告警平台或业务系统。
+- [x] 默认不执行真实密钥创建、轮换、撤销、禁用、泄漏扫描或告警通知。
+- [x] 默认不修改用户、角色、权限、租户、业务数据、审计数据、指标数据或配置文件。
+- [x] 缺少轮换、泄漏响应或撤销恢复演练证据时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码、webhook 或生产 URL 原文。
+- [x] 不宣称企业级密钥治理完成。
+## 76. v3.9 Phase 19.3 Release gate and rollback governance pack 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/release_gate_rollback_governance_pack_v39.md`。
+- [x] 已新增只读脚本：`scripts/release_gate_rollback_governance_pack.py`。
+- [x] 已新增测试：`tests/test_release_gate_rollback_governance_pack_v393.py`。
+- [x] 默认输出目录：`docs/reports/release_gate_rollback_governance/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖 deployment guard、compose、Alembic、release notes、release review、变更审批、发布签核、回滚演练、治理例外和安全合规串联证据缺口。
+- [x] 默认不启动服务，不访问在线端点。
+- [x] 默认不执行 git tag、GitHub Release、部署、迁移、回滚、数据恢复或外部系统调用。
+- [x] 默认不连接真实 PostgreSQL、Redis、IdP、LLM provider、外部 MCP、业务系统、APM、日志平台或告警平台。
+- [x] 缺少变更审批、发布签核或回滚演练证据时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码、webhook 或生产 URL 原文。
+- [x] 不宣称生产发布门禁或回滚验收完成。
+## 77. v3.9 Phase 19.4 Security regression and compliance evidence pack 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/security_regression_compliance_evidence_pack_v39.md`。
+- [x] 已新增只读脚本：`scripts/security_regression_compliance_evidence_pack.py`。
+- [x] 已新增测试：`tests/test_security_regression_compliance_evidence_pack_v394.py`。
+- [x] 默认输出目录：`docs/reports/security_regression_compliance_evidence/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`checks`、`missing_conditions`、`boundary_declarations` 和输出路径。
+- [x] 覆盖 prompt injection、PII 泄漏、SQL guard、边界防护、身份/RBAC、跨租户拒绝、审计导出脱敏、发布门禁和合规证据串联缺口。
+- [x] 默认不启动服务，不访问在线端点。
+- [x] 默认不执行真实 SAST、DAST、依赖扫描、红队测试、外部审计或外部系统调用。
+- [x] 默认不连接真实 IdP、LLM provider、外部 MCP、业务系统、数据库、Redis、APM、日志平台或告警平台。
+- [x] 缺少外部安全扫描、正式安全签核或合规证据复核时记录为 `skipped`，不伪造成 `success`。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码、webhook 或生产 URL 原文。
+- [x] 不宣称企业级安全合规验收完成。
+## 78. v3.9.0 release prep 检查（当前已完成）
+
+- [x] 版本号已同步到 `3.9.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / v3.9 script version markers / related tests）。
+- [x] 已新增 `RELEASE_NOTES_v3.9.0.md`。
+- [x] 已新增 `docs/release_review_v3.9_compliance_security_hardening.md`。
+- [x] release notes 覆盖 Phase 19.1~19.4、状态语义与默认 fake/offline 约束。
+- [x] release review 覆盖 scope、changed files、verification matrix、security/privacy boundary、operational boundary、known limitations、Go/No-Go。
+- [x] v3.9 聚焦验证 `python -m pytest tests/test_runtime_hardening_v055.py tests/test_operations_summary_v312.py tests/test_mcp_stdio_client_v31.py tests/test_compliance_security_baseline_v391.py tests/test_secret_rotation_leakage_response_pack_v392.py tests/test_release_gate_rollback_governance_pack_v393.py tests/test_security_regression_compliance_evidence_pack_v394.py -q` 通过：56 passed, 2 warnings。
+- [x] v3.9 安全/合规回归 `python -m pytest tests/test_compliance_security_baseline_v391.py tests/test_secret_rotation_leakage_response_pack_v392.py tests/test_release_gate_rollback_governance_pack_v393.py tests/test_security_regression_compliance_evidence_pack_v394.py tests/test_security_v04.py tests/test_guardrails_v44.py tests/test_guardrails_pii_leak_v44.py tests/test_security_headers_v71.py tests/test_request_guards_v72.py tests/test_auth_v20.py tests/test_rbac_v20.py tests/test_cross_tenant_audit_evidence_v365.py tests/test_audit_v045.py tests/test_audit_retention_export_v74.py tests/test_deployment_guard_v60.py -q` 通过：161 passed, 2 warnings。
+- [x] 全量回归 `python -m pytest -q` 通过：920 passed, 4 skipped, 2 warnings。
+- [x] `git diff --check` 通过，仅 CRLF 提示。
+- [x] 本轮 release prep 不打 tag，不创建 GitHub Release，不移动历史 tag。
+- [x] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
+- [x] 本轮不连接真实外部系统，不执行真实安全扫描、红队测试、审计导出、密钥轮换、权限变更、发布、回滚或迁移。
+- [x] 不宣称公网生产可直接上线，不宣称企业级合规、安全治理、密钥治理、发布门禁、回滚验收、真实 LLM 生产验收、生产级 SSO/OIDC 或多租户完成。
+
+## 79. v4.0 Production Launch Readiness Review 规划入口检查（当前已完成）
+
+- [x] 已新增规划文档：`docs/v4_0_production_launch_readiness_plan.md`。
+- [x] v4.0 定位为 Production Launch Readiness Review。
+- [x] 当前进入只读证据汇总阶段，不同步版本号，不打 tag，不创建 GitHub Release。
+- [x] 默认 fake/offline，默认 pytest/CI 不调用真实 LLM。
+- [x] 默认不连接真实 IdP、LLM provider、外部 MCP、业务系统、PostgreSQL、Redis、APM、日志、告警、KMS、Vault、对象存储或云平台。
+- [x] 默认不执行真实部署、迁移、发布、回滚、压测、备份恢复、DR failover、安全扫描、红队测试、审计导出、密钥轮换或权限变更。
+- [x] 不读取或输出真实 secret 原文，不把 `skipped/blocked/partial` 或只读本地证据汇总伪造成生产 Go。
+
+## 80. v4.0 Phase 20.1 Launch readiness evidence review pack 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/production_launch_readiness_review_v40.md`。
+- [x] 已新增只读脚本：`scripts/production_launch_readiness_review.py`。
+- [x] 已新增测试：`tests/test_production_launch_readiness_review_v401.py`。
+- [x] 默认输出目录：`docs/reports/production_launch_readiness/`，CLI 支持 `--output-dir`。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`input_sources`、`local_artifacts`、`production_blockers`、`missing_conditions`、`go_no_go`、`boundary_declarations` 和输出路径。
+- [x] 覆盖 v3.5~v3.9 试点收口、证据归档、真实 provider 验收、SRE/DR、容量、安全合规、发布门禁和回滚治理证据入口。
+- [x] 默认状态为 `partial`，Go/No-Go 建议为 `Manual-Review`，公网生产直上为 `No-Go`。
+- [x] 缺少真实 SSO/OIDC、租户隔离、真实 LLM、外部 MCP、业务系统集成、SRE/DR、容量、安全合规、发布门禁或回滚演练证据时保留阻断项，不伪造成 `success`。
+- [x] 检测到 secret-like 输入、非只读输入、意外真实 LLM/MCP 执行、意外 tag/release 标记时输出 `blocked`。
+- [x] 上游来源状态为 `blocked/failed` 时整体保持 `blocked`，不降级为 `partial`。
+- [x] 提供了输入但路径不存在、无法加载或全部来源为 `skipped` 时整体可保持 `skipped` 语义。
+- [x] secret-like 检测覆盖常见 JSON 键值形态（如 `token`、`client_secret`、`password`、连接串），输出前保持脱敏。
+- [x] `controlled_internal_pilot` 在整体 `blocked` 时收紧为 `No-Go`，避免和阻断状态冲突。
+- [x] 根据子 agent 审查补强 `external_system_connected` 边界违规识别。
+- [x] v4.0 + v3.9 关联验证 `python -m pytest tests/test_production_launch_readiness_review_v401.py tests/test_compliance_security_baseline_v391.py tests/test_secret_rotation_leakage_response_pack_v392.py tests/test_release_gate_rollback_governance_pack_v393.py tests/test_security_regression_compliance_evidence_pack_v394.py -q` 通过：27 passed, 1 warning。
+- [x] 默认不启动服务，不访问在线端点，不连接真实外部系统，不执行真实生产操作。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码、webhook 或生产 URL 原文。
+- [x] 不自动改变最终生产 Go/No-Go 结论，不宣称生产上线批准完成。
+
+## 81. v4.0 Phase 20.2 Launch blocker register 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/launch_blocker_register_v40.md`。
+- [x] 已新增只读脚本：`scripts/launch_blocker_register.py`。
+- [x] 已新增测试：`tests/test_launch_blocker_register_v402.py`。
+- [x] 默认输出目录：`docs/reports/launch_blockers/`，CLI 支持 `--output-dir`。
+- [x] 支持 `--launch-readiness` 读取 Phase 20.1 JSON 结构化字段，生成 blocker register。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`launch_readiness_source`、`blocker_register`、`missing_conditions`、`go_no_go`、`boundary_declarations` 和输出路径。
+- [x] 每个 blocker 包含 blocker id、来源、风险描述、影响范围、责任人、到期时间、补偿控制、关闭证据、状态、审批状态和下一步动作。
+- [x] 默认无上游输入或上游 `skipped` 时输出 `skipped`，不伪造成 `open/success`。
+- [x] 存在待关闭 blocker 时输出 `partial`；上游 `blocked/failed`、secret-like 输入、自动批准/关闭标记或边界违规时输出 `blocked`。
+- [x] `auto_approved=false`、`auto_closed=false`，不自动批准上线，不自动关闭阻断项。
+- [x] 根据子 agent 审查补强上游 `skipped` 保留、`auto_approved/auto_closed` 阻断和 success 语义文档。
+- [x] v4.0 Phase 20.1/20.2 + v3.9 关键安全合规关联验证 `python -m pytest tests/test_production_launch_readiness_review_v401.py tests/test_launch_blocker_register_v402.py tests/test_compliance_security_baseline_v391.py tests/test_secret_rotation_leakage_response_pack_v392.py tests/test_release_gate_rollback_governance_pack_v393.py tests/test_security_regression_compliance_evidence_pack_v394.py -q` 通过：34 passed, 1 warning。
+- [x] `git diff --check` 通过，仅 CRLF 提示。
+- [x] 默认不启动服务，不访问在线端点，不连接真实外部系统，不执行真实部署、迁移、发布、回滚、压测、备份恢复、DR failover、安全扫描、审计导出、密钥轮换或权限变更。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码、webhook 或生产 URL 原文。
+- [x] 不改版本号，不打 tag，不创建 GitHub Release，不宣称生产上线批准完成。
+
+## 82. v4.0 Phase 20.3 Production runbook finalization 检查（当前已完成）
+
+- [x] 已新增 runbook：`docs/production_runbook_finalization_v40.md`。
+- [x] 已新增只读脚本：`scripts/production_runbook_finalization.py`。
+- [x] 已新增测试：`tests/test_production_runbook_finalization_v403.py`。
+- [x] 默认输出目录：`docs/reports/production_runbook_finalization/`，CLI 支持 `--output-dir`。
+- [x] 支持 `--launch-readiness` 与 `--launch-blockers` 串联 Phase 20.1/20.2 JSON 结构化字段。
+- [x] 输出包含 JSON + Markdown，并记录 `generated_at`、`commit`、`version`、`phase`、`status`、`input_sources`、`runbook_items`、`missing_conditions`、`go_no_go`、`boundary_declarations` 和输出路径。
+- [x] 覆盖部署、回滚、incident、DR、密钥轮换、审计导出、SLO/告警、容量、Launch Readiness 和 blocker register 的本地 runbook 入口。
+- [x] 默认仅检查本地文件存在性和可选上游 JSON 结构化字段，不读取 Markdown 报告正文。
+- [x] 输出明确 `deployment_executed=false`、`rollback_executed=false`、`alert_sent=false`、`oncall_notified=false`、`auto_approved=false`、`auto_closed=false`。
+- [x] 缺少上游 Phase 20.1/20.2 JSON 时输出 `skipped`，不降级为 `partial`。
+- [x] 透传 Phase 20.2 blocker 计数与上游 Go/No-Go，保留 open/blocked/skipped blocker 汇总证据。
+- [x] audit log/export 文档与 `tests/test_audit_retention_export_v74.py` 纳入必需入口，不静默降级为非必需。
+- [x] Phase 20.1 在 `skipped` 时 `controlled_internal_pilot=Needs-Input`，不显示 `Review-Allowed`。
+- [x] v4.0 Phase 20.1/20.2/20.3 + v3.9 关键安全合规关联验证 `python -m pytest tests/test_production_launch_readiness_review_v401.py tests/test_launch_blocker_register_v402.py tests/test_production_runbook_finalization_v403.py tests/test_compliance_security_baseline_v391.py tests/test_secret_rotation_leakage_response_pack_v392.py tests/test_release_gate_rollback_governance_pack_v393.py tests/test_security_regression_compliance_evidence_pack_v394.py -q` 通过：39 passed。
+- [x] `git diff --check` 通过，仅 CRLF 提示。
+- [x] 默认不启动服务，不访问在线端点，不连接真实外部系统，不执行真实生产操作。
+- [x] 不读取或输出真实 secret、token、API key、client_secret、连接串密码、webhook 或生产 URL 原文。
+- [x] 不把 runbook 入口存在性伪造成生产 Go，不改版本号，不打 tag，不创建 GitHub Release。
+
+## 90. v4.3.0 release prep 检查（当前已完成）
+
+- [x] 版本号已同步到 `4.3.0`（pyproject / FastAPI version / `/health.version` / MCP stdio fallback / related tests）。
+- [x] 已新增 `RELEASE_NOTES_v4.3.0.md`。
+- [x] 已新增 `docs/release_review_v4.3_operational_governance_console_readiness.md`。
+- [x] release notes 覆盖 v4.0~v4.3 的生产上线评审、上线阻断项、关闭证据、人工签核、受控生产验收、验收缺口和运营治理台只读展示。
+- [x] release review 覆盖 scope、changed files、verification matrix、security/privacy boundary、operational boundary 和 Go/No-Go。
+- [x] 默认 fake/offline 与 pytest/CI 默认不调用真实 LLM 边界保持明确。
+- [x] 本轮不连接真实外部系统，不执行真实发布、迁移、回滚、压测、备份恢复、DR failover、安全扫描、审计导出、密钥轮换或权限变更。
+- [x] 本轮 release prep 不打 `v4.3.0` tag，不创建 GitHub Release，不移动历史 tag。
+- [x] 不宣称公网生产可直接上线，不宣称真实 LLM/MCP/IdP/PostgreSQL/Redis/业务系统生产验收完成，不宣称生产级 SSO/OIDC、多租户、复杂 BI、企业级 SRE/DR/容量验收完成。

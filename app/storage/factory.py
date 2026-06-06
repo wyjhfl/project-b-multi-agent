@@ -3,6 +3,14 @@ from __future__ import annotations
 from app.core.config import settings
 
 
+def get_user_store():
+    if settings.storage_backend == "postgres" and settings.database_url:
+        from app.storage.postgres.user_store import PostgresUserStore
+        return PostgresUserStore()
+    from app.storage.user_store import InMemoryUserStore
+    return InMemoryUserStore()
+
+
 def get_task_store():
     if settings.storage_backend == "postgres" and settings.database_url:
         from app.storage.postgres.task_store import PostgresTaskStore

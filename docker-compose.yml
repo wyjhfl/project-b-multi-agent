@@ -40,6 +40,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - STORAGE_BACKEND=postgres
       - REDIS_ENABLED=true
+      - RATE_LIMIT_BACKEND=redis
       - AUTH_ENABLED=false
       - RBAC_ENABLED=false
     depends_on:

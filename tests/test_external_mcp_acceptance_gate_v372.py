@@ -30,7 +30,7 @@ def test_external_mcp_acceptance_gate_generates_outputs(tmp_path: Path, monkeypa
     assert summary["read_only"] is True
     assert summary["external_mcp_connected"] is False
     assert summary["mcp_process_started"] is False
-    assert payload["version"] == "3.6.0"
+    assert payload["version"] == "3.7.0"
     assert payload["phase"] == "v3.7 Phase 17.2"
     assert payload["check_count"] == len(payload["acceptance_checks"])
     assert Path(summary["markdown_path"]).exists()

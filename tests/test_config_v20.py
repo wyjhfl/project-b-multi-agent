@@ -95,3 +95,23 @@ class TestRedisClient:
         result = check_redis_health()
         assert result["status"] == "disabled"
         assert result["backend"] == "noop"
+
+    def test_check_redis_health_enabled_connection_failure_reports_error(self, monkeypatch):
+        import app.cache.redis_client as cache_mod
+
+        class FailingRedisLib:
+            @staticmethod
+            def from_url(*args, **kwargs):
+                raise RuntimeError("connect failed")
+
+        cache_mod.reset_redis_client()
+        monkeypatch.setattr(cache_mod.settings, "redis_enabled", True)
+        monkeypatch.setattr(cache_mod.settings, "redis_url", "redis://localhost:6379/0")
+        monkeypatch.setitem(__import__("sys").modules, "redis", FailingRedisLib)
+
+        result = cache_mod.check_redis_health()
+
+        assert result["status"] == "error"
+        assert result["backend"] == "redis"
+        assert "error" in result
+        cache_mod.reset_redis_client()

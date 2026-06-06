@@ -21,6 +21,7 @@ class ToolGateway:
         self._registry: dict[str, ToolSpec] = {}
         self._callables: dict[str, Any] = {}
         self._mcp_clients: dict[str, Any] = {}
+        self._mcp_tool_allowlists: dict[str, set[str]] = {}
         self._metrics_recorder: Any = None
         self._current_task_id: str = ""
 
@@ -34,8 +35,32 @@ class ToolGateway:
         self._registry[spec.tool_name] = spec
         self._callables[spec.tool_name] = callable_fn
 
-    def register_mcp_server(self, server_name: str, client: Any) -> None:
+    @staticmethod
+    def _parse_allowlist(raw: str | list[str] | tuple[str, ...] | set[str] | None) -> set[str]:
+        if raw is None:
+            return set()
+        if isinstance(raw, str):
+            values = raw.split(",")
+        else:
+            values = list(raw)
+        return {str(value).strip() for value in values if str(value).strip()}
+
+    def register_mcp_server(
+        self,
+        server_name: str,
+        client: Any,
+        tool_allowlist: str | list[str] | tuple[str, ...] | set[str] | None = None,
+    ) -> None:
         self._mcp_clients[server_name] = client
+        allowlist = self._parse_allowlist(tool_allowlist)
+        if allowlist:
+            self._mcp_tool_allowlists[server_name] = allowlist
+        else:
+            self._mcp_tool_allowlists.pop(server_name, None)
+
+    def _is_mcp_tool_allowed(self, server_name: str, tool_name: str) -> bool:
+        allowlist = self._mcp_tool_allowlists.get(server_name)
+        return not allowlist or tool_name in allowlist
 
     def discover_mcp_tools(self, server_name: str) -> list[ToolSpec]:
         client = self._mcp_clients.get(server_name)
@@ -44,6 +69,8 @@ class ToolGateway:
         mcp_tools = client.list_tools()
         specs: list[ToolSpec] = []
         for tool_info in mcp_tools:
+            if not self._is_mcp_tool_allowed(server_name, tool_info.name):
+                continue
             spec = ToolSpec(
                 tool_name=tool_info.name,
                 description=tool_info.description,
@@ -210,9 +237,17 @@ class ToolGateway:
             record.result = None
             return record
 
+        mcp_tool_name = spec.mcp_tool_name or spec.tool_name
+        if not self._is_mcp_tool_allowed(server_name, mcp_tool_name):
+            record.status = ToolCallStatus.failed
+            record.success = False
+            record.error = f"MCP tool '{mcp_tool_name}' is not allowed by MCP_TOOL_ALLOWLIST"
+            record.result = None
+            return record
+
         start = time.monotonic()
         try:
-            result = client.call_tool(spec.mcp_tool_name or spec.tool_name, arguments)
+            result = client.call_tool(mcp_tool_name, arguments)
             record.result = result
             if isinstance(result, dict) and result.get("error"):
                 record.status = ToolCallStatus.failed

@@ -151,6 +151,18 @@ class TestStorageModels:
 
 class TestStoreProtocol:
 
+    def test_user_stores_implement_protocol(self, monkeypatch):
+        from sqlalchemy.orm import Session, sessionmaker
+
+        from app.storage.base import UserStoreProtocol
+        from app.storage.postgres.user_store import PostgresUserStore
+        from app.storage.user_store import InMemoryUserStore
+
+        monkeypatch.setattr("app.storage.postgres.user_store.get_session_factory", lambda: sessionmaker(class_=Session))
+
+        assert isinstance(InMemoryUserStore(), UserStoreProtocol)
+        assert isinstance(PostgresUserStore(), UserStoreProtocol)
+
     def test_sqlite_task_store_implements_protocol(self):
         from app.storage.base import TaskStoreProtocol
         from app.storage.task_store import SQLiteTaskStore
