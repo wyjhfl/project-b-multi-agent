@@ -154,9 +154,22 @@ def test_business_system_landing_resume_ps1_refreshes_landing_chain_without_plai
     assert "do_not_enter_tokens_or_connection_strings=true" in text
     assert "input=existing_process_env_only" in text
     assert "SkipBusinessPreparation" in text
+    assert "BusinessReadSmokeJsonPath" in text
+    assert "Invoke-CheckedPythonCapture" in text
+    assert "Get-JsonPathFromOutput" in text
     assert "business_system_input_packet.py" in text
     assert "business_system_production_readiness_brief.py" in text
     assert "business_system_landing_execution_pack.py" in text
+    assert "$businessInputPacketJsonPath = Get-JsonPathFromOutput -OutputLines $inputPacketOutput -ToolName \"business_system_input_packet.py\"" in text
+    assert "$businessReadinessJsonPath = Get-JsonPathFromOutput -OutputLines $readinessOutput -ToolName \"business_system_production_readiness_brief.py\"" in text
+    assert "--business-smoke-json-path" in text
+    assert "--business-input-packet-json" in text
+    assert "$businessInputPacketJsonPath" in text
+    assert "--business-readiness-json" in text
+    assert "$businessReadinessJsonPath" in text
+    assert "--business-read-smoke-json" in text
+    assert "$businessReadSmokeJsonPath" in text
+    assert "did not emit json_path" in text
     assert "production_landing_env_check.py" in text
     assert "production_landing_execution_gate.py" in text
     assert "EnvPath" in text

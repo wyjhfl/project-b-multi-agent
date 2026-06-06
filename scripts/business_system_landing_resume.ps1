@@ -2,7 +2,8 @@ Param(
   [switch]$UseExistingEnv,
   [switch]$CheckPythonOnly,
   [switch]$SkipBusinessPreparation,
-  [string]$EnvPath = ""
+  [string]$EnvPath = "",
+  [string]$BusinessReadSmokeJsonPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -65,6 +66,44 @@ function Invoke-CheckedPython {
   }
 }
 
+function Invoke-CheckedPythonCapture {
+  param([Parameter(Mandatory = $true)][string[]]$Arguments)
+
+  [string[]]$pythonCommand = @(Resolve-PythonExecutable)
+  if ($pythonCommand.Count -gt 1) {
+    $output = & $pythonCommand[0] $pythonCommand[1..($pythonCommand.Count - 1)] $Arguments 2>&1
+  } else {
+    $output = & $pythonCommand[0] $Arguments 2>&1
+  }
+  foreach ($line in $output) {
+    Write-Host $line
+  }
+  $exitCode = $LASTEXITCODE
+  if ($exitCode -ne 0) {
+    throw "python command failed with exit code $exitCode"
+  }
+  return @($output)
+}
+
+function Get-JsonPathFromOutput {
+  param(
+    [Parameter(Mandatory = $true)][object[]]$OutputLines,
+    [Parameter(Mandatory = $true)][string]$ToolName
+  )
+
+  $jsonPath = ""
+  foreach ($line in $OutputLines) {
+    $text = [string]$line
+    if ($text.StartsWith("json_path=")) {
+      $jsonPath = $text.Substring("json_path=".Length).Trim()
+    }
+  }
+  if ([string]::IsNullOrWhiteSpace($jsonPath)) {
+    throw "$ToolName did not emit json_path"
+  }
+  return $jsonPath
+}
+
 if ($CheckPythonOnly) {
   Initialize-CodexProcessEnvironment
   [string[]]$pythonCommand = @(Resolve-PythonExecutable)
@@ -78,14 +117,32 @@ Write-Host "[business_system_landing_resume] input=existing_process_env_only" -F
 Write-Host "[business_system_landing_resume] public_production_direct_launch=No-Go" -ForegroundColor Cyan
 
 if (-not $SkipBusinessPreparation) {
+  $businessReadSmokeJsonPath = $BusinessReadSmokeJsonPath.Trim()
+
   Write-Host "[business_system_landing_resume] step=business-input-packet" -ForegroundColor Yellow
-  Invoke-CheckedPython @((Join-Path $repoRoot "scripts/business_system_input_packet.py"))
+  $inputPacketOutput = Invoke-CheckedPythonCapture @((Join-Path $repoRoot "scripts/business_system_input_packet.py"))
+  $businessInputPacketJsonPath = Get-JsonPathFromOutput -OutputLines $inputPacketOutput -ToolName "business_system_input_packet.py"
 
   Write-Host "[business_system_landing_resume] step=business-production-readiness" -ForegroundColor Yellow
-  Invoke-CheckedPython @((Join-Path $repoRoot "scripts/business_system_production_readiness_brief.py"))
+  $readinessArguments = @((Join-Path $repoRoot "scripts/business_system_production_readiness_brief.py"))
+  if (-not [string]::IsNullOrWhiteSpace($businessReadSmokeJsonPath)) {
+    $readinessArguments += @("--business-smoke-json-path", $businessReadSmokeJsonPath)
+  }
+  $readinessOutput = Invoke-CheckedPythonCapture $readinessArguments
+  $businessReadinessJsonPath = Get-JsonPathFromOutput -OutputLines $readinessOutput -ToolName "business_system_production_readiness_brief.py"
 
   Write-Host "[business_system_landing_resume] step=business-execution-pack" -ForegroundColor Yellow
-  Invoke-CheckedPython @((Join-Path $repoRoot "scripts/business_system_landing_execution_pack.py"))
+  $executionPackArguments = @(
+    (Join-Path $repoRoot "scripts/business_system_landing_execution_pack.py"),
+    "--business-input-packet-json",
+    $businessInputPacketJsonPath,
+    "--business-readiness-json",
+    $businessReadinessJsonPath
+  )
+  if (-not [string]::IsNullOrWhiteSpace($businessReadSmokeJsonPath)) {
+    $executionPackArguments += @("--business-read-smoke-json", $businessReadSmokeJsonPath)
+  }
+  Invoke-CheckedPython $executionPackArguments
 }
 
 Write-Host "[business_system_landing_resume] step=production-env-check" -ForegroundColor Yellow
