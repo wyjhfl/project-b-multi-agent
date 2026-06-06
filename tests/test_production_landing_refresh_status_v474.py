@@ -267,3 +267,150 @@ def test_production_landing_refresh_status_loads_env_path_for_business_steps_and
     assert os.getenv("BUSINESS_INTEGRATION_ENABLED") is None
     assert os.getenv("BUSINESS_SYSTEM_BUSINESS_OWNER") == "previous-owner"
     assert payload["public_production_direct_launch"] == "No-Go"
+
+
+def test_production_landing_refresh_status_runs_embedded_local_business_smoke_for_local_mock_env(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    final_payload_path = tmp_path / "final_status.json"
+    final_payload_path.write_text(json.dumps({"status": "partial", "blockers": []}, ensure_ascii=False), encoding="utf-8")
+    env_path = tmp_path / "landing.env"
+    env_path.write_text(
+        "\n".join(
+            [
+                "BUSINESS_SYSTEM_NAME=local_business_read_mock",
+                "BUSINESS_INTEGRATION_ENABLED=true",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    calls: list[str] = []
+
+    def skipped_real_smoke(**_kwargs):
+        calls.append("real_smoke")
+        return _summary("business_system_read_smoke", "skipped")
+
+    def local_smoke(**kwargs):
+        calls.append("local_smoke")
+        assert kwargs.get("env_path") == env_path
+        return {
+            "status": "success",
+            "json_path": str(tmp_path / "local_smoke.json"),
+            "markdown_path": str(tmp_path / "local_smoke.md"),
+            "business_read_executed": True,
+            "local_business_mock_used": True,
+            "secret_plaintext_output": False,
+        }
+
+    observed: dict[str, object] = {}
+
+    def business_readiness(**kwargs):
+        observed["readiness_smoke_json_path"] = kwargs.get("business_smoke_json_path")
+        return _summary("business_system_production_readiness")
+
+    def business_pack(**kwargs):
+        observed["pack_source_json_paths"] = kwargs.get("source_json_paths")
+        return _summary("business_system_landing_execution_pack")
+
+    summary = build_production_landing_refresh_status(
+        output_dir=tmp_path / "out",
+        env_path=env_path,
+        builders={
+            "execution_gate": lambda **_kwargs: _summary("execution_gate"),
+            "real_integration_staging_gate": lambda **_kwargs: _summary("real_integration_staging_gate"),
+            "real_integration_gap_register": lambda **_kwargs: _summary("real_integration_gap_register"),
+            "real_production_environment_checklist": lambda **_kwargs: _summary("real_production_environment_checklist"),
+            "business_system_read_smoke": skipped_real_smoke,
+            "local_business_smoke": local_smoke,
+            "business_system_input_packet": lambda **_kwargs: {
+                "status": "ready",
+                "json_path": str(tmp_path / "input.json"),
+                "markdown_path": str(tmp_path / "input.md"),
+                "secret_plaintext_output": False,
+            },
+            "business_system_production_readiness": business_readiness,
+            "business_system_landing_execution_pack": business_pack,
+            "production_landing_input_readiness": lambda **_kwargs: _summary("production_landing_input_readiness"),
+            "manual_signoff_evidence_ack_status": lambda **_kwargs: _summary("manual_signoff_evidence_ack_status"),
+            "manual_signoff_record_validation": lambda **_kwargs: _summary("manual_signoff_record_validation"),
+            "manual_signoff_record_promote": lambda **_kwargs: _summary("manual_signoff_record_promote"),
+            "production_landing_text_quality": lambda **_kwargs: _summary("production_landing_text_quality"),
+            "operations_console_landing_smoke": lambda **_kwargs: _summary("operations_console_landing_smoke", "skipped"),
+            "production_pilot_signoff": lambda **_kwargs: _summary("production_pilot_signoff"),
+            "production_landing_action_pack": lambda **_kwargs: _summary("production_landing_action_pack"),
+            "production_landing_blocker_resolution": lambda **_kwargs: _summary("production_landing_blocker_resolution"),
+            "production_landing_status": lambda **_kwargs: {
+                "status": "partial",
+                "json_path": str(final_payload_path),
+                "markdown_path": str(tmp_path / "final_status.md"),
+                "secret_plaintext_output": False,
+            },
+            "production_landing_final_verification": lambda **_kwargs: _summary("production_landing_final_verification"),
+        },
+    )
+    payload = _read_payload(summary)
+
+    assert calls == ["local_smoke"]
+    assert observed["readiness_smoke_json_path"] == str(tmp_path / "local_smoke.json")
+    assert observed["pack_source_json_paths"]["business_system_read_smoke"] == str(tmp_path / "local_smoke.json")
+    assert payload["steps"][4]["step_id"] == "business_system_read_smoke"
+    assert payload["steps"][4]["status"] == "success"
+    assert payload["public_production_direct_launch"] == "No-Go"
+
+
+def test_production_landing_refresh_status_does_not_auto_execute_real_business_smoke(
+    tmp_path: Path,
+) -> None:
+    final_payload_path = tmp_path / "final_status.json"
+    final_payload_path.write_text(json.dumps({"status": "partial", "blockers": []}, ensure_ascii=False), encoding="utf-8")
+    env_path = tmp_path / "landing.env"
+    env_path.write_text("BUSINESS_SYSTEM_NAME=real_crm\n", encoding="utf-8")
+    calls: list[str] = []
+
+    def real_smoke(**_kwargs):
+        calls.append("real_smoke")
+        return {
+            "status": "skipped",
+            "json_path": str(tmp_path / "real_smoke.json"),
+            "markdown_path": str(tmp_path / "real_smoke.md"),
+            "secret_plaintext_output": False,
+        }
+
+    def local_smoke(**_kwargs):
+        calls.append("local_smoke")
+        return _summary("local_business_smoke", "success")
+
+    build_production_landing_refresh_status(
+        output_dir=tmp_path / "out",
+        env_path=env_path,
+        builders={
+            "execution_gate": lambda **_kwargs: _summary("execution_gate"),
+            "real_integration_staging_gate": lambda **_kwargs: _summary("real_integration_staging_gate"),
+            "real_integration_gap_register": lambda **_kwargs: _summary("real_integration_gap_register"),
+            "real_production_environment_checklist": lambda **_kwargs: _summary("real_production_environment_checklist"),
+            "business_system_read_smoke": real_smoke,
+            "local_business_smoke": local_smoke,
+            "business_system_input_packet": lambda **_kwargs: _summary("business_system_input_packet"),
+            "business_system_production_readiness": lambda **_kwargs: _summary("business_system_production_readiness"),
+            "business_system_landing_execution_pack": lambda **_kwargs: _summary("business_system_landing_execution_pack"),
+            "production_landing_input_readiness": lambda **_kwargs: _summary("production_landing_input_readiness"),
+            "manual_signoff_evidence_ack_status": lambda **_kwargs: _summary("manual_signoff_evidence_ack_status"),
+            "manual_signoff_record_validation": lambda **_kwargs: _summary("manual_signoff_record_validation"),
+            "manual_signoff_record_promote": lambda **_kwargs: _summary("manual_signoff_record_promote"),
+            "production_landing_text_quality": lambda **_kwargs: _summary("production_landing_text_quality"),
+            "operations_console_landing_smoke": lambda **_kwargs: _summary("operations_console_landing_smoke", "skipped"),
+            "production_pilot_signoff": lambda **_kwargs: _summary("production_pilot_signoff"),
+            "production_landing_action_pack": lambda **_kwargs: _summary("production_landing_action_pack"),
+            "production_landing_blocker_resolution": lambda **_kwargs: _summary("production_landing_blocker_resolution"),
+            "production_landing_status": lambda **_kwargs: {
+                "status": "partial",
+                "json_path": str(final_payload_path),
+                "markdown_path": str(tmp_path / "final_status.md"),
+                "secret_plaintext_output": False,
+            },
+            "production_landing_final_verification": lambda **_kwargs: _summary("production_landing_final_verification"),
+        },
+    )
+
+    assert calls == ["real_smoke"]

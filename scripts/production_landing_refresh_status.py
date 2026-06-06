@@ -24,6 +24,7 @@ from scripts.business_system_input_packet import build_business_system_input_pac
 from scripts.business_system_landing_execution_pack import build_business_system_landing_execution_pack
 from scripts.business_system_production_readiness_brief import build_business_system_production_readiness_brief
 from scripts.business_system_read_smoke import build_business_system_read_smoke
+from scripts.production_landing_local_business_smoke import build_production_landing_local_business_smoke
 from scripts.production_landing_input_readiness import (
     DEFAULT_CLOSURE_EVIDENCE,
     build_production_landing_input_readiness,
@@ -152,6 +153,7 @@ def build_production_landing_refresh_status(
         "real_production_environment_checklist": build_real_production_environment_checklist,
         "business_system_input_packet": build_business_system_input_packet,
         "business_system_read_smoke": build_business_system_read_smoke,
+        "local_business_smoke": build_production_landing_local_business_smoke,
         "business_system_production_readiness": build_business_system_production_readiness_brief,
         "business_system_landing_execution_pack": build_business_system_landing_execution_pack,
         "production_landing_input_readiness": build_production_landing_input_readiness,
@@ -182,7 +184,10 @@ def build_production_landing_refresh_status(
     )
     env_values = _parse_env_file(env_path)
     with _temporary_process_env(env_values):
-        business_read_smoke = effective_builders["business_system_read_smoke"]()
+        if str(env_values.get("BUSINESS_SYSTEM_NAME") or "").strip() == "local_business_read_mock":
+            business_read_smoke = effective_builders["local_business_smoke"](env_path=env_path)
+        else:
+            business_read_smoke = effective_builders["business_system_read_smoke"]()
         steps.append(_safe_step_summary("business_system_read_smoke", business_read_smoke))
         business_input_packet = effective_builders["business_system_input_packet"]()
         steps.append(_safe_step_summary("business_system_input_packet", business_input_packet))

@@ -152,7 +152,49 @@ def test_business_system_landing_execution_pack_ready_for_real_read_smoke(tmp_pa
     assert summary["real_read_smoke_complete"] is False
     assert summary["safe_next_action"] == "execute_real_read_smoke"
     payload = _payload(summary)
+    assert payload["recommended_next_command"].endswith(
+        "scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
+    )
     assert any(command.endswith("scripts\\business_system_landing_resume.ps1 -UseExistingEnv") for command in payload["recommended_commands"])
+
+
+def test_business_system_landing_execution_pack_prioritizes_real_smoke_over_preflight(
+    tmp_path: Path,
+) -> None:
+    dirs = _base_reports(tmp_path / "sources")
+    _write_json(
+        dirs["business_system_input_packet"] / "002_business_system_input_packet.json",
+        {
+            "generated_at": "2026-06-06T00:30:00+00:00",
+            "status": "ready",
+            "ready_for_real_read_smoke": True,
+            "owner_inputs_present": {
+                "business_owner": True,
+                "security_reviewer": True,
+                "operations_owner": True,
+                "data_owner": True,
+            },
+            "missing_conditions": [],
+            "missing_condition_count": 0,
+            "recommended_commands": [
+                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env",
+                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",
+            ],
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+
+    summary = build_business_system_landing_execution_pack(output_dir=tmp_path / "out", report_dirs=dirs)
+    payload = _payload(summary)
+
+    assert summary["safe_next_action"] == "execute_real_read_smoke"
+    assert "-PreflightOnly" not in payload["recommended_next_command"]
+    assert payload["recommended_next_command"].endswith(
+        "scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
+    )
 
 
 def test_business_system_landing_execution_pack_ready_after_real_read_smoke(tmp_path: Path) -> None:

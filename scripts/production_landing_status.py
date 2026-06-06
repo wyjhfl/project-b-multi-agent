@@ -356,7 +356,17 @@ def _derive_status(
         business_execution_payload.get("status") != "ready"
         or business_execution_payload.get("real_read_smoke_complete") is not True
     ):
-        blockers.append("business_landing_execution_pack:not_ready")
+        missing_conditions = (
+            business_execution_payload.get("missing_conditions")
+            if isinstance(business_execution_payload.get("missing_conditions"), list)
+            else []
+        )
+        if "evidence:local_business_mock_not_valid_for_real_production" in missing_conditions:
+            blockers.append("business_system:real_read_smoke_required")
+        elif "evidence:business_system_real_read_smoke_not_executed" in missing_conditions:
+            blockers.append("business_system:real_read_smoke_required")
+        else:
+            blockers.append("business_landing_execution_pack:not_ready")
 
     manual_signoff = _manual_signoff_summary(
         pilot_payload=pilot_payload,
@@ -469,6 +479,19 @@ def build_production_landing_status(*, output_dir: str | Path | None = None) -> 
             "landing_execution_safe_next_action": str(business_execution_pack.get("safe_next_action") or ""),
             "landing_execution_missing_count": int(
                 business_execution_pack.get("missing_condition_count") or 0
+            ),
+            "landing_execution_missing_conditions": [
+                str(item)
+                for item in (
+                    business_execution_pack.get("missing_conditions")
+                    if isinstance(business_execution_pack.get("missing_conditions"), list)
+                    else []
+                )[:16]
+            ],
+            "real_read_smoke_next_command": str(
+                business_execution_pack.get("recommended_next_command")
+                or business_execution_pack.get("safe_next_action")
+                or ""
             ),
         },
         "manual_signoff": {

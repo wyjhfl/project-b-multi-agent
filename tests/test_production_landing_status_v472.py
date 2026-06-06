@@ -457,12 +457,55 @@ def test_production_landing_status_tracks_business_read_gap_as_public_production
 
     assert summary["status"] == "partial"
     assert "business_system_read:not_executed" not in payload["blockers"]
-    assert "business_landing_execution_pack:not_ready" in payload["blockers"]
+    assert "business_system:real_read_smoke_required" in payload["blockers"]
+    assert "business_landing_execution_pack:not_ready" not in payload["blockers"]
     assert payload["controlled_pilot_ready"] is False
     assert payload["business_system"]["real_read_smoke_gap"] is True
     assert payload["business_system"]["real_read_smoke_required_for_public_production"] is True
     assert payload["business_system"]["landing_execution_pack_status"] == "needs_input"
     assert payload["business_system"]["landing_execution_real_read_smoke_complete"] is False
+    assert payload["business_system"]["landing_execution_missing_conditions"] == [
+        "evidence:business_system_real_read_smoke_not_executed"
+    ]
+    assert payload["public_production_direct_launch"] == "No-Go"
+
+
+def test_production_landing_status_reports_local_mock_as_real_read_smoke_gap(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    dirs = _patch_sources(monkeypatch, tmp_path / "reports")
+    _write_ready_reports(dirs)
+    _write_json(
+        dirs["business_landing_execution_pack"] / "002_business_system_landing_execution_pack.json",
+        {
+            "generated_at": "2026-06-05T06:30:01+00:00",
+            "status": "needs_input",
+            "ready_for_real_read_smoke": True,
+            "real_read_smoke_complete": False,
+            "safe_next_action": "execute_real_read_smoke",
+            "recommended_next_command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv",
+            "missing_condition_count": 1,
+            "missing_conditions": ["evidence:local_business_mock_not_valid_for_real_production"],
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+
+    summary = build_production_landing_status(output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "partial"
+    assert "business_system:real_read_smoke_required" in payload["blockers"]
+    assert "business_landing_execution_pack:not_ready" not in payload["blockers"]
+    assert payload["business_system"]["landing_execution_missing_conditions"] == [
+        "evidence:local_business_mock_not_valid_for_real_production"
+    ]
+    assert payload["business_system"]["real_read_smoke_next_command"].endswith(
+        "scripts\\business_system_read_smoke.ps1 -UseExistingEnv"
+    )
     assert payload["public_production_direct_launch"] == "No-Go"
 
 

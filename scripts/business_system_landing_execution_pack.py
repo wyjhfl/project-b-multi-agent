@@ -278,6 +278,12 @@ def _prioritize_command(commands: list[str], preferred_command: str) -> list[str
     return [preferred_command, *[command for command in commands if command != preferred_command]]
 
 
+def _ensure_first_command(commands: list[str], preferred_command: str) -> list[str]:
+    if preferred_command in commands:
+        return _prioritize_command(commands, preferred_command)
+    return [preferred_command, *commands]
+
+
 def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
     input_payload = sources["business_system_input_packet"].get("payload", {})
     readiness_payload = sources["business_system_production_readiness"].get("payload", {})
@@ -323,6 +329,8 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         safe_next_action = "complete_business_system_inputs"
 
     commands = _recommended_commands(input_payload, readiness_payload)
+    if safe_next_action == "execute_real_read_smoke":
+        commands = _ensure_first_command(commands, BUSINESS_READ_SMOKE_COMMAND)
     if safe_next_action == "refresh_controlled_pilot_gate":
         commands = _prioritize_command(commands, BUSINESS_LANDING_RESUME_COMMAND)
     return {
