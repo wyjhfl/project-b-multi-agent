@@ -158,6 +158,55 @@ def test_production_landing_refresh_status_marks_blocked_when_a_step_blocks(tmp_
     assert payload["secret_plaintext_output"] is False
 
 
+def test_production_landing_refresh_status_preserves_needs_input_step_status(tmp_path: Path) -> None:
+    final_payload_path = tmp_path / "final_status.json"
+    final_payload_path.write_text(json.dumps({"status": "partial", "blockers": []}, ensure_ascii=False), encoding="utf-8")
+
+    summary = build_production_landing_refresh_status(
+        output_dir=tmp_path / "out",
+        builders={
+            "execution_gate": lambda **_kwargs: _summary("execution_gate"),
+            "real_integration_staging_gate": lambda **_kwargs: _summary("real_integration_staging_gate"),
+            "real_integration_gap_register": lambda **_kwargs: _summary("real_integration_gap_register"),
+            "real_production_environment_checklist": lambda **_kwargs: _summary("real_production_environment_checklist"),
+            "business_system_real_readiness_gate": lambda **_kwargs: _summary(
+                "business_system_real_readiness_gate", "needs_input"
+            ),
+            "business_system_read_smoke": lambda **_kwargs: _summary("business_system_read_smoke", "skipped"),
+            "business_system_input_packet": lambda **_kwargs: _summary("business_system_input_packet", "needs_input"),
+            "business_system_production_readiness": lambda **_kwargs: _summary(
+                "business_system_production_readiness", "needs_input"
+            ),
+            "business_system_landing_execution_pack": lambda **_kwargs: _summary(
+                "business_system_landing_execution_pack", "needs_input"
+            ),
+            "production_landing_input_readiness": lambda **_kwargs: _summary("production_landing_input_readiness"),
+            "manual_signoff_evidence_ack_status": lambda **_kwargs: _summary("manual_signoff_evidence_ack_status"),
+            "manual_signoff_record_validation": lambda **_kwargs: _summary("manual_signoff_record_validation"),
+            "manual_signoff_record_promote": lambda **_kwargs: _summary("manual_signoff_record_promote"),
+            "production_landing_text_quality": lambda **_kwargs: _summary("production_landing_text_quality"),
+            "operations_console_landing_smoke": lambda **_kwargs: _summary("operations_console_landing_smoke", "skipped"),
+            "production_pilot_signoff": lambda **_kwargs: _summary("production_pilot_signoff"),
+            "production_landing_action_pack": lambda **_kwargs: _summary("production_landing_action_pack"),
+            "production_landing_blocker_resolution": lambda **_kwargs: _summary("production_landing_blocker_resolution"),
+            "production_landing_status": lambda **_kwargs: {
+                "status": "partial",
+                "json_path": str(final_payload_path),
+                "markdown_path": str(tmp_path / "final_status.md"),
+                "secret_plaintext_output": False,
+            },
+            "production_landing_final_verification": lambda **_kwargs: _summary("production_landing_final_verification"),
+        },
+    )
+    payload = _read_payload(summary)
+    statuses = {item["step_id"]: item["status"] for item in payload["steps"]}
+
+    assert statuses["business_system_real_readiness_gate"] == "needs_input"
+    assert statuses["business_system_input_packet"] == "needs_input"
+    assert statuses["business_system_production_readiness"] == "needs_input"
+    assert statuses["business_system_landing_execution_pack"] == "needs_input"
+
+
 def test_production_landing_refresh_status_loads_env_path_for_business_steps_and_restores_env(
     tmp_path: Path,
     monkeypatch,
@@ -182,6 +231,7 @@ def test_production_landing_refresh_status_loads_env_path_for_business_steps_and
     observed: dict[str, object] = {}
 
     def business_input(**_kwargs):
+        observed["input_env_path"] = _kwargs.get("env_path")
         observed["input_enabled"] = os.getenv("BUSINESS_INTEGRATION_ENABLED")
         observed["input_owner"] = os.getenv("BUSINESS_SYSTEM_BUSINESS_OWNER")
         return {
@@ -252,6 +302,7 @@ def test_production_landing_refresh_status_loads_env_path_for_business_steps_and
 
     assert observed["input_enabled"] == "true"
     assert observed["input_owner"] == "wyj"
+    assert observed["input_env_path"] == env_path
     assert observed["smoke_enabled"] == "true"
     assert observed["smoke_owner"] == "wyj"
     assert observed["readiness_enabled"] == "true"

@@ -89,6 +89,7 @@ def test_production_landing_text_quality_default_targets_include_business_system
     assert (text_quality.ROOT_DIR / "pyproject.toml").as_posix() in targets
     assert (text_quality.ROOT_DIR / "docs" / "business_system_read_smoke_v45.md").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_read_smoke.py").as_posix() in targets
+    assert (text_quality.ROOT_DIR / "scripts" / "business_system_read_smoke.ps1").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_production_readiness_brief.py").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_input_packet.py").as_posix() in targets
 
@@ -114,3 +115,33 @@ def test_production_landing_text_quality_check_blocks_pyproject_mojibake_marker(
 
     assert summary["status"] == "blocked"
     assert "text:mojibake_marker_detected" in payload["files"][0]["missing_conditions"]
+
+
+def test_production_landing_text_quality_check_allows_powershell_secret_guard_code(tmp_path: Path) -> None:
+    target = tmp_path / "guard.ps1"
+    target.write_text(
+        "\n".join(
+            [
+                "$previousToken = [Environment]::GetEnvironmentVariable($tokenEnv, \"Process\")",
+                "$skippedSecret = 0",
+                "$plainToken = Convert-SecureStringToPlainText -SecureValue $secureToken",
+                "if ($Value -match '(?i)(token|api[_-]?key|secret|password)\\s*[:=]') { throw 'looks like a secret' }",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    summary = build_production_landing_text_quality_check(targets=[target], output_dir=tmp_path / "out")
+
+    assert summary["status"] == "success"
+
+
+def test_production_landing_text_quality_check_still_blocks_plain_secret_assignment(tmp_path: Path) -> None:
+    target = tmp_path / "bad.ps1"
+    target.write_text("$token = real-secret-token-value\n", encoding="utf-8")
+
+    summary = build_production_landing_text_quality_check(targets=[target], output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "blocked"
+    assert "text:secret_like_detected" in payload["files"][0]["missing_conditions"]

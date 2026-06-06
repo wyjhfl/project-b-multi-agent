@@ -42,7 +42,7 @@ from scripts.real_integration_staging_gate import build_real_integration_staging
 from scripts.real_production_environment_checklist import build_real_production_environment_checklist
 
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_refresh_status"
-STATUS_VOCABULARY = {"success", "skipped", "blocked", "partial", "failed"}
+STATUS_VOCABULARY = {"success", "skipped", "blocked", "partial", "failed", "needs_input", "ready"}
 
 
 def _utc_now_iso() -> str:
@@ -193,7 +193,10 @@ def build_production_landing_refresh_status(
         else:
             business_read_smoke = effective_builders["business_system_read_smoke"]()
         steps.append(_safe_step_summary("business_system_read_smoke", business_read_smoke))
-        business_input_packet = effective_builders["business_system_input_packet"]()
+        if env_path:
+            business_input_packet = effective_builders["business_system_input_packet"](env_path=env_path)
+        else:
+            business_input_packet = effective_builders["business_system_input_packet"]()
         steps.append(_safe_step_summary("business_system_input_packet", business_input_packet))
         business_production_readiness = effective_builders["business_system_production_readiness"](
             business_smoke_json_path=str(business_read_smoke.get("json_path") or ""),

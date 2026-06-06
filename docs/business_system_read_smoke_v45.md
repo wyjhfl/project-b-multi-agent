@@ -89,7 +89,13 @@ PowerShell 入口会捕获本轮 `business_system_read_smoke.py`、`business_sys
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\business_system_input_packet.py
 ```
 
-该脚本只检查环境变量是否存在，不读取或输出 URL/token 原文。输出会列出缺口、推荐命令、owner 字段和安全边界。
+如非密钥配置与 owner 字段已经写在 ignored env 文件中，可显式传入 `--env-path`：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\business_system_input_packet.py --env-path local\production_landing.staging.env
+```
+
+该脚本只检查环境变量是否存在，不读取或输出 URL/token 原文。`--env-path` 只加载 `BUSINESS_INTEGRATION_*`、`BUSINESS_SYSTEM_NAME`、allowlist、owner、probe path 与 auth header 等安全键；`BUSINESS_SYSTEM_BASE_URL`、`BUSINESS_SYSTEM_TOKEN`、`DATABASE_URL`、`REDIS_URL`、`JWT_SECRET` 会被跳过，真实 URL/token 仍必须来自当前进程环境或外部 secret manager。输出会列出缺口、推荐命令、owner 字段和安全边界。
 
 ## 真实配置门禁
 

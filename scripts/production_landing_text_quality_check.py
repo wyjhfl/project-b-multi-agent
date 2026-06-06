@@ -33,6 +33,7 @@ DEFAULT_TARGETS = [
     ROOT_DIR / "scripts" / "business_system_read_smoke.py",
     ROOT_DIR / "scripts" / "business_system_production_readiness_brief.py",
     ROOT_DIR / "scripts" / "business_system_input_packet.py",
+    ROOT_DIR / "scripts" / "business_system_read_smoke.ps1",
     ROOT_DIR / "scripts" / "production_landing_evidence_freshness.py",
     ROOT_DIR / "scripts" / "xiaomi_llm_landing_resume.ps1",
 ]
@@ -79,6 +80,25 @@ SAFE_SECRET_PLACEHOLDERS = {
     "真实只读",
     "真实业务系统",
 }
+SAFE_CODE_ASSIGNMENT_PREFIXES = (
+    "$",
+    "-",
+    "[",
+    "@{",
+    "@(",
+    "read-host",
+    "convert-securestringtoplaintext",
+    "new-object",
+    "join-path",
+)
+SAFE_CODE_ASSIGNMENT_VALUES = {
+    "0",
+    "1",
+    "true",
+    "false",
+    '""',
+    "''",
+}
 
 
 def _utc_now_iso() -> str:
@@ -100,6 +120,10 @@ def _contains_secret_like(text: str) -> bool:
                 if not candidate or candidate in SAFE_SECRET_PLACEHOLDERS:
                     continue
                 if candidate.startswith("真实"):
+                    continue
+                if candidate in SAFE_CODE_ASSIGNMENT_VALUES:
+                    continue
+                if any(candidate.startswith(prefix) for prefix in SAFE_CODE_ASSIGNMENT_PREFIXES):
                     continue
             return True
     return False

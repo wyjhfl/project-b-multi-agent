@@ -145,6 +145,8 @@ def test_business_system_read_smoke_ps1_runs_readiness_after_smoke_and_restores_
     assert "preflight_only=true" in text
     assert "preflight=input_packet" in text
     assert "preflight=done" in text
+    assert "$inputPacketArguments = @((Join-Path $repoRoot \"scripts/business_system_input_packet.py\"))" in text
+    assert '"--env-path", $EnvPath' in text
     assert "Set-OwnerValueIfPresent" in text
 
 

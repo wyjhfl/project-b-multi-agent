@@ -359,9 +359,11 @@ try {
     [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_SCHEME", $effectiveAuthScheme, "Process")
 
     Write-Host "[business_system_read_smoke] preflight=input_packet" -ForegroundColor Yellow
-    Invoke-ResolvedPython @(
-      (Join-Path $repoRoot "scripts/business_system_input_packet.py")
-    )
+    $inputPacketArguments = @((Join-Path $repoRoot "scripts/business_system_input_packet.py"))
+    if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+      $inputPacketArguments += @("--env-path", $EnvPath)
+    }
+    Invoke-ResolvedPython @($inputPacketArguments)
     $preflightExitCode = $LASTEXITCODE
     if ($preflightExitCode -ne 0) {
       throw "business_system_input_packet.py failed with exit code $preflightExitCode"

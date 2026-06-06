@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -18,6 +19,7 @@ sys.path.insert(0, root_path)
 from app.integrations.business_system import load_business_system_config, safe_config_summary
 
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "business_system_input_packet"
+DEFAULT_ENV_PATH = ROOT_DIR / "local" / "production_landing.staging.env"
 
 OWNER_ENV = {
     "business_owner": "BUSINESS_SYSTEM_BUSINESS_OWNER",
@@ -25,6 +27,36 @@ OWNER_ENV = {
     "operations_owner": "BUSINESS_SYSTEM_OPERATIONS_OWNER",
     "data_owner": "BUSINESS_SYSTEM_DATA_OWNER",
 }
+
+ENV_PATH_SAFE_KEYS = (
+    "BUSINESS_INTEGRATION_ENABLED",
+    "BUSINESS_INTEGRATION_READ_ONLY",
+    "BUSINESS_INTEGRATION_WRITE_ENABLED",
+    "BUSINESS_INTEGRATION_APPROVAL_REQUIRED",
+    "BUSINESS_INTEGRATION_AUDIT_REQUIRED",
+    "BUSINESS_SYSTEM_NAME",
+    "BUSINESS_SYSTEM_BASE_URL_ENV",
+    "BUSINESS_SYSTEM_TOKEN_ENV",
+    "BUSINESS_SYSTEM_TOOL_ALLOWLIST",
+    "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST",
+    "BUSINESS_SYSTEM_TIMEOUT_SECONDS",
+    "BUSINESS_SYSTEM_READ_PROBE_PATH",
+    "BUSINESS_SYSTEM_AUTH_HEADER_NAME",
+    "BUSINESS_SYSTEM_AUTH_SCHEME",
+    "BUSINESS_SYSTEM_BUSINESS_OWNER",
+    "BUSINESS_SYSTEM_SECURITY_REVIEWER",
+    "BUSINESS_SYSTEM_OPERATIONS_OWNER",
+    "BUSINESS_SYSTEM_DATA_OWNER",
+)
+ENV_PATH_SECRET_KEYS = {
+    "BUSINESS_SYSTEM_BASE_URL",
+    "BUSINESS_SYSTEM_TOKEN",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "XIAOMI_LLM_API_KEY",
+    "JWT_SECRET",
+}
+PLACEHOLDER_PATTERN = re.compile(r"^<[^>]+>$")
 
 LOCAL_ENV_TEMPLATE_LINES = [
     "BUSINESS_INTEGRATION_ENABLED=true",
@@ -61,8 +93,70 @@ def _run_git(args: list[str]) -> str:
         return ""
 
 
+def _resolve_env_path(env_path: str | Path | None) -> Path | None:
+    if env_path is None or str(env_path).strip() == "":
+        return None
+    path = Path(env_path)
+    return path if path.is_absolute() else ROOT_DIR / path
+
+
+def _parse_env_path(env_path: str | Path | None) -> dict[str, Any]:
+    resolved = _resolve_env_path(env_path)
+    if resolved is None:
+        return {
+            "path": "",
+            "present": False,
+            "safe_values": {},
+            "loaded_keys": [],
+            "secret_keys_skipped": [],
+            "unknown_keys_ignored": [],
+        }
+    if not resolved.exists():
+        return {
+            "path": str(resolved),
+            "present": False,
+            "safe_values": {},
+            "loaded_keys": [],
+            "secret_keys_skipped": [],
+            "unknown_keys_ignored": [],
+        }
+    safe_values: dict[str, str] = {}
+    secret_keys_skipped: list[str] = []
+    unknown_keys_ignored: list[str] = []
+    for raw_line in resolved.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("\"'")
+        if key in ENV_PATH_SECRET_KEYS:
+            secret_keys_skipped.append(key)
+        elif key in ENV_PATH_SAFE_KEYS:
+            safe_values[key] = value
+        else:
+            unknown_keys_ignored.append(key)
+    return {
+        "path": str(resolved),
+        "present": True,
+        "safe_values": safe_values,
+        "loaded_keys": sorted(safe_values.keys()),
+        "secret_keys_skipped": sorted(set(secret_keys_skipped)),
+        "unknown_keys_ignored": sorted(set(unknown_keys_ignored)),
+    }
+
+
+def _looks_like_placeholder(value: str) -> bool:
+    return bool(PLACEHOLDER_PATTERN.match((value or "").strip()))
+
+
+def _present_value(env_key: str) -> bool:
+    value = os.getenv(env_key, "") or ""
+    return bool(value.strip()) and not _looks_like_placeholder(value)
+
+
 def _present(env_key: str) -> bool:
-    return bool((os.getenv(env_key, "") or "").strip())
+    return _present_value(env_key)
 
 
 def _missing_conditions() -> list[str]:
@@ -87,11 +181,11 @@ def _missing_conditions() -> list[str]:
         missing.append("env:BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST_must_be_empty")
     if not config.base_url_env:
         missing.append("env:BUSINESS_SYSTEM_BASE_URL_ENV_missing")
-    elif not config.base_url_present:
+    elif not _present_value(config.base_url_env):
         missing.append("env_target:BUSINESS_SYSTEM_BASE_URL_missing")
     if not config.token_env:
         missing.append("env:BUSINESS_SYSTEM_TOKEN_ENV_missing")
-    elif not config.token_present:
+    elif not _present_value(config.token_env):
         missing.append("env_target:BUSINESS_SYSTEM_TOKEN_missing")
     if not config.read_probe_path:
         missing.append("env:BUSINESS_SYSTEM_READ_PROBE_PATH_missing")
@@ -152,6 +246,10 @@ def _build_markdown(payload: dict[str, Any]) -> str:
         f"- status: {payload.get('status', '')}",
         f"- ready_for_real_read_smoke: {payload.get('ready_for_real_read_smoke', False)}",
         f"- missing_condition_count: {payload.get('missing_condition_count', 0)}",
+        f"- env_path: {payload.get('env_path') or '-'}",
+        f"- env_file_present: {payload.get('env_file_present', False)}",
+        f"- env_path_loaded_key_count: {payload.get('env_path_loaded_key_count', 0)}",
+        f"- env_path_secret_key_skipped_count: {payload.get('env_path_secret_key_skipped_count', 0)}",
         f"- public_production_direct_launch: {payload.get('public_production_direct_launch', 'No-Go')}",
         f"- secret_plaintext_output: {payload.get('secret_plaintext_output', False)}",
         "",
@@ -192,14 +290,29 @@ def _write_report(payload: dict[str, Any], output_dir: Path) -> dict[str, str]:
     return {"json_path": str(json_path), "markdown_path": str(markdown_path)}
 
 
-def build_business_system_input_packet(*, output_dir: str | Path | None = None) -> dict[str, Any]:
+def build_business_system_input_packet(
+    *,
+    output_dir: str | Path | None = None,
+    env_path: str | Path | None = None,
+) -> dict[str, Any]:
     output_root = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
     generated_at = _utc_now_iso()
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
-    config = load_business_system_config()
-    owner_safety = _owner_safety_conditions()
-    missing = sorted(set(_missing_conditions() + owner_safety))
-    owner_inputs_present = {name: _present(env_key) for name, env_key in OWNER_ENV.items()}
+    env_path_summary = _parse_env_path(env_path)
+    previous_env = {key: os.environ.get(key) for key in env_path_summary["safe_values"]}
+    try:
+        for key, value in env_path_summary["safe_values"].items():
+            os.environ[key] = value
+        config = load_business_system_config()
+        owner_safety = _owner_safety_conditions()
+        missing = sorted(set(_missing_conditions() + owner_safety))
+        owner_inputs_present = {name: _present(env_key) for name, env_key in OWNER_ENV.items()}
+    finally:
+        for key, value in previous_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
     ready = not missing
     payload: dict[str, Any] = {
         "generated_at": generated_at,
@@ -209,6 +322,14 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
         "status": "ready" if ready else "needs_input",
         "read_only": True,
         "ready_for_real_read_smoke": ready,
+        "env_path": env_path_summary["path"],
+        "env_file_present": env_path_summary["present"],
+        "env_path_loaded_keys": env_path_summary["loaded_keys"],
+        "env_path_loaded_key_count": len(env_path_summary["loaded_keys"]),
+        "env_path_secret_keys_skipped": env_path_summary["secret_keys_skipped"],
+        "env_path_secret_key_skipped_count": len(env_path_summary["secret_keys_skipped"]),
+        "env_path_unknown_keys_ignored": env_path_summary["unknown_keys_ignored"],
+        "env_path_unknown_key_ignored_count": len(env_path_summary["unknown_keys_ignored"]),
         "owner_inputs_present": owner_inputs_present,
         "config": safe_config_summary(config),
         "missing_conditions": missing,
@@ -259,6 +380,7 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
             },
         ],
         "recommended_commands": [
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 scripts\\business_system_input_packet.py --env-path local\\production_landing.staging.env",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",
@@ -295,12 +417,17 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="生成业务系统真实接入输入准备包。")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument(
+        "--env-path",
+        default="",
+        help="可选 ignored env 文件路径。只加载非密钥安全键，BUSINESS_SYSTEM_BASE_URL/TOKEN 会被跳过。",
+    )
     return parser
 
 
 def main() -> int:
     args = _build_parser().parse_args()
-    summary = build_business_system_input_packet(output_dir=args.output_dir)
+    summary = build_business_system_input_packet(output_dir=args.output_dir, env_path=args.env_path)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"json_path={summary['json_path']}")
     print(f"markdown_path={summary['markdown_path']}")

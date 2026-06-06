@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from scripts.business_system_input_packet import build_business_system_input_packet
@@ -134,3 +135,101 @@ def test_business_system_input_packet_does_not_emit_owner_values(tmp_path: Path,
     assert "boundary:secret_like_text_detected" in payload["missing_conditions"]
     assert "owner:business_owner_secret_like" in payload["missing_conditions"]
     assert "sk-should-not-leak" not in merged
+
+
+def test_business_system_input_packet_loads_safe_env_path_and_skips_secret_keys(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    env_path = tmp_path / "landing.env"
+    env_path.write_text(
+        "\n".join(
+            [
+                "BUSINESS_INTEGRATION_ENABLED=true",
+                "BUSINESS_INTEGRATION_READ_ONLY=true",
+                "BUSINESS_INTEGRATION_WRITE_ENABLED=false",
+                "BUSINESS_INTEGRATION_APPROVAL_REQUIRED=true",
+                "BUSINESS_INTEGRATION_AUDIT_REQUIRED=true",
+                "BUSINESS_SYSTEM_NAME=real_crm",
+                "BUSINESS_SYSTEM_BASE_URL_ENV=BUSINESS_SYSTEM_BASE_URL",
+                "BUSINESS_SYSTEM_TOKEN_ENV=BUSINESS_SYSTEM_TOKEN",
+                "BUSINESS_SYSTEM_BASE_URL=https://must-not-be-loaded.example.test",
+                "BUSINESS_SYSTEM_TOKEN=must-not-be-loaded-token",
+                "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
+                "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST=",
+                "BUSINESS_SYSTEM_TIMEOUT_SECONDS=5",
+                "BUSINESS_SYSTEM_READ_PROBE_PATH=/health",
+                "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization",
+                "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=WYJ",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=WYJ",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=WYJ",
+                "BUSINESS_SYSTEM_DATA_OWNER=WYJ",
+                "UNRELATED_SECRET=should-be-ignored",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("BUSINESS_SYSTEM_BASE_URL", "https://process.example.test")
+    monkeypatch.setenv("BUSINESS_SYSTEM_TOKEN", "process-token")
+
+    summary = build_business_system_input_packet(output_dir=tmp_path / "out", env_path=env_path)
+    payload = _payload(summary)
+    merged = Path(summary["json_path"]).read_text(encoding="utf-8") + Path(summary["markdown_path"]).read_text(
+        encoding="utf-8"
+    )
+
+    assert summary["status"] == "ready"
+    assert payload["ready_for_real_read_smoke"] is True
+    assert payload["env_file_present"] is True
+    assert "BUSINESS_SYSTEM_NAME" in payload["env_path_loaded_keys"]
+    assert "BUSINESS_SYSTEM_BASE_URL" in payload["env_path_secret_keys_skipped"]
+    assert "BUSINESS_SYSTEM_TOKEN" in payload["env_path_secret_keys_skipped"]
+    assert "UNRELATED_SECRET" in payload["env_path_unknown_keys_ignored"]
+    assert "must-not-be-loaded" not in merged
+    assert "process-token" not in merged
+    assert "https://process.example.test" not in merged
+    assert "business_system_input_packet.py --env-path local\\production_landing.staging.env" in merged
+    assert os.environ.get("BUSINESS_SYSTEM_NAME") is None
+
+
+def test_business_system_input_packet_treats_template_placeholders_as_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    env_path = tmp_path / "landing.env"
+    env_path.write_text(
+        "\n".join(
+            [
+                "BUSINESS_INTEGRATION_ENABLED=true",
+                "BUSINESS_INTEGRATION_READ_ONLY=true",
+                "BUSINESS_INTEGRATION_WRITE_ENABLED=false",
+                "BUSINESS_INTEGRATION_APPROVAL_REQUIRED=true",
+                "BUSINESS_INTEGRATION_AUDIT_REQUIRED=true",
+                "BUSINESS_SYSTEM_NAME=<system-name>",
+                "BUSINESS_SYSTEM_BASE_URL_ENV=BUSINESS_SYSTEM_BASE_URL",
+                "BUSINESS_SYSTEM_TOKEN_ENV=BUSINESS_SYSTEM_TOKEN",
+                "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
+                "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST=",
+                "BUSINESS_SYSTEM_READ_PROBE_PATH=/health",
+                "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization",
+                "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=<owner-or-staff-id>",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=<owner-or-staff-id>",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=<owner-or-staff-id>",
+                "BUSINESS_SYSTEM_DATA_OWNER=<owner-or-staff-id>",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("BUSINESS_SYSTEM_BASE_URL", "<secret-managed-url>")
+    monkeypatch.setenv("BUSINESS_SYSTEM_TOKEN", "<secret-managed-token>")
+
+    summary = build_business_system_input_packet(output_dir=tmp_path / "out", env_path=env_path)
+    payload = _payload(summary)
+
+    assert summary["status"] == "needs_input"
+    assert payload["ready_for_real_read_smoke"] is False
+    assert "owner:business_owner_missing" in payload["missing_conditions"]
+    assert "env_target:BUSINESS_SYSTEM_BASE_URL_missing" in payload["missing_conditions"]
+    assert "env_target:BUSINESS_SYSTEM_TOKEN_missing" in payload["missing_conditions"]
