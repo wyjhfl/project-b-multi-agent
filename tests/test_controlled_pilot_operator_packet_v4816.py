@@ -22,6 +22,7 @@ def _ready_dirs(root: Path) -> dict[str, Path]:
         "operations_console_landing_smoke": root / "smoke",
         "business_system_read_smoke": root / "business_smoke",
         "business_system_production_readiness": root / "business_readiness",
+        "production_landing_evidence_freshness": root / "evidence_freshness",
     }
     _write_json(
         dirs["controlled_pilot_status_summary"] / "001_controlled_pilot_status_summary.json",
@@ -124,6 +125,19 @@ def _ready_dirs(root: Path) -> dict[str, Path]:
             "secret_plaintext_output": False,
         },
     )
+    _write_json(
+        dirs["production_landing_evidence_freshness"] / "001_production_landing_evidence_freshness.json",
+        {
+            "generated_at": "2026-06-05T09:00:07+00:00",
+            "status": "success",
+            "worktree_clean": True,
+            "source_count": 8,
+            "stale_source_count": 0,
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
     return dirs
 
 
@@ -153,6 +167,8 @@ def test_controlled_pilot_operator_packet_ready(tmp_path: Path) -> None:
     assert payload["business_system_read_smoke"]["safe_commands"]["interactive_powershell"].endswith(
         "scripts\\business_system_read_smoke.ps1"
     )
+    assert payload["production_landing_evidence_freshness"]["status"] == "success"
+    assert payload["production_landing_evidence_freshness"]["stale_source_count"] == 0
     assert set(payload["evidence_paths"]) == set(dirs)
 
 
@@ -246,6 +262,62 @@ def test_controlled_pilot_operator_packet_partial_when_landing_status_not_ready(
     assert summary["status"] == "partial"
     assert summary["controlled_internal_pilot"] == "Manual-Review"
     assert payload["sources"]["production_landing_status"]["status"] == "partial"
+
+
+def test_controlled_pilot_operator_packet_partial_when_evidence_freshness_stale(tmp_path: Path) -> None:
+    dirs = _ready_dirs(tmp_path / "sources")
+    _write_json(
+        dirs["business_system_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T09:30:05+00:00",
+            "status": "success",
+            "execute": True,
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "env_profile": {
+                "auth_mode": "bearer",
+                "public_production_gap": False,
+                "safe_commands": {},
+            },
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_system_production_readiness"] / "002_business_system_production_readiness.json",
+        {
+            "generated_at": "2026-06-05T09:30:06+00:00",
+            "status": "ready",
+            "missing_condition_count": 0,
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["production_landing_evidence_freshness"] / "002_production_landing_evidence_freshness.json",
+        {
+            "generated_at": "2026-06-05T09:30:07+00:00",
+            "status": "partial",
+            "worktree_clean": False,
+            "source_count": 8,
+            "stale_source_count": 1,
+            "missing_conditions": ["git:worktree_dirty"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+
+    summary = build_controlled_pilot_operator_packet(output_dir=tmp_path / "out", report_dirs=dirs)
+    payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
+
+    assert summary["status"] == "partial"
+    assert summary["controlled_internal_pilot"] == "Manual-Review"
+    assert "production_landing_evidence_freshness:not_fresh" in payload["missing_conditions"]
+    assert payload["production_landing_evidence_freshness"]["worktree_clean"] is False
+    assert payload["production_landing_evidence_freshness"]["stale_source_count"] == 1
 
 
 def test_controlled_pilot_operator_packet_blocks_secret_like_source_without_leak(tmp_path: Path) -> None:

@@ -42,6 +42,10 @@ REPORTS = {
         ROOT_DIR / "docs" / "reports" / "business_system_production_readiness",
         "*_business_system_production_readiness.json",
     ),
+    "production_landing_evidence_freshness": (
+        ROOT_DIR / "docs" / "reports" / "production_landing_evidence_freshness",
+        "*_production_landing_evidence_freshness.json",
+    ),
 }
 
 
@@ -140,6 +144,18 @@ def _report_row(report_id: str, path: Path | None, payload: dict[str, Any]) -> d
         "production_readiness_missing_count": payload.get("missing_condition_count")
         if report_id == "business_system_production_readiness"
         else None,
+        "evidence_freshness_status": payload.get("status")
+        if report_id == "production_landing_evidence_freshness"
+        else None,
+        "worktree_clean": payload.get("worktree_clean")
+        if report_id == "production_landing_evidence_freshness"
+        else None,
+        "source_count": payload.get("source_count")
+        if report_id == "production_landing_evidence_freshness"
+        else None,
+        "stale_source_count": payload.get("stale_source_count")
+        if report_id == "production_landing_evidence_freshness"
+        else None,
         "runtime_smoke_passed": payload.get("runtime_smoke_passed"),
         "missing_condition_count": payload.get("missing_condition_count"),
         "public_production_direct_launch": payload.get("public_production_direct_launch")
@@ -185,6 +201,15 @@ def build_controlled_pilot_status_summary(
     business_readiness = reports.get("business_system_production_readiness", {})
     if business_readiness.get("production_readiness_status") != "ready":
         public_production_gaps.append("business_system:production_readiness_not_ready")
+    evidence_freshness = reports.get("production_landing_evidence_freshness", {})
+    freshness_ready = (
+        evidence_freshness.get("evidence_freshness_status") == "success"
+        and evidence_freshness.get("worktree_clean") is True
+        and int(evidence_freshness.get("stale_source_count") or 0) == 0
+        and evidence_freshness.get("secret_plaintext_output") is not True
+    )
+    if not freshness_ready and "production_landing_evidence_freshness" not in blocking:
+        blocking.append("production_landing_evidence_freshness")
 
     ready = (
         not blocking

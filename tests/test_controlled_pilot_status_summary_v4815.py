@@ -21,6 +21,7 @@ def _ready_dirs(root: Path) -> dict[str, Path]:
         "operations_console_landing_smoke": root / "ops_smoke",
         "business_system_read_smoke": root / "business_smoke",
         "business_system_production_readiness": root / "business_readiness",
+        "production_landing_evidence_freshness": root / "evidence_freshness",
     }
     _write_json(
         dirs["production_pilot_bootstrap"] / "001_production_pilot_bootstrap.json",
@@ -119,6 +120,19 @@ def _ready_dirs(root: Path) -> dict[str, Path]:
             "secret_plaintext_output": False,
         },
     )
+    _write_json(
+        dirs["production_landing_evidence_freshness"] / "001_production_landing_evidence_freshness.json",
+        {
+            "generated_at": "2026-06-05T09:00:08+00:00",
+            "status": "success",
+            "worktree_clean": True,
+            "source_count": 8,
+            "stale_source_count": 0,
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
     return dirs
 
 
@@ -207,6 +221,58 @@ def test_controlled_pilot_status_summary_partial_when_required_report_missing(tm
     assert summary["status"] == "partial"
     assert summary["controlled_internal_pilot"] == "Manual-Review"
     assert "controlled_pilot_launch_package" in summary["blocking_reports"]
+
+
+def test_controlled_pilot_status_summary_partial_when_evidence_freshness_stale(tmp_path: Path) -> None:
+    dirs = _ready_dirs(tmp_path)
+    _write_json(
+        dirs["business_system_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T09:30:06+00:00",
+            "status": "success",
+            "execute": True,
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "env_profile": {"public_production_gap": False},
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_system_production_readiness"] / "002_business_system_production_readiness.json",
+        {
+            "generated_at": "2026-06-05T09:30:07+00:00",
+            "status": "ready",
+            "missing_condition_count": 0,
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["production_landing_evidence_freshness"] / "002_production_landing_evidence_freshness.json",
+        {
+            "generated_at": "2026-06-05T09:30:08+00:00",
+            "status": "partial",
+            "worktree_clean": False,
+            "source_count": 8,
+            "stale_source_count": 1,
+            "missing_conditions": ["git:worktree_dirty"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+
+    summary = build_controlled_pilot_status_summary(report_dirs=dirs, write_report=False)
+
+    assert summary["status"] == "partial"
+    assert summary["controlled_internal_pilot"] == "Manual-Review"
+    assert "production_landing_evidence_freshness" in summary["blocking_reports"]
+    freshness = summary["reports"]["production_landing_evidence_freshness"]
+    assert freshness["worktree_clean"] is False
+    assert freshness["stale_source_count"] == 1
 
 
 def test_controlled_pilot_status_summary_writes_report(tmp_path: Path) -> None:

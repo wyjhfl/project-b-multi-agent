@@ -102,6 +102,10 @@ def test_operations_summary_should_return_empty_states_when_report_dir_missing(m
         str(tmp_path / "missing_production_landing_text_quality"),
     )
     monkeypatch.setenv(
+        "PRODUCTION_LANDING_EVIDENCE_FRESHNESS_REPORT_DIR",
+        str(tmp_path / "missing_production_landing_evidence_freshness"),
+    )
+    monkeypatch.setenv(
         "PRODUCTION_PILOT_EVIDENCE_BUNDLE_REPORT_DIR",
         str(tmp_path / "missing_production_pilot_evidence_bundle"),
     )
@@ -3085,6 +3089,7 @@ def test_operations_summary_should_include_controlled_pilot_status_summary(monke
         "CONTROLLED_PILOT_OPERATOR_PACKET_REPORT_DIR": tmp_path / "operator_packet",
         "BUSINESS_SYSTEM_READ_SMOKE_REPORT_DIR": tmp_path / "business_smoke",
         "BUSINESS_SYSTEM_PRODUCTION_READINESS_REPORT_DIR": tmp_path / "business_readiness",
+        "PRODUCTION_LANDING_EVIDENCE_FRESHNESS_REPORT_DIR": tmp_path / "evidence_freshness",
     }
     for env_name, path in dirs.items():
         path.mkdir(parents=True)
@@ -3231,6 +3236,22 @@ def test_operations_summary_should_include_controlled_pilot_status_summary(monke
         ),
         encoding="utf-8",
     )
+    (dirs["PRODUCTION_LANDING_EVIDENCE_FRESHNESS_REPORT_DIR"] / "001_production_landing_evidence_freshness.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:09+00:00",
+                "status": "success",
+                "worktree_clean": True,
+                "source_count": 8,
+                "stale_source_count": 0,
+                "missing_conditions": [],
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
     monkeypatch.chdir(tmp_path)
 
     response = client.get("/operations/summary")
@@ -3251,6 +3272,150 @@ def test_operations_summary_should_include_controlled_pilot_status_summary(monke
         "business_system:real_read_only_smoke_not_executed",
     ]
     assert response.json()["observability"]["last_known_report_counts"]["controlled_pilot_status_summary_reports"] == 0
+
+
+def test_operations_summary_controlled_pilot_blocks_stale_evidence_freshness(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    dirs = {
+        "PRODUCTION_PILOT_BOOTSTRAP_REPORT_DIR": tmp_path / "bootstrap",
+        "PRODUCTION_PILOT_EVIDENCE_BUNDLE_REPORT_DIR": tmp_path / "bundle",
+        "PRODUCTION_LANDING_FINAL_VERIFICATION_REPORT_DIR": tmp_path / "final",
+        "PRODUCTION_LANDING_SIGNOFF_CLOSEOUT_REPORT_DIR": tmp_path / "closeout",
+        "OPERATIONS_CONSOLE_LANDING_SMOKE_REPORT_DIR": tmp_path / "ops_smoke",
+        "CONTROLLED_PILOT_LAUNCH_PACKAGE_REPORT_DIR": tmp_path / "package",
+        "CONTROLLED_PILOT_WINDOW_STATUS_REPORT_DIR": tmp_path / "window_status",
+        "CONTROLLED_PILOT_STATUS_SUMMARY_REPORT_DIR": tmp_path / "status_summary",
+        "BUSINESS_SYSTEM_READ_SMOKE_REPORT_DIR": tmp_path / "business_smoke",
+        "BUSINESS_SYSTEM_PRODUCTION_READINESS_REPORT_DIR": tmp_path / "business_readiness",
+        "PRODUCTION_LANDING_EVIDENCE_FRESHNESS_REPORT_DIR": tmp_path / "evidence_freshness",
+    }
+    for env_name, path in dirs.items():
+        path.mkdir(parents=True)
+        monkeypatch.setenv(env_name, str(path))
+
+    common = {"public_production_direct_launch": "No-Go", "secret_plaintext_output": False}
+    (dirs["PRODUCTION_PILOT_BOOTSTRAP_REPORT_DIR"] / "001_production_pilot_bootstrap.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:00+00:00",
+                "status": "partial",
+                "runtime_smoke_passed": True,
+                **common,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["PRODUCTION_PILOT_EVIDENCE_BUNDLE_REPORT_DIR"] / "001_production_pilot_evidence_bundle.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:01+00:00",
+                "status": "success",
+                "controlled_pilot_ready": True,
+                "go_no_go": {"controlled_pilot": "Go", "public_production_direct_launch": "No-Go"},
+                **common,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["PRODUCTION_LANDING_FINAL_VERIFICATION_REPORT_DIR"] / "001_production_landing_final_verification.json").write_text(
+        json.dumps({"generated_at": "2026-06-05T09:00:02+00:00", "status": "success", **common}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (dirs["PRODUCTION_LANDING_SIGNOFF_CLOSEOUT_REPORT_DIR"] / "001_production_landing_signoff_closeout.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:03+00:00",
+                "status": "success",
+                "final_status": "success",
+                "target_record_written": True,
+                **common,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["OPERATIONS_CONSOLE_LANDING_SMOKE_REPORT_DIR"] / "001_operations_console_landing_smoke.json").write_text(
+        json.dumps({"generated_at": "2026-06-05T09:00:04+00:00", "status": "success", "execute": True, **common}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (dirs["CONTROLLED_PILOT_LAUNCH_PACKAGE_REPORT_DIR"] / "001_controlled_pilot_launch_package.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:05+00:00",
+                "status": "ready",
+                "launch_package_ready": True,
+                "controlled_pilot": "Go",
+                **common,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["CONTROLLED_PILOT_WINDOW_STATUS_REPORT_DIR"] / "001_controlled_pilot_window_status.json").write_text(
+        json.dumps({"generated_at": "2026-06-05T09:00:06+00:00", "status": "healthy", **common}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (dirs["BUSINESS_SYSTEM_READ_SMOKE_REPORT_DIR"] / "001_business_system_read_smoke.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:07+00:00",
+                "status": "success",
+                "execute": True,
+                "business_system_connected": True,
+                "business_read_executed": True,
+                "business_write_executed": False,
+                "business_data_written": False,
+                "env_profile": {"public_production_gap": False},
+                "go_no_go": {"public_production_direct_launch": "No-Go"},
+                "secret_plaintext_output": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["BUSINESS_SYSTEM_PRODUCTION_READINESS_REPORT_DIR"] / "001_business_system_production_readiness.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:08+00:00",
+                "status": "ready",
+                "missing_condition_count": 0,
+                **common,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["PRODUCTION_LANDING_EVIDENCE_FRESHNESS_REPORT_DIR"] / "001_production_landing_evidence_freshness.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T09:00:09+00:00",
+                "status": "partial",
+                "worktree_clean": False,
+                "source_count": 8,
+                "stale_source_count": 1,
+                "missing_conditions": ["git:worktree_dirty"],
+                **common,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    status = response.json()["observability"]["controlled_pilot_status_summary"]
+
+    assert status["status"] == "partial"
+    assert status["controlled_internal_pilot"] == "Manual-Review"
+    assert status["public_production_gaps"] == []
+    assert "production_landing_evidence_freshness" in status["blocking_reports"]
+    assert status["source_statuses"]["production_landing_evidence_freshness"] == "partial"
 
 
 def test_operations_summary_should_include_controlled_pilot_operator_packet_latest_report(monkeypatch, tmp_path):

@@ -2996,6 +2996,7 @@ def _derive_controlled_pilot_status_summary(
     operations_console_landing_smoke: dict[str, Any],
     business_system_read_smoke: dict[str, Any],
     business_system_production_readiness: dict[str, Any],
+    production_landing_evidence_freshness: dict[str, Any],
 ) -> dict[str, Any]:
     report_dir = _get_controlled_pilot_status_summary_report_dir()
     latest = _latest_json_report(report_dir)
@@ -3008,6 +3009,7 @@ def _derive_controlled_pilot_status_summary(
         "operations_console_landing_smoke": operations_console_landing_smoke,
         "business_system_read_smoke": business_system_read_smoke,
         "business_system_production_readiness": business_system_production_readiness,
+        "production_landing_evidence_freshness": production_landing_evidence_freshness,
     }
     blocking_reports = [
         report_id
@@ -3028,6 +3030,14 @@ def _derive_controlled_pilot_status_summary(
         public_production_gaps.append("business_system:public_production_gap")
     if business_system_production_readiness.get("status") != "ready":
         public_production_gaps.append("business_system:production_readiness_not_ready")
+    freshness_ready = (
+        production_landing_evidence_freshness.get("status") == "success"
+        and production_landing_evidence_freshness.get("worktree_clean") is True
+        and int(production_landing_evidence_freshness.get("stale_source_count") or 0) == 0
+        and production_landing_evidence_freshness.get("secret_plaintext_output") is not True
+    )
+    if not freshness_ready and "production_landing_evidence_freshness" not in blocking_reports:
+        blocking_reports.append("production_landing_evidence_freshness")
     ready = (
         not blocking_reports
         and not public_production_gaps
@@ -3089,6 +3099,7 @@ def _collect_controlled_pilot_operator_packet_summary() -> dict[str, Any]:
         "public_production_gaps": [],
         "public_production_gap_count": 0,
         "business_system_read_smoke": {},
+        "production_landing_evidence_freshness": {},
     }
     if latest is None:
         return base
@@ -3112,6 +3123,11 @@ def _collect_controlled_pilot_operator_packet_summary() -> dict[str, Any]:
     business_smoke = (
         payload.get("business_system_read_smoke") if isinstance(payload.get("business_system_read_smoke"), dict) else {}
     )
+    evidence_freshness = (
+        payload.get("production_landing_evidence_freshness")
+        if isinstance(payload.get("production_landing_evidence_freshness"), dict)
+        else {}
+    )
     window = payload.get("window") if isinstance(payload.get("window"), dict) else {}
     return {
         **base,
@@ -3134,6 +3150,15 @@ def _collect_controlled_pilot_operator_packet_summary() -> dict[str, Any]:
             "business_system_connected": bool(business_smoke.get("business_system_connected", False)),
             "business_read_executed": bool(business_smoke.get("business_read_executed", False)),
             "auth_mode": _safe_text_value(business_smoke.get("auth_mode") or ""),
+        },
+        "production_landing_evidence_freshness": {
+            "status": _safe_text_value(evidence_freshness.get("status") or ""),
+            "worktree_clean": bool(evidence_freshness.get("worktree_clean", False)),
+            "source_count": int(evidence_freshness.get("source_count") or 0),
+            "stale_source_count": int(evidence_freshness.get("stale_source_count") or 0),
+            "public_production_direct_launch": _safe_text_value(
+                evidence_freshness.get("public_production_direct_launch") or "No-Go"
+            ),
         },
         "evidence_paths": {str(key): _safe_text_value(value) for key, value in evidence_paths.items()},
         "operator_command_count": len(commands),
@@ -4465,6 +4490,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     controlled_pilot_launch_package = _collect_controlled_pilot_launch_package_summary()
     controlled_pilot_window_record = _collect_controlled_pilot_window_record_summary()
     controlled_pilot_window_status = _collect_controlled_pilot_window_status_summary()
+    production_landing_evidence_freshness = _collect_production_landing_evidence_freshness_summary()
     controlled_pilot_status_summary = _derive_controlled_pilot_status_summary(
         production_pilot_bootstrap=production_pilot_bootstrap,
         production_pilot_evidence_bundle=production_pilot_evidence_bundle,
@@ -4474,6 +4500,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
         operations_console_landing_smoke=operations_console_landing_smoke,
         business_system_read_smoke=business_system_read_smoke,
         business_system_production_readiness=business_system_production_readiness,
+        production_landing_evidence_freshness=production_landing_evidence_freshness,
     )
     controlled_pilot_operator_packet = _collect_controlled_pilot_operator_packet_summary()
     controlled_pilot_console_preflight = _collect_controlled_pilot_console_preflight_summary()
@@ -4482,7 +4509,6 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     production_landing_signoff_reviewer_packet = _collect_production_landing_signoff_reviewer_packet_summary()
     manual_signoff_record_promote = _collect_manual_signoff_record_promote_summary()
     production_landing_text_quality = _collect_production_landing_text_quality_summary()
-    production_landing_evidence_freshness = _collect_production_landing_evidence_freshness_summary()
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),

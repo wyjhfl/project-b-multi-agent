@@ -44,6 +44,10 @@ REPORTS = {
         ROOT_DIR / "docs" / "reports" / "business_system_production_readiness",
         "*_business_system_production_readiness.json",
     ),
+    "production_landing_evidence_freshness": (
+        ROOT_DIR / "docs" / "reports" / "production_landing_evidence_freshness",
+        "*_production_landing_evidence_freshness.json",
+    ),
 }
 
 SECRET_TEXT_PATTERNS = [
@@ -175,6 +179,7 @@ def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
     smoke_payload = sources["operations_console_landing_smoke"].get("payload", {})
     business_smoke_payload = sources["business_system_read_smoke"].get("payload", {})
     business_readiness_payload = sources["business_system_production_readiness"].get("payload", {})
+    evidence_freshness_payload = sources["production_landing_evidence_freshness"].get("payload", {})
 
     missing_conditions: list[str] = []
     for source_id, source in sources.items():
@@ -210,13 +215,21 @@ def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         public_production_gaps.append("business_system:public_production_gap")
     if business_readiness_payload.get("status") != "ready":
         public_production_gaps.append("business_system:production_readiness_not_ready")
+    evidence_freshness_ready = (
+        evidence_freshness_payload.get("status") == "success"
+        and evidence_freshness_payload.get("worktree_clean") is True
+        and int(evidence_freshness_payload.get("stale_source_count") or 0) == 0
+        and evidence_freshness_payload.get("secret_plaintext_output") is not True
+    )
+    if not evidence_freshness_ready:
+        missing_conditions.append("production_landing_evidence_freshness:not_fresh")
     business_ready_for_controlled_pilot = (
         business_smoke_payload.get("business_read_executed") is True
         and env_profile.get("public_production_gap") is not True
         and business_readiness_payload.get("status") == "ready"
     )
     business_safe_commands = env_profile.get("safe_commands") if isinstance(env_profile.get("safe_commands"), dict) else {}
-    ready = ready and business_ready_for_controlled_pilot and not public_production_gaps
+    ready = ready and business_ready_for_controlled_pilot and evidence_freshness_ready and not public_production_gaps
     return {
         "status": "ready" if ready else "partial",
         "controlled_internal_pilot": "Go" if ready else "Manual-Review",
@@ -250,6 +263,15 @@ def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
             "missing_condition_count": int(business_readiness_payload.get("missing_condition_count") or 0),
             "public_production_direct_launch": _safe_text(
                 business_readiness_payload.get("public_production_direct_launch") or "No-Go"
+            ),
+        },
+        "production_landing_evidence_freshness": {
+            "status": _safe_text(evidence_freshness_payload.get("status") or "missing"),
+            "worktree_clean": bool(evidence_freshness_payload.get("worktree_clean", False)),
+            "source_count": int(evidence_freshness_payload.get("source_count") or 0),
+            "stale_source_count": int(evidence_freshness_payload.get("stale_source_count") or 0),
+            "public_production_direct_launch": _safe_text(
+                evidence_freshness_payload.get("public_production_direct_launch") or "No-Go"
             ),
         },
         "public_production_gaps": sorted(set(public_production_gaps)),

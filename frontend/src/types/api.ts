@@ -913,6 +913,13 @@ export interface ControlledPilotOperatorPacketSummary {
     business_read_executed: boolean;
     auth_mode: string;
   };
+  production_landing_evidence_freshness: {
+    status: string;
+    worktree_clean: boolean;
+    source_count: number;
+    stale_source_count: number;
+    public_production_direct_launch: string;
+  };
   evidence_paths: Record<string, string>;
   operator_command_count: number;
   pilot_role_count: number;
