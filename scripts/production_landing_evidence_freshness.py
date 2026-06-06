@@ -36,6 +36,10 @@ DEFAULT_SOURCES = {
         ROOT_DIR / "docs" / "reports" / "business_system_production_readiness",
         "*_business_system_production_readiness.json",
     ),
+    "business_system_landing_execution_pack": (
+        ROOT_DIR / "docs" / "reports" / "business_system_landing_execution_pack",
+        "*_business_system_landing_execution_pack.json",
+    ),
     "production_landing_text_quality": (
         ROOT_DIR / "docs" / "reports" / "production_landing_text_quality",
         "*_production_landing_text_quality.json",

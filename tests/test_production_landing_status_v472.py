@@ -23,6 +23,7 @@ def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
         "xiaomi_llm_preflight": root / "xiaomi_llm_preflight",
         "business_read_smoke": root / "business_read_smoke",
         "business_production_readiness": root / "business_production_readiness",
+        "business_landing_execution_pack": root / "business_landing_execution_pack",
         "action_pack": root / "action_pack",
         "pilot_signoff": root / "pilot_signoff",
         "manual_signoff_record_validation": root / "manual_signoff_record_validation",
@@ -41,6 +42,10 @@ def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
             "business_production_readiness": {
                 "dir": dirs["business_production_readiness"],
                 "pattern": "*_business_system_production_readiness.json",
+            },
+            "business_landing_execution_pack": {
+                "dir": dirs["business_landing_execution_pack"],
+                "pattern": "*_business_system_landing_execution_pack.json",
             },
             "action_pack": {"dir": dirs["action_pack"], "pattern": "*_production_landing_action_pack.json"},
             "pilot_signoff": {"dir": dirs["pilot_signoff"], "pattern": "*_production_pilot_signoff.json"},
@@ -110,6 +115,21 @@ def _write_ready_reports(dirs: dict[str, Path]) -> None:
                 "business_data_written": False,
                 "local_business_mock_used": False,
             },
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    _write_json(
+        dirs["business_landing_execution_pack"] / "001_business_system_landing_execution_pack.json",
+        {
+            "status": "ready",
+            "ready_for_real_read_smoke": True,
+            "real_read_smoke_complete": True,
+            "safe_next_action": "refresh_controlled_pilot_gate",
+            "missing_condition_count": 0,
+            "missing_conditions": [],
             "business_write_executed": False,
             "business_data_written": False,
             "secret_plaintext_output": False,
@@ -415,14 +435,34 @@ def test_production_landing_status_tracks_business_read_gap_as_public_production
         },
     )
 
+    _write_json(
+        dirs["business_landing_execution_pack"] / "002_business_system_landing_execution_pack.json",
+        {
+            "generated_at": "2026-06-05T06:10:01+00:00",
+            "status": "needs_input",
+            "ready_for_real_read_smoke": True,
+            "real_read_smoke_complete": False,
+            "safe_next_action": "execute_real_read_smoke",
+            "missing_condition_count": 1,
+            "missing_conditions": ["evidence:business_system_real_read_smoke_not_executed"],
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+
     summary = build_production_landing_status(output_dir=tmp_path / "out")
     payload = _payload(summary)
 
-    assert summary["status"] == "success"
+    assert summary["status"] == "partial"
     assert "business_system_read:not_executed" not in payload["blockers"]
-    assert payload["controlled_pilot_ready"] is True
+    assert "business_landing_execution_pack:not_ready" in payload["blockers"]
+    assert payload["controlled_pilot_ready"] is False
     assert payload["business_system"]["real_read_smoke_gap"] is True
     assert payload["business_system"]["real_read_smoke_required_for_public_production"] is True
+    assert payload["business_system"]["landing_execution_pack_status"] == "needs_input"
+    assert payload["business_system"]["landing_execution_real_read_smoke_complete"] is False
     assert payload["public_production_direct_launch"] == "No-Go"
 
 

@@ -265,6 +265,28 @@ def build_production_landing_final_verification(
             else ["business_read_only:public_production_gap_not_tracked"],
         ),
         _requirement(
+            "business_landing_execution_pack_ready",
+            business.get("landing_execution_pack_status") == "ready"
+            and business.get("landing_execution_real_read_smoke_complete") is True,
+            {
+                "landing_execution_pack_status": business.get("landing_execution_pack_status"),
+                "landing_execution_ready_for_real_read_smoke": business.get(
+                    "landing_execution_ready_for_real_read_smoke"
+                ),
+                "landing_execution_real_read_smoke_complete": business.get(
+                    "landing_execution_real_read_smoke_complete"
+                ),
+                "landing_execution_safe_next_action": business.get("landing_execution_safe_next_action"),
+                "landing_execution_missing_count": business.get("landing_execution_missing_count"),
+            },
+            []
+            if (
+                business.get("landing_execution_pack_status") == "ready"
+                and business.get("landing_execution_real_read_smoke_complete") is True
+            )
+            else ["business_landing_execution_pack:not_ready"],
+        ),
+        _requirement(
             "operations_console_landing_smoke_success",
             operations_console_passed,
             {

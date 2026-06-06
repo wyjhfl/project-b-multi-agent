@@ -32,6 +32,10 @@ REPORT_SOURCES = {
         "dir": ROOT_DIR / "docs" / "reports" / "business_system_production_readiness",
         "pattern": "*_business_system_production_readiness.json",
     },
+    "business_landing_execution_pack": {
+        "dir": ROOT_DIR / "docs" / "reports" / "business_system_landing_execution_pack",
+        "pattern": "*_business_system_landing_execution_pack.json",
+    },
     "action_pack": {
         "dir": ROOT_DIR / "docs" / "reports" / "production_landing_action_pack",
         "pattern": "*_production_landing_action_pack.json",
@@ -285,6 +289,7 @@ def _derive_status(
     xiaomi_preflight: dict[str, Any],
     business: dict[str, Any],
     business_readiness: dict[str, Any],
+    business_execution_pack: dict[str, Any],
     action_pack: dict[str, Any],
     pilot_signoff: dict[str, Any],
     manual_signoff_validation: dict[str, Any],
@@ -298,6 +303,7 @@ def _derive_status(
             xiaomi_preflight,
             business,
             business_readiness,
+            business_execution_pack,
             action_pack,
             pilot_signoff,
             manual_signoff_validation,
@@ -308,6 +314,11 @@ def _derive_status(
     gate_payload = gate.get("payload") if isinstance(gate.get("payload"), dict) else {}
     env_payload = env_check.get("payload") if isinstance(env_check.get("payload"), dict) else {}
     business_payload = business.get("payload") if isinstance(business.get("payload"), dict) else {}
+    business_execution_payload = (
+        business_execution_pack.get("payload")
+        if isinstance(business_execution_pack.get("payload"), dict)
+        else {}
+    )
     action_payload = action_pack.get("payload") if isinstance(action_pack.get("payload"), dict) else {}
     pilot_payload = pilot_signoff.get("payload") if isinstance(pilot_signoff.get("payload"), dict) else {}
     validation_payload = (
@@ -341,6 +352,11 @@ def _derive_status(
         blockers.append("env_check:not_all_domains_ready")
     if _blocking_required_inputs(action_payload):
         blockers.append("action_pack:required_inputs_remaining")
+    if (
+        business_execution_payload.get("status") != "ready"
+        or business_execution_payload.get("real_read_smoke_complete") is not True
+    ):
+        blockers.append("business_landing_execution_pack:not_ready")
 
     manual_signoff = _manual_signoff_summary(
         pilot_payload=pilot_payload,
@@ -365,6 +381,7 @@ def build_production_landing_status(*, output_dir: str | Path | None = None) -> 
         xiaomi_preflight=sources["xiaomi_llm_preflight"],
         business=sources["business_read_smoke"],
         business_readiness=sources["business_production_readiness"],
+        business_execution_pack=sources["business_landing_execution_pack"],
         action_pack=sources["action_pack"],
         pilot_signoff=sources["pilot_signoff"],
         manual_signoff_validation=sources["manual_signoff_record_validation"],
@@ -374,6 +391,7 @@ def build_production_landing_status(*, output_dir: str | Path | None = None) -> 
     xiaomi = payloads.get("xiaomi_llm_preflight", {})
     business = payloads.get("business_read_smoke", {})
     business_readiness = payloads.get("business_production_readiness", {})
+    business_execution_pack = payloads.get("business_landing_execution_pack", {})
     action_pack = payloads.get("action_pack", {})
     pilot = payloads.get("pilot_signoff", {})
     validation = payloads.get("manual_signoff_record_validation", {})
@@ -441,6 +459,17 @@ def build_production_landing_status(*, output_dir: str | Path | None = None) -> 
             ],
             "production_readiness_public_production_gap": str(business_readiness.get("status") or "skipped")
             != "ready",
+            "landing_execution_pack_status": str(business_execution_pack.get("status") or "skipped"),
+            "landing_execution_ready_for_real_read_smoke": bool(
+                business_execution_pack.get("ready_for_real_read_smoke", False)
+            ),
+            "landing_execution_real_read_smoke_complete": bool(
+                business_execution_pack.get("real_read_smoke_complete", False)
+            ),
+            "landing_execution_safe_next_action": str(business_execution_pack.get("safe_next_action") or ""),
+            "landing_execution_missing_count": int(
+                business_execution_pack.get("missing_condition_count") or 0
+            ),
         },
         "manual_signoff": {
             "completed": bool(manual_signoff.get("completed", False)),

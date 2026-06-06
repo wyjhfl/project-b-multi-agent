@@ -37,6 +37,11 @@ def _ready_landing_status(**overrides: object) -> dict:
             "production_readiness_status": "ready",
             "production_readiness_public_production_gap": False,
             "production_readiness_missing_count": 0,
+            "landing_execution_pack_status": "ready",
+            "landing_execution_ready_for_real_read_smoke": True,
+            "landing_execution_real_read_smoke_complete": True,
+            "landing_execution_safe_next_action": "refresh_controlled_pilot_gate",
+            "landing_execution_missing_count": 0,
         },
         "manual_signoff": {
             "completed": True,
@@ -151,7 +156,7 @@ def test_production_landing_final_verification_success_when_all_requirements_pas
     assert payload["public_production_direct_launch"] == "No-Go"
 
 
-def test_production_landing_final_verification_allows_tracked_business_public_production_gap(
+def test_production_landing_final_verification_requires_business_execution_pack_ready(
     tmp_path: Path,
 ) -> None:
     status = tmp_path / "status.json"
@@ -171,6 +176,11 @@ def test_production_landing_final_verification_allows_tracked_business_public_pr
                 "production_readiness_status": "needs_input",
                 "production_readiness_public_production_gap": True,
                 "production_readiness_missing_count": 2,
+                "landing_execution_pack_status": "needs_input",
+                "landing_execution_ready_for_real_read_smoke": True,
+                "landing_execution_real_read_smoke_complete": False,
+                "landing_execution_safe_next_action": "execute_real_read_smoke",
+                "landing_execution_missing_count": 1,
             }
         ),
     )
@@ -190,10 +200,15 @@ def test_production_landing_final_verification_allows_tracked_business_public_pr
         if item["requirement_id"] == "business_read_only_public_production_gap_tracked"
     )
 
-    assert summary["status"] == "success"
+    assert summary["status"] == "partial"
     assert business_requirement["passed"] is True
     assert business_requirement["evidence"]["real_read_smoke_gap"] is True
     assert business_requirement["evidence"]["production_readiness_public_production_gap"] is True
+    execution_requirement = next(
+        item for item in payload["requirements"] if item["requirement_id"] == "business_landing_execution_pack_ready"
+    )
+    assert execution_requirement["passed"] is False
+    assert "business_landing_execution_pack:not_ready" in payload["missing_conditions"]
     assert payload["public_production_direct_launch"] == "No-Go"
 
 
