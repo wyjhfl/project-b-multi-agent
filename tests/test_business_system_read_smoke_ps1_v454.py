@@ -117,6 +117,21 @@ def test_business_system_read_smoke_ps1_runs_readiness_after_smoke_and_restores_
     assert "business_system_input_packet.py failed" in text
     assert "business_system_landing_execution_pack.py failed" in text
     assert "business_system_landing_resume.ps1 failed" in text
+    assert "Invoke-ResolvedPythonCapture" in text
+    assert "Get-JsonPathFromOutput" in text
+    assert "$businessReadSmokeJsonPath = Get-JsonPathFromOutput -OutputLines $smokeOutput" in text
+    assert "$businessInputPacketJsonPath = Get-JsonPathFromOutput -OutputLines $inputPacketOutput" in text
+    assert "$businessReadinessJsonPath = Get-JsonPathFromOutput -OutputLines $readinessOutput" in text
+    assert "--business-smoke-json-path" in text
+    assert "$businessReadSmokeJsonPath" in text
+    assert "--business-input-packet-json" in text
+    assert "$businessInputPacketJsonPath" in text
+    assert "--business-readiness-json" in text
+    assert "$businessReadinessJsonPath" in text
+    assert "--business-read-smoke-json" in text
+    assert "business_system_read_smoke.py did not emit json_path" in text
+    assert "business_system_input_packet.py did not emit json_path" in text
+    assert "business_system_production_readiness_brief.py did not emit json_path" in text
     assert "$ownerValuesInjectedForRun = $true" in text
     assert "SetEnvironmentVariable($ownerEnvName, $previousOwnerEnv[$ownerEnvName], \"Process\")" in text
     assert "SetEnvironmentVariable($ownerEnvName, $null, \"Process\")" in text

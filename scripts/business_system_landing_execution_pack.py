@@ -71,6 +71,36 @@ def _latest_json(directory: Path, pattern: str) -> Path | None:
     return max(files, key=sort_key)
 
 
+def _resolve_source_path(
+    directory: Path,
+    pattern: str,
+    explicit_json_path: str | Path | None,
+    report_id: str,
+) -> tuple[Path | None, bool, list[str]]:
+    expected_suffix = pattern.replace("*", "")
+    if explicit_json_path is None:
+        return _latest_json(directory, pattern), False, []
+
+    candidate = Path(explicit_json_path)
+    if not candidate.is_absolute():
+        candidate = ROOT_DIR / candidate
+    try:
+        resolved = candidate.resolve(strict=True)
+    except FileNotFoundError:
+        return None, False, [f"{report_id}:explicit_json_path_missing"]
+    except OSError:
+        return None, False, [f"{report_id}:explicit_json_path_unresolvable"]
+
+    expected_root = directory.resolve()
+    if resolved.suffix.lower() != ".json":
+        return None, False, [f"{report_id}:explicit_json_path_not_json"]
+    if expected_suffix and not resolved.name.endswith(expected_suffix):
+        return None, False, [f"{report_id}:explicit_json_path_report_type_mismatch"]
+    if expected_root != resolved and expected_root not in resolved.parents:
+        return None, False, [f"{report_id}:explicit_json_path_outside_report_dir"]
+    return resolved, True, []
+
+
 def _contains_secret_like(value: Any) -> bool:
     text = json.dumps(value, ensure_ascii=False, default=str) if isinstance(value, (dict, list)) else str(value)
     for pattern in SECRET_TEXT_PATTERNS[:-1]:
@@ -113,17 +143,24 @@ def _safe_list(value: Any, limit: int = 32) -> list[str]:
     return [_safe_text(item) for item in value[:limit]]
 
 
-def _read_source(report_id: str, reports: dict[str, tuple[Path, str]]) -> dict[str, Any]:
+def _read_source(
+    report_id: str,
+    reports: dict[str, tuple[Path, str]],
+    explicit_json_path: str | Path | None = None,
+) -> dict[str, Any]:
     directory, pattern = reports[report_id]
-    path = _latest_json(directory, pattern)
+    path, source_bound, source_issues = _resolve_source_path(directory, pattern, explicit_json_path, report_id)
     if path is None:
         return {
             "present": False,
-            "status": "missing",
-            "latest_json_path": "",
+            "status": "blocked" if source_issues else "missing",
+            "latest_json_path": str(explicit_json_path or ""),
             "generated_at": "",
             "payload": {},
             "secret_detected": False,
+            "source_bound": source_bound,
+            "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
+            "missing_conditions": source_issues,
         }
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -135,6 +172,8 @@ def _read_source(report_id: str, reports: dict[str, tuple[Path, str]]) -> dict[s
             "generated_at": "",
             "payload": {},
             "secret_detected": False,
+            "source_bound": source_bound,
+            "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
             "missing_conditions": [f"{report_id}:json_parse_failed"],
         }
     secret_detected = _contains_secret_like(payload)
@@ -145,6 +184,8 @@ def _read_source(report_id: str, reports: dict[str, tuple[Path, str]]) -> dict[s
         "generated_at": _safe_text(payload.get("generated_at") or ""),
         "payload": {} if secret_detected else payload,
         "secret_detected": secret_detected,
+        "source_bound": source_bound,
+        "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
         "missing_conditions": [f"{report_id}:secret_like_text_detected"] if secret_detected else [],
     }
 
@@ -154,7 +195,12 @@ def _condition_bucket(condition: str) -> str:
         return "owners"
     if condition.startswith("opt_in:") or condition.startswith("env:") or condition.startswith("env_target:"):
         return "environment"
-    if condition.startswith("evidence:") or condition.startswith("business_system_read_smoke:"):
+    if (
+        condition.startswith("evidence:")
+        or condition.startswith("business_system_input_packet:")
+        or condition.startswith("business_system_production_readiness:")
+        or condition.startswith("business_system_read_smoke:")
+    ):
         return "evidence"
     if condition.startswith("boundary:") or "secret" in condition:
         return "security_boundary"
@@ -264,7 +310,8 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         and smoke_payload.get("secret_plaintext_output") is not True
     )
     source_secret_detected = any(source.get("secret_detected") for source in sources.values())
-    blocked = source_secret_detected or any(
+    source_blocked = any(source.get("status") == "blocked" for source in sources.values())
+    blocked = source_secret_detected or source_blocked or any(
         condition.startswith("boundary:") for condition in missing_conditions
     )
     status = "blocked" if blocked else ("ready" if real_read_smoke_complete and not missing_conditions else "needs_input")
@@ -291,6 +338,13 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "missing_by_category": _group_missing(missing_conditions),
         "source_statuses": {
             source_id: _safe_text(source.get("status") or "missing") for source_id, source in sources.items()
+        },
+        "source_bindings": {
+            source_id: {
+                "source_bound": bool(source.get("source_bound", False)),
+                "source_selection": _safe_text(source.get("source_selection") or "latest_report_lookup"),
+            }
+            for source_id, source in sources.items()
         },
         "evidence_paths": {
             source_id: _safe_text(source.get("latest_json_path") or "") for source_id, source in sources.items()
@@ -340,7 +394,11 @@ def _build_markdown(payload: dict[str, Any]) -> str:
             lines.append(f"  - {item}")
     lines.extend(["", "## 证据来源"])
     for source_id, path in payload.get("evidence_paths", {}).items():
-        lines.append(f"- {source_id}: `{path}`")
+        binding = payload.get("source_bindings", {}).get(source_id, {})
+        lines.append(
+            f"- {source_id}: `{path}` "
+            f"bound={binding.get('source_bound', False)} selection={binding.get('source_selection', 'latest_report_lookup')}"
+        )
     lines.extend(["", "## 人工输入"])
     for item in payload.get("manual_input_checklist", []):
         lines.append(f"- {item.get('id')}: {item.get('description')} env={item.get('env')}")
@@ -364,6 +422,7 @@ def build_business_system_landing_execution_pack(
     *,
     output_dir: str | Path | None = None,
     report_dirs: dict[str, str | Path] | None = None,
+    source_json_paths: dict[str, str | Path] | None = None,
 ) -> dict[str, Any]:
     generated_at = _utc_now_iso()
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
@@ -371,7 +430,14 @@ def build_business_system_landing_execution_pack(
         report_id: (Path(report_dirs[report_id]), config[1]) if report_dirs and report_id in report_dirs else config
         for report_id, config in SOURCE_REPORTS.items()
     }
-    sources = {report_id: _read_source(report_id, effective_reports) for report_id in effective_reports}
+    sources = {
+        report_id: _read_source(
+            report_id,
+            effective_reports,
+            explicit_json_path=source_json_paths.get(report_id) if source_json_paths else None,
+        )
+        for report_id in effective_reports
+    }
     derived = _derive_pack(sources)
     payload = {
         "generated_at": generated_at,
@@ -380,6 +446,7 @@ def build_business_system_landing_execution_pack(
         "phase": "v4.8 Business System Landing Execution Pack",
         "mode": "read_only_execution_pack",
         "read_only": True,
+        "source_bound": all(bool(source.get("source_bound")) for source in sources.values()),
         "sources": {
             source_id: {
                 "present": source["present"],
@@ -387,6 +454,8 @@ def build_business_system_landing_execution_pack(
                 "latest_json_path": source["latest_json_path"],
                 "generated_at": source["generated_at"],
                 "secret_detected": source["secret_detected"],
+                "source_bound": bool(source.get("source_bound", False)),
+                "source_selection": source.get("source_selection") or "latest_report_lookup",
             }
             for source_id, source in sources.items()
         },
@@ -430,12 +499,22 @@ def build_business_system_landing_execution_pack(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="生成业务系统落地执行包。")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument("--business-input-packet-json", default=None)
+    parser.add_argument("--business-readiness-json", default=None)
+    parser.add_argument("--business-read-smoke-json", default=None)
     return parser
 
 
 def main() -> int:
     args = _build_parser().parse_args()
-    summary = build_business_system_landing_execution_pack(output_dir=args.output_dir)
+    summary = build_business_system_landing_execution_pack(
+        output_dir=args.output_dir,
+        source_json_paths={
+            "business_system_input_packet": args.business_input_packet_json,
+            "business_system_production_readiness": args.business_readiness_json,
+            "business_system_read_smoke": args.business_read_smoke_json,
+        },
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"json_path={summary['json_path']}")
     print(f"markdown_path={summary['markdown_path']}")

@@ -51,20 +51,53 @@ def _latest_json(directory: Path, pattern: str = "*.json") -> Path | None:
     return max(files, key=sort_key)
 
 
-def _read_latest_business_smoke(report_dir: Path) -> dict[str, Any]:
-    latest = _latest_json(report_dir, "*_business_system_read_smoke.json")
+def _resolve_report_path(report_dir: Path, explicit_json_path: str | Path | None, expected_suffix: str) -> tuple[Path | None, bool, list[str]]:
+    if explicit_json_path is None:
+        return _latest_json(report_dir, f"*{expected_suffix}"), False, []
+
+    candidate = Path(explicit_json_path)
+    if not candidate.is_absolute():
+        candidate = ROOT_DIR / candidate
+    try:
+        resolved = candidate.resolve(strict=True)
+    except FileNotFoundError:
+        return None, False, ["business_system_read_smoke:explicit_json_path_missing"]
+    except OSError:
+        return None, False, ["business_system_read_smoke:explicit_json_path_unresolvable"]
+
+    expected_root = report_dir.resolve()
+    if resolved.suffix.lower() != ".json":
+        return None, False, ["business_system_read_smoke:explicit_json_path_not_json"]
+    if not resolved.name.endswith(expected_suffix):
+        return None, False, ["business_system_read_smoke:explicit_json_path_report_type_mismatch"]
+    if expected_root != resolved and expected_root not in resolved.parents:
+        return None, False, ["business_system_read_smoke:explicit_json_path_outside_report_dir"]
+    return resolved, True, []
+
+
+def _read_latest_business_smoke(
+    report_dir: Path,
+    explicit_json_path: str | Path | None = None,
+) -> dict[str, Any]:
+    latest, source_bound, source_issues = _resolve_report_path(
+        report_dir,
+        explicit_json_path,
+        "_business_system_read_smoke.json",
+    )
     if latest is None:
         return {
             "latest_report_present": False,
-            "latest_json_path": "",
-            "status": "skipped",
+            "latest_json_path": str(explicit_json_path or ""),
+            "status": "blocked" if source_issues else "skipped",
             "business_system_connected": False,
             "business_read_executed": False,
             "business_write_executed": False,
             "business_data_written": False,
             "local_business_mock_used": False,
             "secret_plaintext_output": False,
-            "missing_conditions": ["business_system_read_smoke:report_not_found"],
+            "source_bound": source_bound,
+            "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
+            "missing_conditions": source_issues or ["business_system_read_smoke:report_not_found"],
         }
     try:
         payload = json.loads(latest.read_text(encoding="utf-8"))
@@ -79,6 +112,8 @@ def _read_latest_business_smoke(report_dir: Path) -> dict[str, Any]:
             "business_data_written": False,
             "local_business_mock_used": False,
             "secret_plaintext_output": False,
+            "source_bound": source_bound,
+            "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
             "missing_conditions": ["business_system_read_smoke:json_parse_failed"],
         }
     secret_detected = _contains_secret_like(payload)
@@ -92,6 +127,8 @@ def _read_latest_business_smoke(report_dir: Path) -> dict[str, Any]:
         "business_data_written": bool(payload.get("business_data_written", False)),
         "local_business_mock_used": bool(payload.get("local_business_mock_used", False)),
         "secret_plaintext_output": secret_detected or bool(payload.get("secret_plaintext_output", False)),
+        "source_bound": source_bound,
+        "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
         "missing_conditions": [
             str(item)
             for item in (
@@ -270,13 +307,14 @@ def build_business_system_production_readiness_brief(
     *,
     output_dir: str | Path | None = None,
     business_smoke_report_dir: str | Path | None = None,
+    business_smoke_json_path: str | Path | None = None,
 ) -> dict[str, Any]:
     output_root = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
     smoke_dir = Path(business_smoke_report_dir) if business_smoke_report_dir else BUSINESS_SMOKE_REPORT_DIR
     generated_at = _utc_now_iso()
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
     config = load_business_system_config()
-    latest_smoke = _read_latest_business_smoke(smoke_dir)
+    latest_smoke = _read_latest_business_smoke(smoke_dir, explicit_json_path=business_smoke_json_path)
     missing = _missing_conditions(latest_smoke)
     blocked_markers = [item for item in missing if item.startswith("boundary:")]
     status = "blocked" if blocked_markers else ("ready" if not missing else "needs_input")
@@ -291,6 +329,7 @@ def build_business_system_production_readiness_brief(
         "config": safe_config_summary(config),
         "owner_inputs_present": _owner_inputs(),
         "required_inputs": _required_inputs(),
+        "source_bound": bool(latest_smoke.get("source_bound", False)),
         "latest_business_smoke": latest_smoke,
         "missing_conditions": missing,
         "missing_condition_count": len(missing),
@@ -328,6 +367,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="生成业务系统生产只读接入 readiness brief。")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--business-smoke-report-dir", default=str(BUSINESS_SMOKE_REPORT_DIR))
+    parser.add_argument("--business-smoke-json-path", default=None)
     return parser
 
 
@@ -336,6 +376,7 @@ def main() -> int:
     summary = build_business_system_production_readiness_brief(
         output_dir=args.output_dir,
         business_smoke_report_dir=args.business_smoke_report_dir,
+        business_smoke_json_path=args.business_smoke_json_path,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"json_path={summary['json_path']}")

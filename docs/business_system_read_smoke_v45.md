@@ -79,6 +79,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scr
 
 通过本地 mock 入口生成证据时，报告必须带有 `local_business_mock_used=true`；真实业务系统验收必须满足 `local_business_mock_used=false`。通过 SSH tunnel、反向代理或 port-forward 暴露到 `localhost` 的真实业务系统不会被自动判为 local mock；只有显式设置 `BUSINESS_SYSTEM_NAME=local_business_read_mock` 或运行 `local-business-smoke` 才会标记 local mock。
 
+PowerShell 入口会捕获本轮 `business_system_read_smoke.py`、`business_system_input_packet.py` 和 `business_system_production_readiness_brief.py` 输出的 `json_path=`，并把这些显式路径传给 `business_system_landing_execution_pack.py`。这样执行包绑定当前轮证据，不会因为 `docs/reports/` 中存在更晚的旧成功报告而误判当前业务接入状态。
+
 ## 输入准备包
 
 在提供真实业务系统信息前，可先生成只读输入准备包：

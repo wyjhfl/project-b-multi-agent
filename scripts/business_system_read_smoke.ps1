@@ -123,6 +123,34 @@ function Invoke-ResolvedPython {
   }
 }
 
+function Invoke-ResolvedPythonCapture {
+  param([Parameter(Mandatory = $true)][string[]]$Arguments)
+
+  [string[]]$pythonCommand = @(Resolve-PythonExecutable)
+  if ($pythonCommand.Count -gt 1) {
+    $output = & $pythonCommand[0] $pythonCommand[1..($pythonCommand.Count - 1)] $Arguments 2>&1
+  } else {
+    $output = & $pythonCommand[0] $Arguments 2>&1
+  }
+  foreach ($line in $output) {
+    Write-Host $line
+  }
+  return @($output)
+}
+
+function Get-JsonPathFromOutput {
+  param([Parameter(Mandatory = $true)][object[]]$OutputLines)
+
+  $jsonPath = ""
+  foreach ($line in $OutputLines) {
+    $text = [string]$line
+    if ($text.StartsWith("json_path=")) {
+      $jsonPath = $text.Substring("json_path=".Length).Trim()
+    }
+  }
+  return $jsonPath
+}
+
 function Convert-SecureStringToPlainText {
   param([Parameter(Mandatory = $true)][Security.SecureString]$SecureValue)
 
@@ -395,7 +423,7 @@ try {
   [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_SCHEME", $effectiveAuthScheme, "Process")
 
   Write-Host "[business_system_read_smoke] status=running" -ForegroundColor Yellow
-  Invoke-ResolvedPython @(
+  $smokeOutput = Invoke-ResolvedPythonCapture @(
     (Join-Path $repoRoot "scripts/business_system_read_smoke.py"),
     "--execute"
   )
@@ -403,30 +431,50 @@ try {
   if ($exitCode -ne 0) {
     throw "business_system_read_smoke.py failed with exit code $exitCode"
   }
+  $businessReadSmokeJsonPath = Get-JsonPathFromOutput -OutputLines $smokeOutput
+  if ([string]::IsNullOrWhiteSpace($businessReadSmokeJsonPath)) {
+    throw "business_system_read_smoke.py did not emit json_path"
+  }
   if (-not $SkipReadinessBrief) {
     Write-Host "[business_system_read_smoke] input_packet=running" -ForegroundColor Yellow
-    Invoke-ResolvedPython @(
+    $inputPacketOutput = Invoke-ResolvedPythonCapture @(
       (Join-Path $repoRoot "scripts/business_system_input_packet.py")
     )
     $inputPacketExitCode = $LASTEXITCODE
     if ($inputPacketExitCode -ne 0) {
       throw "business_system_input_packet.py failed with exit code $inputPacketExitCode"
     }
+    $businessInputPacketJsonPath = Get-JsonPathFromOutput -OutputLines $inputPacketOutput
+    if ([string]::IsNullOrWhiteSpace($businessInputPacketJsonPath)) {
+      throw "business_system_input_packet.py did not emit json_path"
+    }
     Write-Host "[business_system_read_smoke] input_packet=done" -ForegroundColor Green
 
     Write-Host "[business_system_read_smoke] readiness_brief=running" -ForegroundColor Yellow
-    Invoke-ResolvedPython @(
-      (Join-Path $repoRoot "scripts/business_system_production_readiness_brief.py")
+    $readinessOutput = Invoke-ResolvedPythonCapture @(
+      (Join-Path $repoRoot "scripts/business_system_production_readiness_brief.py"),
+      "--business-smoke-json-path",
+      $businessReadSmokeJsonPath
     )
     $readinessExitCode = $LASTEXITCODE
     if ($readinessExitCode -ne 0) {
       throw "business_system_production_readiness_brief.py failed with exit code $readinessExitCode"
     }
+    $businessReadinessJsonPath = Get-JsonPathFromOutput -OutputLines $readinessOutput
+    if ([string]::IsNullOrWhiteSpace($businessReadinessJsonPath)) {
+      throw "business_system_production_readiness_brief.py did not emit json_path"
+    }
     Write-Host "[business_system_read_smoke] readiness_brief=done" -ForegroundColor Green
 
     Write-Host "[business_system_read_smoke] execution_pack=running" -ForegroundColor Yellow
     Invoke-ResolvedPython @(
-      (Join-Path $repoRoot "scripts/business_system_landing_execution_pack.py")
+      (Join-Path $repoRoot "scripts/business_system_landing_execution_pack.py"),
+      "--business-input-packet-json",
+      $businessInputPacketJsonPath,
+      "--business-readiness-json",
+      $businessReadinessJsonPath,
+      "--business-read-smoke-json",
+      $businessReadSmokeJsonPath
     )
     $executionPackExitCode = $LASTEXITCODE
     if ($executionPackExitCode -ne 0) {

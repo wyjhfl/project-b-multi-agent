@@ -58,9 +58,10 @@ def _set_ready_env(monkeypatch) -> None:
     monkeypatch.setenv("BUSINESS_SYSTEM_DATA_OWNER", "wyj")
 
 
-def _write_smoke_report(report_dir: Path, payload: dict) -> None:
+def _write_smoke_report(report_dir: Path, payload: dict, *, name: str = "001_business_system_read_smoke.json") -> Path:
     report_dir.mkdir(parents=True, exist_ok=True)
-    (report_dir / "001_business_system_read_smoke.json").write_text(
+    path = report_dir / name
+    path.write_text(
         json.dumps(
             {
                 "generated_at": "2026-06-06T00:00:00+00:00",
@@ -79,6 +80,7 @@ def _write_smoke_report(report_dir: Path, payload: dict) -> None:
         ),
         encoding="utf-8",
     )
+    return path
 
 
 def _payload(summary: dict) -> dict:
@@ -129,6 +131,51 @@ def test_business_system_production_readiness_brief_ready_with_real_read_smoke(
     assert payload["public_production_direct_launch"] == "No-Go"
     assert "sensitive-token-value" not in merged
     assert "https://business.example.test" not in merged
+
+
+def test_business_system_production_readiness_brief_binds_explicit_current_smoke_over_stale_success(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    _set_ready_env(monkeypatch)
+    smoke_dir = tmp_path / "smoke"
+    current_smoke = _write_smoke_report(
+        smoke_dir,
+        {
+            "generated_at": "2026-06-06T00:00:00+00:00",
+            "status": "skipped",
+            "business_system_connected": False,
+            "business_read_executed": False,
+            "missing_conditions": ["cli:--execute_not_requested"],
+        },
+        name="001_business_system_read_smoke.json",
+    )
+    _write_smoke_report(
+        smoke_dir,
+        {
+            "generated_at": "2026-06-06T01:00:00+00:00",
+            "status": "success",
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "missing_conditions": [],
+        },
+        name="999_business_system_read_smoke.json",
+    )
+
+    summary = build_business_system_production_readiness_brief(
+        output_dir=tmp_path / "out",
+        business_smoke_report_dir=smoke_dir,
+        business_smoke_json_path=current_smoke,
+    )
+    payload = _payload(summary)
+
+    assert payload["status"] == "needs_input"
+    assert payload["source_bound"] is True
+    assert payload["latest_business_smoke"]["latest_json_path"] == str(current_smoke.resolve())
+    assert payload["latest_business_smoke"]["source_bound"] is True
+    assert payload["latest_business_smoke"]["source_selection"] == "explicit_json_path"
+    assert payload["latest_business_smoke"]["business_read_executed"] is False
+    assert "evidence:business_system_real_read_smoke_not_executed" in payload["missing_conditions"]
 
 
 def test_business_system_production_readiness_brief_rejects_local_mock_smoke(

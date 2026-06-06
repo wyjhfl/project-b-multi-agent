@@ -6,9 +6,10 @@ from pathlib import Path
 from scripts.business_system_landing_execution_pack import build_business_system_landing_execution_pack
 
 
-def _write_json(path: Path, payload: dict) -> None:
+def _write_json(path: Path, payload: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
 
 
 def _dirs(root: Path) -> dict[str, Path]:
@@ -215,6 +216,161 @@ def test_business_system_landing_execution_pack_ready_after_real_read_smoke(tmp_
     assert payload["business_system_read_smoke"]["business_read_executed"] is True
     assert payload["recommended_next_command"].endswith("scripts\\business_system_landing_resume.ps1 -UseExistingEnv")
     assert any(command.endswith("scripts\\business_system_landing_resume.ps1 -UseExistingEnv") for command in payload["recommended_commands"])
+
+
+def test_business_system_landing_execution_pack_binds_explicit_current_reports_over_stale_success(
+    tmp_path: Path,
+) -> None:
+    dirs = _base_reports(tmp_path / "sources")
+    current_input = _write_json(
+        dirs["business_system_input_packet"] / "010_current_business_system_input_packet.json",
+        {
+            "generated_at": "2026-06-06T00:10:00+00:00",
+            "status": "ready",
+            "ready_for_real_read_smoke": True,
+            "owner_inputs_present": {
+                "business_owner": True,
+                "security_reviewer": True,
+                "operations_owner": True,
+                "data_owner": True,
+            },
+            "missing_conditions": [],
+            "missing_condition_count": 0,
+            "recommended_commands": [
+                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv"
+            ],
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    current_readiness = _write_json(
+        dirs["business_system_production_readiness"] / "010_current_business_system_production_readiness.json",
+        {
+            "generated_at": "2026-06-06T00:10:01+00:00",
+            "status": "needs_input",
+            "missing_conditions": ["evidence:business_system_real_read_smoke_not_executed"],
+            "missing_condition_count": 1,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    current_smoke = _write_json(
+        dirs["business_system_read_smoke"] / "010_current_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-06T00:10:02+00:00",
+            "status": "skipped",
+            "business_system_connected": False,
+            "business_read_executed": False,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "secret_plaintext_output": False,
+            "missing_conditions": ["cli:--execute_not_requested"],
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    _write_json(
+        dirs["business_system_input_packet"] / "999_stale_business_system_input_packet.json",
+        {
+            "generated_at": "2026-06-06T01:00:00+00:00",
+            "status": "ready",
+            "ready_for_real_read_smoke": True,
+            "missing_conditions": [],
+            "missing_condition_count": 0,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    _write_json(
+        dirs["business_system_production_readiness"] / "999_stale_business_system_production_readiness.json",
+        {
+            "generated_at": "2026-06-06T01:00:01+00:00",
+            "status": "ready",
+            "missing_conditions": [],
+            "missing_condition_count": 0,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    _write_json(
+        dirs["business_system_read_smoke"] / "999_stale_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-06T01:00:02+00:00",
+            "status": "success",
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "secret_plaintext_output": False,
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+
+    summary = build_business_system_landing_execution_pack(
+        output_dir=tmp_path / "out",
+        report_dirs=dirs,
+        source_json_paths={
+            "business_system_input_packet": current_input,
+            "business_system_production_readiness": current_readiness,
+            "business_system_read_smoke": current_smoke,
+        },
+    )
+    payload = _payload(summary)
+
+    assert summary["status"] == "needs_input"
+    assert payload["source_bound"] is True
+    assert payload["real_read_smoke_complete"] is False
+    assert payload["business_system_read_smoke"]["business_read_executed"] is False
+    assert payload["evidence_paths"]["business_system_input_packet"] == str(current_input.resolve())
+    assert payload["evidence_paths"]["business_system_production_readiness"] == str(current_readiness.resolve())
+    assert payload["evidence_paths"]["business_system_read_smoke"] == str(current_smoke.resolve())
+    assert all(item["source_bound"] is True for item in payload["sources"].values())
+    assert all(item["source_selection"] == "explicit_json_path" for item in payload["sources"].values())
+    assert "evidence:business_system_real_read_smoke_not_executed" in payload["missing_conditions"]
+
+
+def test_business_system_landing_execution_pack_blocks_missing_explicit_source_without_latest_fallback(
+    tmp_path: Path,
+) -> None:
+    dirs = _base_reports(tmp_path / "sources")
+    _write_json(
+        dirs["business_system_input_packet"] / "999_business_system_input_packet.json",
+        {
+            "generated_at": "2026-06-06T01:00:00+00:00",
+            "status": "ready",
+            "ready_for_real_read_smoke": True,
+            "missing_conditions": [],
+            "missing_condition_count": 0,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    missing_path = dirs["business_system_input_packet"] / "missing_business_system_input_packet.json"
+
+    summary = build_business_system_landing_execution_pack(
+        output_dir=tmp_path / "out",
+        report_dirs=dirs,
+        source_json_paths={"business_system_input_packet": missing_path},
+    )
+    payload = _payload(summary)
+
+    assert summary["status"] == "blocked"
+    assert payload["sources"]["business_system_input_packet"]["source_selection"] == "explicit_json_path"
+    assert payload["sources"]["business_system_input_packet"]["source_bound"] is False
+    assert payload["evidence_paths"]["business_system_input_packet"] == str(missing_path)
+    assert "business_system_input_packet:explicit_json_path_missing" in payload["missing_conditions"]
 
 
 def test_business_system_landing_execution_pack_blocks_secret_or_write_evidence(tmp_path: Path) -> None:
