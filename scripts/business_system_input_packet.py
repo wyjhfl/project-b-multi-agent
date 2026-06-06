@@ -259,6 +259,7 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
             },
         ],
         "recommended_commands": [
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",

@@ -10,6 +10,7 @@ Param(
   [string]$OperationsOwner = "",
   [string]$DataOwner = "",
   [string]$EnvPath = "",
+  [switch]$PreflightOnly,
   [switch]$SkipReadinessBrief,
   [switch]$SkipLandingResume
 )
@@ -172,7 +173,7 @@ function Assert-OwnerValue {
 function Set-EnvPathProcessValue {
   param(
     [Parameter(Mandatory = $true)][string]$Name,
-    [Parameter(Mandatory = $true)][string]$Value
+    [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value
   )
 
   if (-not $previousEnvPathEnv.ContainsKey($Name)) {
@@ -237,6 +238,37 @@ function Read-OrUseOwnerValue {
   return (Read-Host $Prompt).Trim()
 }
 
+function Set-OwnerValueIfPresent {
+  param(
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Value)) {
+    return $false
+  }
+  Assert-OwnerValue -Name $Name -Value $Value
+  [Environment]::SetEnvironmentVariable($Name, $Value.Trim(), "Process")
+  return $true
+}
+
+function Test-AutomationEnvironment {
+  $automationEnvNames = @(
+    "CI",
+    "GITHUB_ACTIONS",
+    "TF_BUILD",
+    "BUILD_BUILDID",
+    "JENKINS_URL"
+  )
+  foreach ($name in $automationEnvNames) {
+    $value = [Environment]::GetEnvironmentVariable($name, "Process")
+    if (-not [string]::IsNullOrWhiteSpace($value) -and $value -ne "false" -and $value -ne "0") {
+      return $true
+    }
+  }
+  return $false
+}
+
 if ($CheckPythonOnly) {
   Initialize-CodexProcessEnvironment
   [string[]]$pythonCommand = @(Resolve-PythonExecutable)
@@ -274,6 +306,45 @@ try {
   Write-Host "[business_system_read_smoke] input=secure_process_env_only" -ForegroundColor Cyan
   Write-Host "[business_system_read_smoke] secret_will_not_be_written_to_repo_or_report" -ForegroundColor Cyan
   Write-Host "[business_system_read_smoke] public_production_direct_launch=No-Go" -ForegroundColor Cyan
+
+  if ($PreflightOnly) {
+    Write-Host "[business_system_read_smoke] preflight_only=true" -ForegroundColor Cyan
+
+    $ownerValuesInjectedForRun = $false
+    $ownerValuesInjectedForRun = (Set-OwnerValueIfPresent -Name "BUSINESS_SYSTEM_BUSINESS_OWNER" -Value ($(if (-not [string]::IsNullOrWhiteSpace($BusinessOwner)) { $BusinessOwner } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_BUSINESS_OWNER", "Process") }))) -or $ownerValuesInjectedForRun
+    $ownerValuesInjectedForRun = (Set-OwnerValueIfPresent -Name "BUSINESS_SYSTEM_SECURITY_REVIEWER" -Value ($(if (-not [string]::IsNullOrWhiteSpace($SecurityReviewer)) { $SecurityReviewer } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_SECURITY_REVIEWER", "Process") }))) -or $ownerValuesInjectedForRun
+    $ownerValuesInjectedForRun = (Set-OwnerValueIfPresent -Name "BUSINESS_SYSTEM_OPERATIONS_OWNER" -Value ($(if (-not [string]::IsNullOrWhiteSpace($OperationsOwner)) { $OperationsOwner } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_OPERATIONS_OWNER", "Process") }))) -or $ownerValuesInjectedForRun
+    $ownerValuesInjectedForRun = (Set-OwnerValueIfPresent -Name "BUSINESS_SYSTEM_DATA_OWNER" -Value ($(if (-not [string]::IsNullOrWhiteSpace($DataOwner)) { $DataOwner } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_DATA_OWNER", "Process") }))) -or $ownerValuesInjectedForRun
+
+    [Environment]::SetEnvironmentVariable("BUSINESS_INTEGRATION_ENABLED", "true", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_INTEGRATION_READ_ONLY", "true", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_INTEGRATION_WRITE_ENABLED", "false", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_INTEGRATION_APPROVAL_REQUIRED", "true", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_INTEGRATION_AUDIT_REQUIRED", "true", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_BASE_URL_ENV", $baseUrlEnv, "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_TOKEN_ENV", $tokenEnv, "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_TOOL_ALLOWLIST", "business_read_probe", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST", "", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_TIMEOUT_SECONDS", "$effectiveTimeoutSeconds", "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_READ_PROBE_PATH", $effectiveReadProbePath, "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_HEADER_NAME", $effectiveAuthHeaderName, "Process")
+    [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_SCHEME", $effectiveAuthScheme, "Process")
+
+    Write-Host "[business_system_read_smoke] preflight=input_packet" -ForegroundColor Yellow
+    Invoke-ResolvedPython @(
+      (Join-Path $repoRoot "scripts/business_system_input_packet.py")
+    )
+    $preflightExitCode = $LASTEXITCODE
+    if ($preflightExitCode -ne 0) {
+      throw "business_system_input_packet.py failed with exit code $preflightExitCode"
+    }
+    Write-Host "[business_system_read_smoke] preflight=done" -ForegroundColor Green
+    return
+  }
+
+  if (Test-AutomationEnvironment) {
+    throw "Real business read smoke is blocked in CI or automation environments. Run -PreflightOnly there, then execute the real smoke from an explicit operator session."
+  }
 
   if (-not $UseExistingEnv -or -not ($hadPreviousBaseUrl -and $hadPreviousToken)) {
     $plainBaseUrl = (Read-Host "Enter business system base URL for this process only").Trim()

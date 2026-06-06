@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -75,6 +76,14 @@ def _redact_secret_like(value: Any) -> Any:
 
 def _is_local_business_target(config: Any) -> bool:
     return getattr(config, "system_name", "") == "local_business_read_mock"
+
+
+def _is_automation_environment() -> bool:
+    for name in ("CI", "GITHUB_ACTIONS", "TF_BUILD", "BUILD_BUILDID", "JENKINS_URL"):
+        value = (os.environ.get(name, "") or "").strip()
+        if value and value.lower() not in {"0", "false"}:
+            return True
+    return False
 
 
 def _missing_conditions(execute: bool) -> list[str]:
@@ -280,6 +289,9 @@ def build_business_system_read_smoke(
     config = load_business_system_config()
     missing = _missing_conditions(execute)
     effective_local_business_mock_used = local_business_mock_used or _is_local_business_target(config)
+    if execute and _is_automation_environment() and not effective_local_business_mock_used:
+        missing.append("automation:real_business_read_smoke_blocked")
+        missing = sorted(set(missing))
 
     smoke: dict[str, Any] = {}
     if missing:

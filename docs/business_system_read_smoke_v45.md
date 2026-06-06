@@ -63,10 +63,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -EnvPath local\production_landing.staging.env
 ```
 
-自动化环境仍可使用 Python 入口：
+执行真实 read smoke 前，建议先运行只读预检。该模式不读取或打印 URL/token 原文，不发起网络请求，只生成输入准备包，用来确认 EnvPath 安全配置、当前进程 secret present 布尔和 owner 信息是否齐备：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\business_system_read_smoke.py --execute
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\production_landing.staging.env
+```
+
+自动化环境只允许生成预检或缺口报告，不应执行真实业务系统连接。Python 入口默认可用于生成 skipped/blocked 报告；真实 `--execute` 应只在明确操作员会话中运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\business_system_read_smoke.py
 ```
 
 成功后输出 `business_system_connected=true`、`business_read_executed=true`、`business_write_executed=false`、`business_data_written=false`，并生成脱敏 JSON/Markdown 报告。

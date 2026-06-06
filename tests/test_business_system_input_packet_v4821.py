@@ -109,6 +109,7 @@ def test_business_system_input_packet_ready_without_secret_leak(tmp_path: Path, 
     assert "BUSINESS_SYSTEM_BASE_URL=<secret-managed-url>" in merged
     assert "只读 token 仅进入当前进程环境" in merged
     assert "业务系统真实接入输入准备包" in merged
+    assert "business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env" in merged
     assert "business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env" in merged
     assert "scripts\\business_system_landing_resume.ps1 -UseExistingEnv" in merged
     assert "public_production_direct_launch" in merged

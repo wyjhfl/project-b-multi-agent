@@ -30,6 +30,7 @@ def test_business_system_read_smoke_ps1_uses_process_env_only_without_plaintext_
     assert "OperationsOwner" in text
     assert "DataOwner" in text
     assert "EnvPath" in text
+    assert "PreflightOnly" in text
     assert "SkipReadinessBrief" in text
     assert "SkipLandingResume" in text
     assert "Import-BusinessEnvPath" in text
@@ -63,6 +64,10 @@ def test_business_system_read_smoke_ps1_uses_process_env_only_without_plaintext_
     assert "SetEnvironmentVariable($tokenEnv, $null, \"Process\")" in text
     assert "process_env_restored=true" in text
     assert "public_production_direct_launch=No-Go" in text
+    assert "Test-AutomationEnvironment" in text
+    assert "GITHUB_ACTIONS" in text
+    assert "Real business read smoke is blocked in CI or automation environments" in text
+    assert "Run -PreflightOnly" in text
     assert "WriteAllText" not in text
     assert "tp-" not in text
     assert "sk-" not in text
@@ -122,6 +127,10 @@ def test_business_system_read_smoke_ps1_runs_readiness_after_smoke_and_restores_
     assert "Set-EnvPathProcessValue" in text
     assert "SetEnvironmentVariable($envName, $previousEnvPathEnv[$envName], \"Process\")" in text
     assert "SetEnvironmentVariable($envName, $null, \"Process\")" in text
+    assert "preflight_only=true" in text
+    assert "preflight=input_packet" in text
+    assert "preflight=done" in text
+    assert "Set-OwnerValueIfPresent" in text
 
 
 def test_business_system_landing_resume_ps1_refreshes_landing_chain_without_plaintext_secret() -> None:

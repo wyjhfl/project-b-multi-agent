@@ -27,6 +27,11 @@ BUSINESS_ENV_KEYS = [
     "BUSINESS_SYSTEM_READ_PROBE_PATH",
     "BUSINESS_SYSTEM_AUTH_HEADER_NAME",
     "BUSINESS_SYSTEM_AUTH_SCHEME",
+    "CI",
+    "GITHUB_ACTIONS",
+    "TF_BUILD",
+    "BUILD_BUILDID",
+    "JENKINS_URL",
 ]
 
 
@@ -279,6 +284,44 @@ def test_business_system_read_smoke_execute_failure_does_not_mark_read_executed(
     assert payload["business_read_executed"] is False
     assert payload["smoke"]["gateway_call_success"] is False
     assert payload["smoke"]["error"] == "business_read_probe_failed"
+
+
+def test_business_system_read_smoke_blocks_real_execute_in_automation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "http://127.0.0.1:1")
+    monkeypatch.setenv("CI", "true")
+
+    summary = build_business_system_read_smoke(output_dir=tmp_path / "out", execute=True)
+    payload = _read_payload(summary)
+
+    assert payload["status"] == "blocked"
+    assert "automation:real_business_read_smoke_blocked" in payload["missing_conditions"]
+    assert payload["business_system_connected"] is False
+    assert payload["business_read_executed"] is False
+
+
+def test_business_system_read_smoke_allows_explicit_local_mock_in_automation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    with _FixtureServer() as server:
+        _set_opt_in(monkeypatch, server.url)
+        monkeypatch.setenv("CI", "true")
+
+        summary = build_business_system_read_smoke(
+            output_dir=tmp_path / "out",
+            execute=True,
+            local_business_mock_used=True,
+        )
+
+    payload = _read_payload(summary)
+
+    assert payload["status"] == "success"
+    assert payload["business_read_executed"] is True
+    assert payload["local_business_mock_used"] is True
+    assert "automation:real_business_read_smoke_blocked" not in payload["missing_conditions"]
 
 
 def test_business_system_read_smoke_execute_fails_on_non_2xx_without_marking_read(
