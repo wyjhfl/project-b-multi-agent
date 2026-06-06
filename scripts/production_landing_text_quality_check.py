@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_text_quality"
 
 DEFAULT_TARGETS = [
+    ROOT_DIR / "pyproject.toml",
     ROOT_DIR / "docs" / "codex_windows_environment_guard_v48.md",
     ROOT_DIR / "docs" / "business_system_read_smoke_v45.md",
     ROOT_DIR / "docs" / "production_landing_signoff_closeout_runbook_v48.md",
@@ -41,6 +42,13 @@ OPTIONAL_TARGETS = {
 
 MOJIBAKE_MARKERS = (
     "鐢熶骇",
+    "鐪熷疄",
+    "鍙",
+    "杩愯惀",
+    "涓彴",
+    "娴嬭瘯",
+    "锛",
+    "燂",
     "纭",
     "鍙",
     "閻",

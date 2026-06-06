@@ -86,6 +86,7 @@ def test_production_landing_text_quality_check_skips_missing_optional_target(
 def test_production_landing_text_quality_default_targets_include_business_system_files() -> None:
     targets = {path.as_posix() for path in text_quality.DEFAULT_TARGETS}
 
+    assert (text_quality.ROOT_DIR / "pyproject.toml").as_posix() in targets
     assert (text_quality.ROOT_DIR / "docs" / "business_system_read_smoke_v45.md").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_read_smoke.py").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_production_readiness_brief.py").as_posix() in targets
@@ -102,3 +103,14 @@ def test_business_system_read_smoke_doc_documents_env_path_and_localhost_tunnel_
     assert "localhost" in text
     assert "不会被自动判为 local mock" in text
     assert "BUSINESS_SYSTEM_NAME=local_business_read_mock" in text
+
+
+def test_production_landing_text_quality_check_blocks_pyproject_mojibake_marker(tmp_path: Path) -> None:
+    target = tmp_path / "pyproject.toml"
+    target.write_text('description = "Harness-native 杩愯惀涓彴 Agent"\n', encoding="utf-8")
+
+    summary = build_production_landing_text_quality_check(targets=[target], output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "blocked"
+    assert "text:mojibake_marker_detected" in payload["files"][0]["missing_conditions"]

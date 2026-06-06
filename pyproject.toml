@@ -40,5 +40,5 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_default_fixture_loop_scope = "function"
 markers = [
-    "real_llm: 真实 LLM 可选 smoke 测试（默认需显式 opt-in）",
+    "real_llm: 真实 LLM 可选 smoke 测试（默认需要显式 opt-in）",
 ]
