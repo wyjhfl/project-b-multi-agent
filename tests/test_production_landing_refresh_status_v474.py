@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from scripts.production_landing_refresh_status import build_production_landing_refresh_status
@@ -60,6 +61,7 @@ def test_production_landing_refresh_status_runs_steps_in_dependency_order(tmp_pa
             "real_integration_staging_gate": builder("real_integration_staging_gate"),
             "real_integration_gap_register": builder("real_integration_gap_register"),
             "real_production_environment_checklist": builder("real_production_environment_checklist"),
+            "business_system_read_smoke": builder("business_system_read_smoke"),
             "business_system_input_packet": builder("business_system_input_packet"),
             "business_system_production_readiness": builder("business_system_production_readiness"),
             "business_system_landing_execution_pack": builder("business_system_landing_execution_pack"),
@@ -83,6 +85,7 @@ def test_production_landing_refresh_status_runs_steps_in_dependency_order(tmp_pa
         "real_integration_staging_gate",
         "real_integration_gap_register",
         "real_production_environment_checklist",
+        "business_system_read_smoke",
         "business_system_input_packet",
         "business_system_production_readiness",
         "business_system_landing_execution_pack",
@@ -130,6 +133,7 @@ def test_production_landing_refresh_status_marks_blocked_when_a_step_blocks(tmp_
             "real_integration_staging_gate": lambda **_kwargs: _summary("real_integration_staging_gate"),
             "real_integration_gap_register": lambda **_kwargs: _summary("real_integration_gap_register", "blocked"),
             "real_production_environment_checklist": lambda **_kwargs: _summary("real_production_environment_checklist"),
+            "business_system_read_smoke": lambda **_kwargs: _summary("business_system_read_smoke"),
             "business_system_input_packet": lambda **_kwargs: _summary("business_system_input_packet"),
             "business_system_production_readiness": lambda **_kwargs: _summary("business_system_production_readiness"),
             "business_system_landing_execution_pack": lambda **_kwargs: _summary("business_system_landing_execution_pack"),
@@ -152,3 +156,114 @@ def test_production_landing_refresh_status_marks_blocked_when_a_step_blocks(tmp_
     assert payload["blocked_steps"] == ["real_integration_gap_register"]
     assert payload["final_status"] == "partial"
     assert payload["secret_plaintext_output"] is False
+
+
+def test_production_landing_refresh_status_loads_env_path_for_business_steps_and_restores_env(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    final_payload_path = tmp_path / "final_status.json"
+    final_payload_path.write_text(
+        json.dumps({"status": "partial", "blockers": ["business_landing_execution_pack:not_ready"]}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    env_path = tmp_path / "landing.env"
+    env_path.write_text(
+        "\n".join(
+            [
+                "BUSINESS_INTEGRATION_ENABLED=true",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("BUSINESS_SYSTEM_BUSINESS_OWNER", "previous-owner")
+    monkeypatch.delenv("BUSINESS_INTEGRATION_ENABLED", raising=False)
+    observed: dict[str, object] = {}
+
+    def business_input(**_kwargs):
+        observed["input_enabled"] = os.getenv("BUSINESS_INTEGRATION_ENABLED")
+        observed["input_owner"] = os.getenv("BUSINESS_SYSTEM_BUSINESS_OWNER")
+        return {
+            "status": "needs_input",
+            "json_path": str(tmp_path / "input.json"),
+            "markdown_path": str(tmp_path / "input.md"),
+            "secret_plaintext_output": False,
+        }
+
+    def business_smoke(**_kwargs):
+        observed["smoke_enabled"] = os.getenv("BUSINESS_INTEGRATION_ENABLED")
+        observed["smoke_owner"] = os.getenv("BUSINESS_SYSTEM_BUSINESS_OWNER")
+        return {
+            "status": "skipped",
+            "json_path": str(tmp_path / "smoke.json"),
+            "markdown_path": str(tmp_path / "smoke.md"),
+            "secret_plaintext_output": False,
+        }
+
+    def business_readiness(**kwargs):
+        observed["readiness_enabled"] = os.getenv("BUSINESS_INTEGRATION_ENABLED")
+        observed["readiness_owner"] = os.getenv("BUSINESS_SYSTEM_BUSINESS_OWNER")
+        observed["readiness_smoke_json_path"] = kwargs.get("business_smoke_json_path")
+        return {
+            "status": "needs_input",
+            "json_path": str(tmp_path / "readiness.json"),
+            "markdown_path": str(tmp_path / "readiness.md"),
+            "secret_plaintext_output": False,
+        }
+
+    def business_pack(**kwargs):
+        observed["pack_enabled"] = os.getenv("BUSINESS_INTEGRATION_ENABLED")
+        observed["pack_owner"] = os.getenv("BUSINESS_SYSTEM_BUSINESS_OWNER")
+        observed["pack_source_json_paths"] = kwargs.get("source_json_paths")
+        return _summary("business_system_landing_execution_pack")
+
+    summary = build_production_landing_refresh_status(
+        output_dir=tmp_path / "out",
+        env_path=env_path,
+        builders={
+            "execution_gate": lambda **_kwargs: _summary("execution_gate"),
+            "real_integration_staging_gate": lambda **_kwargs: _summary("real_integration_staging_gate"),
+            "real_integration_gap_register": lambda **_kwargs: _summary("real_integration_gap_register"),
+            "real_production_environment_checklist": lambda **_kwargs: _summary("real_production_environment_checklist"),
+            "business_system_read_smoke": business_smoke,
+            "business_system_input_packet": business_input,
+            "business_system_production_readiness": business_readiness,
+            "business_system_landing_execution_pack": business_pack,
+            "production_landing_input_readiness": lambda **_kwargs: _summary("production_landing_input_readiness"),
+            "manual_signoff_evidence_ack_status": lambda **_kwargs: _summary("manual_signoff_evidence_ack_status"),
+            "manual_signoff_record_validation": lambda **_kwargs: _summary("manual_signoff_record_validation"),
+            "manual_signoff_record_promote": lambda **_kwargs: _summary("manual_signoff_record_promote"),
+            "production_landing_text_quality": lambda **_kwargs: _summary("production_landing_text_quality"),
+            "operations_console_landing_smoke": lambda **_kwargs: _summary("operations_console_landing_smoke", "skipped"),
+            "production_pilot_signoff": lambda **_kwargs: _summary("production_pilot_signoff"),
+            "production_landing_action_pack": lambda **_kwargs: _summary("production_landing_action_pack"),
+            "production_landing_blocker_resolution": lambda **_kwargs: _summary("production_landing_blocker_resolution"),
+            "production_landing_status": lambda **_kwargs: {
+                "status": "partial",
+                "json_path": str(final_payload_path),
+                "markdown_path": str(tmp_path / "final_status.md"),
+                "secret_plaintext_output": False,
+            },
+            "production_landing_final_verification": lambda **_kwargs: _summary("production_landing_final_verification"),
+        },
+    )
+    payload = _read_payload(summary)
+
+    assert observed["input_enabled"] == "true"
+    assert observed["input_owner"] == "wyj"
+    assert observed["smoke_enabled"] == "true"
+    assert observed["smoke_owner"] == "wyj"
+    assert observed["readiness_enabled"] == "true"
+    assert observed["readiness_owner"] == "wyj"
+    assert observed["readiness_smoke_json_path"] == str(tmp_path / "smoke.json")
+    assert observed["pack_enabled"] == "true"
+    assert observed["pack_owner"] == "wyj"
+    assert observed["pack_source_json_paths"] == {
+        "business_system_input_packet": str(tmp_path / "input.json"),
+        "business_system_production_readiness": str(tmp_path / "readiness.json"),
+        "business_system_read_smoke": str(tmp_path / "smoke.json"),
+    }
+    assert os.getenv("BUSINESS_INTEGRATION_ENABLED") is None
+    assert os.getenv("BUSINESS_SYSTEM_BUSINESS_OWNER") == "previous-owner"
+    assert payload["public_production_direct_launch"] == "No-Go"

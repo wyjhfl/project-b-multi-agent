@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 root_path = str(ROOT_DIR)
@@ -21,6 +23,7 @@ from scripts.production_landing_final_verification import build_production_landi
 from scripts.business_system_input_packet import build_business_system_input_packet
 from scripts.business_system_landing_execution_pack import build_business_system_landing_execution_pack
 from scripts.business_system_production_readiness_brief import build_business_system_production_readiness_brief
+from scripts.business_system_read_smoke import build_business_system_read_smoke
 from scripts.production_landing_input_readiness import (
     DEFAULT_CLOSURE_EVIDENCE,
     build_production_landing_input_readiness,
@@ -73,6 +76,42 @@ def _load_json(path: str | Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _parse_env_file(path: str | Path | None) -> dict[str, str]:
+    if not path:
+        return {}
+    env_path = Path(path)
+    if not env_path.exists() or not env_path.is_file():
+        return {}
+    values: dict[str, str] = {}
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if key:
+            values[key] = value.strip().strip("\"'")
+    return values
+
+
+@contextmanager
+def _temporary_process_env(env_values: dict[str, str]) -> Iterator[None]:
+    if not env_values:
+        yield
+        return
+    previous: dict[str, str | None] = {key: os.environ.get(key) for key in env_values}
+    try:
+        for key, value in env_values.items():
+            os.environ[key] = value
+        yield
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
 def _build_markdown(payload: dict[str, Any]) -> str:
     lines = [
         "# Production landing refresh status",
@@ -112,6 +151,7 @@ def build_production_landing_refresh_status(
         "real_integration_gap_register": build_real_integration_gap_register,
         "real_production_environment_checklist": build_real_production_environment_checklist,
         "business_system_input_packet": build_business_system_input_packet,
+        "business_system_read_smoke": build_business_system_read_smoke,
         "business_system_production_readiness": build_business_system_production_readiness_brief,
         "business_system_landing_execution_pack": build_business_system_landing_execution_pack,
         "production_landing_input_readiness": build_production_landing_input_readiness,
@@ -140,19 +180,34 @@ def build_production_landing_refresh_status(
             effective_builders["real_production_environment_checklist"](),
         )
     )
-    steps.append(_safe_step_summary("business_system_input_packet", effective_builders["business_system_input_packet"]()))
-    steps.append(
-        _safe_step_summary(
-            "business_system_production_readiness",
-            effective_builders["business_system_production_readiness"](),
+    env_values = _parse_env_file(env_path)
+    with _temporary_process_env(env_values):
+        business_read_smoke = effective_builders["business_system_read_smoke"]()
+        steps.append(_safe_step_summary("business_system_read_smoke", business_read_smoke))
+        business_input_packet = effective_builders["business_system_input_packet"]()
+        steps.append(_safe_step_summary("business_system_input_packet", business_input_packet))
+        business_production_readiness = effective_builders["business_system_production_readiness"](
+            business_smoke_json_path=str(business_read_smoke.get("json_path") or ""),
         )
-    )
-    steps.append(
-        _safe_step_summary(
-            "business_system_landing_execution_pack",
-            effective_builders["business_system_landing_execution_pack"](),
+        steps.append(
+            _safe_step_summary(
+                "business_system_production_readiness",
+                business_production_readiness,
+            )
         )
-    )
+        source_json_paths = {
+            "business_system_input_packet": str(business_input_packet.get("json_path") or ""),
+            "business_system_production_readiness": str(business_production_readiness.get("json_path") or ""),
+            "business_system_read_smoke": str(business_read_smoke.get("json_path") or ""),
+        }
+        steps.append(
+            _safe_step_summary(
+                "business_system_landing_execution_pack",
+                effective_builders["business_system_landing_execution_pack"](
+                    source_json_paths=source_json_paths,
+                ),
+            )
+        )
     pilot_signoff = effective_builders["production_pilot_signoff"]()
     steps.append(_safe_step_summary("production_pilot_signoff", pilot_signoff))
     input_kwargs: dict[str, Any] = {
