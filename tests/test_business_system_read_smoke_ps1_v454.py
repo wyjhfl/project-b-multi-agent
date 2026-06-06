@@ -160,6 +160,9 @@ def test_business_system_landing_resume_ps1_refreshes_landing_chain_without_plai
     assert "Invoke-CheckedPythonCapture" in text
     assert "Get-JsonPathFromOutput" in text
     assert "business_system_input_packet.py" in text
+    assert "$inputPacketArguments = @((Join-Path $repoRoot \"scripts/business_system_input_packet.py\"))" in text
+    assert '"--env-path", $EnvPath' in text
+    assert "$inputPacketOutput = Invoke-CheckedPythonCapture $inputPacketArguments" in text
     assert "business_system_production_readiness_brief.py" in text
     assert "business_system_landing_execution_pack.py" in text
     assert "$businessInputPacketJsonPath = Get-JsonPathFromOutput -OutputLines $inputPacketOutput -ToolName \"business_system_input_packet.py\"" in text

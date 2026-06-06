@@ -18,7 +18,8 @@ BUSINESS_READ_SMOKE_COMMAND = (
     "-UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
 )
 BUSINESS_LANDING_RESUME_COMMAND = (
-    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 -UseExistingEnv"
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 "
+    "-UseExistingEnv -EnvPath local\\production_landing.staging.env"
 )
 BUSINESS_READINESS_BRIEF_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 "

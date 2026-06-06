@@ -120,7 +120,11 @@ if (-not $SkipBusinessPreparation) {
   $businessReadSmokeJsonPath = $BusinessReadSmokeJsonPath.Trim()
 
   Write-Host "[business_system_landing_resume] step=business-input-packet" -ForegroundColor Yellow
-  $inputPacketOutput = Invoke-CheckedPythonCapture @((Join-Path $repoRoot "scripts/business_system_input_packet.py"))
+  $inputPacketArguments = @((Join-Path $repoRoot "scripts/business_system_input_packet.py"))
+  if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+    $inputPacketArguments += @("--env-path", $EnvPath)
+  }
+  $inputPacketOutput = Invoke-CheckedPythonCapture $inputPacketArguments
   $businessInputPacketJsonPath = Get-JsonPathFromOutput -OutputLines $inputPacketOutput -ToolName "business_system_input_packet.py"
 
   Write-Host "[business_system_landing_resume] step=business-production-readiness" -ForegroundColor Yellow

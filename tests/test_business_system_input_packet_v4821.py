@@ -112,7 +112,7 @@ def test_business_system_input_packet_ready_without_secret_leak(tmp_path: Path, 
     assert "业务系统真实接入输入准备包" in merged
     assert "business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env" in merged
     assert "business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env" in merged
-    assert "scripts\\business_system_landing_resume.ps1 -UseExistingEnv" in merged
+    assert "scripts\\business_system_landing_resume.ps1 -UseExistingEnv -EnvPath local\\production_landing.staging.env" in merged
     assert "public_production_direct_launch" in merged
     assert "No-Go" in merged
 

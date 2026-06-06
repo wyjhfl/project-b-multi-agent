@@ -133,7 +133,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read
 如只需要在已有进程环境中续跑落地链路，可使用 `business_system_landing_resume.ps1`。如果已经有本轮 `business_system_read_smoke` JSON，应显式传入 `-BusinessReadSmokeJsonPath`，resume 脚本会继续绑定本轮 input/readiness/execution pack 证据，避免回退到旧报告：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_landing_resume.ps1 -UseExistingEnv -BusinessReadSmokeJsonPath docs\reports\business_system_read_smoke\<current>_business_system_read_smoke.json
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_landing_resume.ps1 -UseExistingEnv -EnvPath local\production_landing.staging.env -BusinessReadSmokeJsonPath docs\reports\business_system_read_smoke\<current>_business_system_read_smoke.json
 ```
 
 如仅需执行 smoke 而暂不生成 readiness brief，可显式追加 `-SkipReadinessBrief`。生产试点验收不建议跳过。
