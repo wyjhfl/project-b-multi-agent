@@ -125,7 +125,29 @@ def _is_http_url(url: str) -> bool:
         parsed = urlsplit(url)
     except Exception:
         return False
-    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+    return (
+        parsed.scheme in {"http", "https"}
+        and bool(parsed.netloc)
+        and not parsed.username
+        and not parsed.password
+        and not parsed.fragment
+    )
+
+
+def _is_safe_header_name(value: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z0-9-]+", value or ""))
+
+
+def _contains_control_chars(value: str) -> bool:
+    return any(ord(char) < 32 or ord(char) == 127 for char in value)
+
+
+def _is_safe_auth_scheme(value: str) -> bool:
+    return not value or bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9._~-]*", value))
+
+
+def _is_safe_probe_path(value: str) -> bool:
+    return value.startswith("/") and not value.startswith("//") and not _contains_control_chars(value)
 
 
 def _auth_header(config: BusinessSystemConfig) -> dict[str, str]:
@@ -150,9 +172,15 @@ def build_business_read_probe_tool(config: BusinessSystemConfig):
         base_url = _base_url_from_env(config)
         if not _is_http_url(base_url):
             return {"error": "business_system_base_url_invalid"}
+        if not _is_safe_header_name(config.auth_header_name):
+            return {"error": "business_system_auth_header_name_invalid"}
+        if not _is_safe_auth_scheme(config.auth_scheme):
+            return {"error": "business_system_auth_scheme_invalid"}
+        if _contains_control_chars(_token_from_env(config)):
+            return {"error": "business_system_token_invalid"}
 
         probe_path = path or config.read_probe_path
-        if not str(probe_path).startswith("/"):
+        if not _is_safe_probe_path(str(probe_path)):
             return {"error": "business_probe_path_must_be_absolute"}
 
         url = urljoin(base_url.rstrip("/") + "/", str(probe_path).lstrip("/"))

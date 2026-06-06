@@ -26,6 +26,29 @@ OWNER_ENV = {
     "data_owner": "BUSINESS_SYSTEM_DATA_OWNER",
 }
 
+LOCAL_ENV_TEMPLATE_LINES = [
+    "BUSINESS_INTEGRATION_ENABLED=true",
+    "BUSINESS_INTEGRATION_READ_ONLY=true",
+    "BUSINESS_INTEGRATION_WRITE_ENABLED=false",
+    "BUSINESS_INTEGRATION_APPROVAL_REQUIRED=true",
+    "BUSINESS_INTEGRATION_AUDIT_REQUIRED=true",
+    "BUSINESS_SYSTEM_NAME=<system-name>",
+    "BUSINESS_SYSTEM_BASE_URL_ENV=BUSINESS_SYSTEM_BASE_URL",
+    "BUSINESS_SYSTEM_TOKEN_ENV=BUSINESS_SYSTEM_TOKEN",
+    "BUSINESS_SYSTEM_BASE_URL=<secret-managed-url>",
+    "BUSINESS_SYSTEM_TOKEN=<secret-managed-token>",
+    "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
+    "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST=",
+    "BUSINESS_SYSTEM_TIMEOUT_SECONDS=5",
+    "BUSINESS_SYSTEM_READ_PROBE_PATH=/health",
+    "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization",
+    "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer",
+    "BUSINESS_SYSTEM_BUSINESS_OWNER=<owner-or-staff-id>",
+    "BUSINESS_SYSTEM_SECURITY_REVIEWER=<owner-or-staff-id>",
+    "BUSINESS_SYSTEM_OPERATIONS_OWNER=<owner-or-staff-id>",
+    "BUSINESS_SYSTEM_DATA_OWNER=<owner-or-staff-id>",
+]
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -82,9 +105,23 @@ def _contains_secret_like(value: Any) -> bool:
     lowered = text.lower()
     if "sk-" in lowered or "bearer " in lowered:
         return True
+    safe_placeholders = {"<secret-managed-token>", "<set-in-local-env-only>", "<owner-or-staff-id>"}
     for marker in ("token=", "api_key=", "password=", "client_secret=", "business_system_token="):
-        if marker in lowered:
-            return True
+        start = 0
+        while True:
+            index = lowered.find(marker, start)
+            if index < 0:
+                break
+            raw_tail = text[index + len(marker) :]
+            raw_value = ""
+            for char in raw_tail:
+                if char.isspace() or char in {",", "]", "}", "\"", "'", ";"}:
+                    break
+                raw_value += char
+            normalized = raw_value.strip().lower()
+            if normalized and normalized not in safe_placeholders:
+                return True
+            start = index + len(marker)
     return False
 
 
@@ -103,6 +140,12 @@ def _build_markdown(payload: dict[str, Any]) -> str:
     ]
     missing = payload.get("missing_conditions", [])
     lines.extend(f"- {item}" for item in missing) if missing else lines.append("- none")
+    lines.extend(["", "## 本地进程环境模板"])
+    for line in payload.get("local_env_template_lines", []):
+        lines.append(f"- `{line}`")
+    lines.extend(["", "## 人工输入检查清单"])
+    for item in payload.get("manual_input_checklist", []):
+        lines.append(f"- {item.get('id')}: {item.get('description')} env={item.get('env', [])}")
     lines.extend(["", "## 推荐命令"])
     for command in payload.get("recommended_commands", []):
         lines.append(f"- `{command}`")
@@ -165,6 +208,34 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
                 "id": "business_system_read_only_token",
                 "env": ["BUSINESS_SYSTEM_TOKEN_ENV", "BUSINESS_SYSTEM_TOKEN"],
                 "description": "当前进程或外部 secret manager 注入的只读 token。",
+            },
+        ],
+        "local_env_template_lines": LOCAL_ENV_TEMPLATE_LINES,
+        "manual_input_checklist": [
+            {
+                "id": "owners",
+                "env": list(OWNER_ENV.values()),
+                "description": "填写负责人名称或工号，不填写 token、连接串或 URL。",
+            },
+            {
+                "id": "endpoint",
+                "env": ["BUSINESS_SYSTEM_BASE_URL_ENV", "BUSINESS_SYSTEM_BASE_URL", "BUSINESS_SYSTEM_READ_PROBE_PATH"],
+                "description": "只读探测 URL 通过进程环境或 secret manager 注入，报告只输出 present 布尔值。",
+            },
+            {
+                "id": "credential",
+                "env": ["BUSINESS_SYSTEM_TOKEN_ENV", "BUSINESS_SYSTEM_TOKEN"],
+                "description": "只读 token 仅进入当前进程环境，不提交、不写报告、不打印。",
+            },
+            {
+                "id": "safety_switches",
+                "env": [
+                    "BUSINESS_INTEGRATION_READ_ONLY",
+                    "BUSINESS_INTEGRATION_WRITE_ENABLED",
+                    "BUSINESS_SYSTEM_TOOL_ALLOWLIST",
+                    "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST",
+                ],
+                "description": "必须保持 read-only=true、write=false、只 allowlist business_read_probe。",
             },
         ],
         "recommended_commands": [

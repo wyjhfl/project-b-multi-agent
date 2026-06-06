@@ -193,6 +193,74 @@ def test_business_system_registers_read_probe_only_when_allowlisted(monkeypatch)
     assert gateway.get_tool("business_read_probe") is not None
 
 
+def test_business_system_read_probe_rejects_unsafe_base_url(monkeypatch) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "https://user:pass@business.example.test#fragment")
+    gateway = ToolGateway()
+    register_business_system_tools(gateway, load_business_system_config())
+
+    record = gateway.call("business_read_probe", {})
+
+    assert record.success is False
+    assert record.result["error"] == "business_system_base_url_invalid"
+
+
+def test_business_system_read_probe_rejects_unsafe_auth_header_name(monkeypatch) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "http://127.0.0.1:1")
+    monkeypatch.setenv("BUSINESS_SYSTEM_AUTH_HEADER_NAME", "Authorization: X-Bad")
+    gateway = ToolGateway()
+    register_business_system_tools(gateway, load_business_system_config())
+
+    record = gateway.call("business_read_probe", {})
+
+    assert record.success is False
+    assert record.result["error"] == "business_system_auth_header_name_invalid"
+
+
+def test_business_system_read_probe_rejects_unsafe_auth_scheme(monkeypatch) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "http://127.0.0.1:1")
+    monkeypatch.setenv("BUSINESS_SYSTEM_AUTH_SCHEME", "Bearer\r\nX-Bad: yes")
+    gateway = ToolGateway()
+    register_business_system_tools(gateway, load_business_system_config())
+
+    record = gateway.call("business_read_probe", {})
+
+    assert record.success is False
+    assert record.result["error"] == "business_system_auth_scheme_invalid"
+
+
+def test_business_system_read_probe_rejects_token_with_control_chars(monkeypatch) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "http://127.0.0.1:1", token="safe-token\r\nX-Bad: yes")
+    gateway = ToolGateway()
+    register_business_system_tools(gateway, load_business_system_config())
+
+    record = gateway.call("business_read_probe", {})
+
+    assert record.success is False
+    assert record.result["error"] == "business_system_token_invalid"
+
+
+def test_business_system_read_probe_rejects_unsafe_probe_path(monkeypatch) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "http://127.0.0.1:1")
+    gateway = ToolGateway()
+    register_business_system_tools(gateway, load_business_system_config())
+
+    relative = gateway.call("business_read_probe", {"path": "health"})
+    protocol_relative = gateway.call("business_read_probe", {"path": "//evil.example.test/health"})
+    control_char = gateway.call("business_read_probe", {"path": "/health\r\nX-Bad: yes"})
+
+    assert relative.success is False
+    assert relative.result["error"] == "business_probe_path_must_be_absolute"
+    assert protocol_relative.success is False
+    assert protocol_relative.result["error"] == "business_probe_path_must_be_absolute"
+    assert control_char.success is False
+    assert control_char.result["error"] == "business_probe_path_must_be_absolute"
+
+
 def test_business_system_read_smoke_execute_failure_does_not_mark_read_executed(
     tmp_path: Path, monkeypatch
 ) -> None:

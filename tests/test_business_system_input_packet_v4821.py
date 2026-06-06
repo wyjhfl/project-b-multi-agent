@@ -83,6 +83,10 @@ def test_business_system_input_packet_defaults_to_needs_input(tmp_path: Path, mo
     assert payload["business_data_written"] is False
     assert payload["secret_plaintext_output"] is False
     assert payload["public_production_direct_launch"] == "No-Go"
+    assert "BUSINESS_SYSTEM_BUSINESS_OWNER=<owner-or-staff-id>" in payload["local_env_template_lines"]
+    assert "BUSINESS_INTEGRATION_WRITE_ENABLED=false" in payload["local_env_template_lines"]
+    assert "BUSINESS_SYSTEM_TOKEN=<secret-managed-token>" in payload["local_env_template_lines"]
+    assert payload["manual_input_checklist"][0]["id"] == "owners"
 
 
 def test_business_system_input_packet_ready_without_secret_leak(tmp_path: Path, monkeypatch) -> None:
@@ -101,6 +105,9 @@ def test_business_system_input_packet_ready_without_secret_leak(tmp_path: Path, 
     assert all(payload["owner_inputs_present"].values())
     assert "sensitive-token-value" not in merged
     assert "https://business.example.test" not in merged
+    assert "BUSINESS_SYSTEM_TOKEN=<secret-managed-token>" in merged
+    assert "BUSINESS_SYSTEM_BASE_URL=<secret-managed-url>" in merged
+    assert "只读 token 仅进入当前进程环境" in merged
     assert "业务系统真实接入输入准备包" in merged
     assert "public_production_direct_launch" in merged
     assert "No-Go" in merged

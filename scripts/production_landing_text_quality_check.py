@@ -32,6 +32,7 @@ DEFAULT_TARGETS = [
     ROOT_DIR / "scripts" / "business_system_read_smoke.py",
     ROOT_DIR / "scripts" / "business_system_production_readiness_brief.py",
     ROOT_DIR / "scripts" / "business_system_input_packet.py",
+    ROOT_DIR / "scripts" / "production_landing_evidence_freshness.py",
     ROOT_DIR / "scripts" / "xiaomi_llm_landing_resume.ps1",
 ]
 OPTIONAL_TARGETS = {
