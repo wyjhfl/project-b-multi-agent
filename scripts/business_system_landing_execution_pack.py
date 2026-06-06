@@ -13,6 +13,17 @@ DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "business_system_landing_ex
 INPUT_PACKET_DIR = ROOT_DIR / "docs" / "reports" / "business_system_input_packet"
 READINESS_DIR = ROOT_DIR / "docs" / "reports" / "business_system_production_readiness"
 READ_SMOKE_DIR = ROOT_DIR / "docs" / "reports" / "business_system_read_smoke"
+BUSINESS_READ_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 "
+    "-UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
+)
+BUSINESS_LANDING_RESUME_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 -UseExistingEnv"
+)
+BUSINESS_READINESS_BRIEF_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 "
+    "scripts\\business_system_production_readiness_brief.py"
+)
 
 SOURCE_REPORTS = {
     "business_system_input_packet": (INPUT_PACKET_DIR, "*_business_system_input_packet.json"),
@@ -182,16 +193,33 @@ def _manual_inputs(input_payload: dict[str, Any], readiness_payload: dict[str, A
 
 
 def _recommended_commands(input_payload: dict[str, Any], readiness_payload: dict[str, Any]) -> list[str]:
+    command_candidates: list[str] = []
     commands = input_payload.get("recommended_commands")
     if isinstance(commands, list) and commands:
-        return [_safe_text(command) for command in commands[:8]]
-    next_actions = readiness_payload.get("next_actions")
-    if isinstance(next_actions, list) and next_actions:
-        return [_safe_text(action) for action in next_actions[:8]]
-    return [
-        "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",
-        "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 scripts\\business_system_production_readiness_brief.py",
-    ]
+        command_candidates.extend(str(command) for command in commands)
+    else:
+        next_actions = readiness_payload.get("next_actions")
+        if isinstance(next_actions, list) and next_actions:
+            command_candidates.extend(str(action) for action in next_actions)
+        else:
+            command_candidates.extend([BUSINESS_READ_SMOKE_COMMAND, BUSINESS_READINESS_BRIEF_COMMAND])
+
+    command_candidates.append(BUSINESS_LANDING_RESUME_COMMAND)
+
+    result: list[str] = []
+    for command in command_candidates:
+        safe_command = _safe_text(command)
+        if safe_command and safe_command not in result:
+            result.append(safe_command)
+        if len(result) >= 8:
+            break
+    return result
+
+
+def _prioritize_command(commands: list[str], preferred_command: str) -> list[str]:
+    if preferred_command not in commands:
+        return commands
+    return [preferred_command, *[command for command in commands if command != preferred_command]]
 
 
 def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -235,6 +263,8 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         safe_next_action = "complete_business_system_inputs"
 
     commands = _recommended_commands(input_payload, readiness_payload)
+    if safe_next_action == "refresh_controlled_pilot_gate":
+        commands = _prioritize_command(commands, BUSINESS_LANDING_RESUME_COMMAND)
     return {
         "status": status,
         "ready_for_real_read_smoke": ready_for_real_read_smoke,

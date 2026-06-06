@@ -9,7 +9,8 @@ Param(
   [string]$SecurityReviewer = "",
   [string]$OperationsOwner = "",
   [string]$DataOwner = "",
-  [switch]$SkipReadinessBrief
+  [switch]$SkipReadinessBrief,
+  [switch]$SkipLandingResume
 )
 
 $ErrorActionPreference = "Stop"
@@ -221,6 +222,16 @@ try {
     throw "business_system_read_smoke.py failed with exit code $exitCode"
   }
   if (-not $SkipReadinessBrief) {
+    Write-Host "[business_system_read_smoke] input_packet=running" -ForegroundColor Yellow
+    Invoke-ResolvedPython @(
+      (Join-Path $repoRoot "scripts/business_system_input_packet.py")
+    )
+    $inputPacketExitCode = $LASTEXITCODE
+    if ($inputPacketExitCode -ne 0) {
+      throw "business_system_input_packet.py failed with exit code $inputPacketExitCode"
+    }
+    Write-Host "[business_system_read_smoke] input_packet=done" -ForegroundColor Green
+
     Write-Host "[business_system_read_smoke] readiness_brief=running" -ForegroundColor Yellow
     Invoke-ResolvedPython @(
       (Join-Path $repoRoot "scripts/business_system_production_readiness_brief.py")
@@ -230,6 +241,36 @@ try {
       throw "business_system_production_readiness_brief.py failed with exit code $readinessExitCode"
     }
     Write-Host "[business_system_read_smoke] readiness_brief=done" -ForegroundColor Green
+
+    Write-Host "[business_system_read_smoke] execution_pack=running" -ForegroundColor Yellow
+    Invoke-ResolvedPython @(
+      (Join-Path $repoRoot "scripts/business_system_landing_execution_pack.py")
+    )
+    $executionPackExitCode = $LASTEXITCODE
+    if ($executionPackExitCode -ne 0) {
+      throw "business_system_landing_execution_pack.py failed with exit code $executionPackExitCode"
+    }
+    Write-Host "[business_system_read_smoke] execution_pack=done" -ForegroundColor Green
+  }
+  if (-not $SkipLandingResume) {
+    Write-Host "[business_system_read_smoke] landing_resume=running" -ForegroundColor Yellow
+    $resumeArguments = @(
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      (Join-Path $repoRoot "scripts/business_system_landing_resume.ps1"),
+      "-UseExistingEnv"
+    )
+    if (-not $SkipReadinessBrief) {
+      $resumeArguments += "-SkipBusinessPreparation"
+    }
+    & powershell.exe @resumeArguments
+    $resumeExitCode = $LASTEXITCODE
+    if ($resumeExitCode -ne 0) {
+      throw "business_system_landing_resume.ps1 failed with exit code $resumeExitCode"
+    }
+    Write-Host "[business_system_read_smoke] landing_resume=done" -ForegroundColor Green
   }
   Write-Host "[business_system_read_smoke] status=done" -ForegroundColor Green
 } finally {

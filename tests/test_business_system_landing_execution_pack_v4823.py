@@ -112,6 +112,7 @@ def test_business_system_landing_execution_pack_needs_input(tmp_path: Path) -> N
     assert "env_target:BUSINESS_SYSTEM_BASE_URL_missing" in payload["missing_by_category"]["environment"]
     assert "evidence:business_system_real_read_smoke_not_executed" in payload["missing_by_category"]["evidence"]
     assert payload["recommended_next_command"].endswith("scripts\\business_system_read_smoke.ps1 -UseExistingEnv")
+    assert any(command.endswith("scripts\\business_system_landing_resume.ps1 -UseExistingEnv") for command in payload["recommended_commands"])
     assert payload["public_production_direct_launch"] == "No-Go"
     assert payload["secret_plaintext_output"] is False
 
@@ -149,6 +150,8 @@ def test_business_system_landing_execution_pack_ready_for_real_read_smoke(tmp_pa
     assert summary["ready_for_real_read_smoke"] is True
     assert summary["real_read_smoke_complete"] is False
     assert summary["safe_next_action"] == "execute_real_read_smoke"
+    payload = _payload(summary)
+    assert any(command.endswith("scripts\\business_system_landing_resume.ps1 -UseExistingEnv") for command in payload["recommended_commands"])
 
 
 def test_business_system_landing_execution_pack_ready_after_real_read_smoke(tmp_path: Path) -> None:
@@ -210,6 +213,8 @@ def test_business_system_landing_execution_pack_ready_after_real_read_smoke(tmp_
     assert summary["safe_next_action"] == "refresh_controlled_pilot_gate"
     assert payload["missing_condition_count"] == 0
     assert payload["business_system_read_smoke"]["business_read_executed"] is True
+    assert payload["recommended_next_command"].endswith("scripts\\business_system_landing_resume.ps1 -UseExistingEnv")
+    assert any(command.endswith("scripts\\business_system_landing_resume.ps1 -UseExistingEnv") for command in payload["recommended_commands"])
 
 
 def test_business_system_landing_execution_pack_blocks_secret_or_write_evidence(tmp_path: Path) -> None:

@@ -237,6 +237,7 @@ def test_production_landing_action_pack_lists_remaining_real_inputs(tmp_path: Pa
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains external_mcp" in infra_input["command_after_fill"]
     commands = "\n".join(payload["recommended_commands"])
     assert "scripts\\business_system_read_smoke.ps1" in commands
+    assert "scripts\\business_system_landing_resume.ps1 -UseExistingEnv" in commands
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains postgres" in commands
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains redis" in commands
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains external_mcp" in commands
@@ -281,6 +282,7 @@ def test_production_landing_action_pack_lists_remaining_real_inputs(tmp_path: Pa
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1",
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_landing_resume.ps1",
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1",
+                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 -UseExistingEnv",
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres",
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains redis",
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains external_mcp -McpServerCommand <approved-command> -McpServerCommandAllowlist <approved-command> -McpToolAllowlist <approved-tools>",

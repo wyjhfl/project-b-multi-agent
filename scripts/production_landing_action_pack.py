@@ -82,6 +82,7 @@ TEMPLATE_PATHS = {
 SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_RESUME_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_landing_resume.ps1"
 SAFE_BUSINESS_READ_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
+SAFE_BUSINESS_LANDING_RESUME_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 -UseExistingEnv"
 SAFE_POSTGRES_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres"
 SAFE_REDIS_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains redis"
 SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND = (
@@ -502,6 +503,7 @@ def _build_commands(paths: dict[str, str]) -> list[str]:
         f"python scripts/production_landing_closure_evidence_draft.py --launch-blockers {paths['latest_launch_blockers']} --output-path {paths['closure_evidence_draft']}",
         f"python scripts/production_landing_input_readiness.py --closure-evidence {paths['closure_evidence_draft']}",
         SAFE_BUSINESS_READ_SMOKE_COMMAND,
+        SAFE_BUSINESS_LANDING_RESUME_COMMAND,
         SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
         SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
         SAFE_REDIS_INFRA_SMOKE_COMMAND,
