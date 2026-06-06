@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "frontend"
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "frontend_production_build"
 STATUS_VOCABULARY = ["success", "skipped", "blocked", "partial", "failed"]
-BUILD_COMMAND = ["npm.cmd", "run", "build"]
+BUILD_COMMAND = ["npm.cmd" if os.name == "nt" else "npm", "run", "build"]
 
 
 def _utc_now_iso() -> str:
@@ -68,7 +69,7 @@ def _build_markdown(payload: dict[str, Any]) -> str:
         "## 边界",
         "- 默认不执行构建；必须显式传入 --execute。",
         "- 仅执行 frontend 生产构建，不启动服务，不连接后端或外部 API。",
-        "- Windows 下使用 npm.cmd，避免 PowerShell npm.ps1 执行策略拦截。",
+        "- 根据运行平台选择 npm.cmd 或 npm，避免 Windows PowerShell npm.ps1 执行策略拦截，同时兼容 Linux CI。",
         "- 构建输出只保留脱敏摘要，不输出 secret 原文。",
         "",
     ]
@@ -188,7 +189,7 @@ def build_frontend_production_build_check(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="生成前端生产构建检查报告。默认不执行构建。")
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
-    parser.add_argument("--execute", action="store_true", help="执行 npm.cmd run build。")
+    parser.add_argument("--execute", action="store_true", help="执行前端生产构建命令。")
     return parser
 
 

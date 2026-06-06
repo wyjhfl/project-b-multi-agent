@@ -69,12 +69,18 @@ jobs:
           set +e
           docker compose -f docker-compose.yml -f docker-compose.prod.yml config >/tmp/prod-config-missing.log 2>&1
           status=$?
+          grep_status=1
+          grep -E "JWT_SECRET|DATABASE_URL|REDIS_URL|required|required variable|is required" /tmp/prod-config-missing.log
+          grep_status=$?
           cat /tmp/prod-config-missing.log
           if [ "$status" -eq 0 ]; then
             echo "Expected prod compose config to fail without required variables."
             exit 1
           fi
-          grep -E "JWT_SECRET|DATABASE_URL|REDIS_URL|required variable" /tmp/prod-config-missing.log
+          if [ "$grep_status" -ne 0 ]; then
+            echo "Expected prod compose config failure output to mention required production variables."
+            exit 1
+          fi
 
       - name: Docker compose config (prod override with CI vars)
         env:

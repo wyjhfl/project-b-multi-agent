@@ -4,6 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 
+import scripts.frontend_production_build_check as module
 from scripts.frontend_production_build_check import build_frontend_production_build_check
 
 
@@ -22,9 +23,9 @@ def test_frontend_production_build_check_default_skipped(tmp_path: Path) -> None
     assert "cli:--execute_not_requested" in payload["missing_conditions"]
     assert payload["secret_plaintext_output"] is False
     assert summary["frontend_dir_present"] is True
-    assert payload["build_command"] == "npm.cmd run build"
+    assert payload["build_command"] == " ".join(module.BUILD_COMMAND)
     assert "前端生产构建检查报告" in markdown
-    assert "npm.cmd" in markdown
+    assert "npm.cmd 或 npm" in markdown
     assert "鍓嶇" not in markdown
 
 
@@ -43,7 +44,7 @@ def test_frontend_production_build_check_execute_success(tmp_path: Path, monkeyp
     assert payload["status"] == "success"
     assert payload["build_executed"] is True
     assert payload["return_code"] == 0
-    assert payload["build_command"] == "npm.cmd run build"
+    assert payload["build_command"] == " ".join(module.BUILD_COMMAND)
     assert payload["frontend_dir_present"] is True
     assert payload["package_json_present"] is True
     assert payload["package_lock_present"] is True
