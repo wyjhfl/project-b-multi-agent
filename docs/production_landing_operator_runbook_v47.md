@@ -1,12 +1,12 @@
 # v4.7 生产落地操作 Runbook
 
-本文档用于排查并推进当前生产落地门禁。当前失败不是代码崩溃，而是门禁按预期阻止继续：`real_llm` 尚未完成受控真实预检，人工签核仍保持 `No-Go`。
+本文档用于排查并推进当前生产落地门禁。当前失败不是代码崩溃，而是门禁按预期阻止继续：`business_system` 尚未完成真实只读接入输入和真实 read smoke，人工签核仍保持 `No-Go`。
 
 ## 当前失败原因
 
 - `production_landing_status.py` 输出 `status=partial`，表示只允许进入受控人工复核，不代表生产可上线。
-- `execution_gate` 的 `blocked_domains` 包含 `real_llm`，原因通常是当前进程或本地 secret 管理环境没有安全注入非占位的 `XIAOMI_LLM_API_KEY`。
-- `manual_signoff_evidence_ack_status` 仍为 `partial` 时，通常表示 `real_llm_preflight` 未达到 `network_check_executed=true` 和 `real_llm_executed=true`。
+- `execution_gate` 的 `blocked_domains` 当前应只包含 `business_system`；如果还包含 `real_llm`，优先重新运行小米 LLM 安全预检并刷新状态。
+- `manual_signoff_evidence_ack_status` 仍为 `partial` 时，通常表示真实业务系统 read smoke 未完成、local mock 证据不能用于真实生产验收，或人工签核证据尚未完成。
 - `manual_signoff.completed=false` 表示人工签核尚未完成。
 - 本地 PostgreSQL、Redis、external MCP、business read smoke 可以形成 staging 证据，但不得包装为公网生产验收完成。
 
@@ -67,6 +67,20 @@
    ```powershell
    python scripts/production_landing_env_runner.py --action local-business-smoke
    ```
+
+   `local-business-smoke` 只用于本地演示，会生成 `local_business_mock_used=true` 的证据，不能作为真实业务系统验收。真实业务系统接入必须使用：
+
+   ```powershell
+   python scripts/production_landing_env_runner.py --action business-smoke
+   ```
+
+   更推荐使用安全 PowerShell 入口。它可以通过 `-EnvPath` 读取非密钥配置和 owner 标识，但会跳过 `BUSINESS_SYSTEM_BASE_URL`、`BUSINESS_SYSTEM_TOKEN` 等 secret 值；真实 URL/token 仍只来自当前进程环境或交互式输入：
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -EnvPath local\production_landing.staging.env
+   ```
+
+   通过 SSH tunnel、反向代理或 port-forward 暴露到 `localhost` 的真实业务系统不再自动判为 local mock；只有显式设置 `BUSINESS_SYSTEM_NAME=local_business_read_mock` 或运行 `local-business-smoke` 生成的证据才会标记 `local_business_mock_used=true`。local mock 证据不能作为真实业务系统验收。
 
 7. 真实 LLM 预检成功后，执行受控 staging smoke：
 

@@ -81,22 +81,24 @@ def _read_latest_business_smoke(report_dir: Path) -> dict[str, Any]:
             "secret_plaintext_output": False,
             "missing_conditions": ["business_system_read_smoke:json_parse_failed"],
         }
+    secret_detected = _contains_secret_like(payload)
     return {
         "latest_report_present": True,
         "latest_json_path": str(latest),
-        "status": str(payload.get("status") or "skipped"),
+        "status": "blocked" if secret_detected else str(payload.get("status") or "skipped"),
         "business_system_connected": bool(payload.get("business_system_connected", False)),
         "business_read_executed": bool(payload.get("business_read_executed", False)),
         "business_write_executed": bool(payload.get("business_write_executed", False)),
         "business_data_written": bool(payload.get("business_data_written", False)),
         "local_business_mock_used": bool(payload.get("local_business_mock_used", False)),
-        "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
+        "secret_plaintext_output": secret_detected or bool(payload.get("secret_plaintext_output", False)),
         "missing_conditions": [
             str(item)
             for item in (
                 payload.get("missing_conditions") if isinstance(payload.get("missing_conditions"), list) else []
             )
-        ],
+        ]
+        + (["business_system_read_smoke:secret_like_text_detected"] if secret_detected else []),
     }
 
 
@@ -153,6 +155,7 @@ def _missing_conditions(smoke: dict[str, Any]) -> list[str]:
         missing.append("boundary:business_write_detected")
     if smoke.get("secret_plaintext_output") is True:
         missing.append("boundary:secret_plaintext_output_detected")
+        missing.append("boundary:secret_like_text_detected")
     return sorted(set(missing))
 
 
@@ -186,10 +189,42 @@ def _contains_secret_like(value: Any) -> bool:
     lowered = text.lower()
     if "sk-" in lowered or "bearer " in lowered:
         return True
+    safe_values = {
+        "<secret-managed-token>",
+        "<secret-managed-url>",
+        "<set-in-local-env-only>",
+        "<owner-or-staff-id>",
+        "secret-managed-token",
+        "secret-managed-url",
+        "set-in-local-env-only",
+    }
     for marker in ("token=", "api_key=", "password=", "client_secret=", "business_system_token="):
-        if marker in lowered:
-            return True
+        start = 0
+        while True:
+            index = lowered.find(marker, start)
+            if index < 0:
+                break
+            raw_tail = text[index + len(marker) :]
+            raw_value = ""
+            for char in raw_tail:
+                if char.isspace() or char in {",", "]", "}", "\"", "'", ";"}:
+                    break
+                raw_value += char
+            normalized = raw_value.strip().strip("<>").lower()
+            if normalized and normalized not in safe_values:
+                return True
+            start = index + len(marker)
     return False
+
+
+def _redact_secret_like(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(_redact_secret_like(key)): _redact_secret_like(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_secret_like(item) for item in value]
+    if isinstance(value, str):
+        return "[redacted-secret-like-text]" if _contains_secret_like(value) else value
+    return value
 
 
 def _build_markdown(payload: dict[str, Any]) -> str:
@@ -266,22 +301,23 @@ def build_business_system_production_readiness_brief(
         ],
         "business_write_executed": False,
         "business_data_written": False,
-        "secret_plaintext_output": False,
+        "secret_plaintext_output": bool(latest_smoke.get("secret_plaintext_output", False)),
         "public_production_direct_launch": "No-Go",
         "output_dir": str(output_root),
     }
     if _contains_secret_like(payload):
         payload["status"] = "blocked"
-        payload["secret_plaintext_output"] = False
+        payload["secret_plaintext_output"] = True
         payload["missing_conditions"] = sorted(set(payload["missing_conditions"] + ["boundary:secret_like_text_detected"]))
         payload["missing_condition_count"] = len(payload["missing_conditions"])
+        payload = _redact_secret_like(payload)
     paths = _write_report(payload, output_root)
     return {
         "status": payload["status"],
         "generated_at": generated_at,
         "missing_condition_count": payload["missing_condition_count"],
         "business_read_executed": latest_smoke["business_read_executed"],
-        "secret_plaintext_output": False,
+        "secret_plaintext_output": payload["secret_plaintext_output"],
         "public_production_direct_launch": "No-Go",
         "json_path": paths["json_path"],
         "markdown_path": paths["markdown_path"],

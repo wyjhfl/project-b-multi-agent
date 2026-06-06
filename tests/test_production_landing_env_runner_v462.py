@@ -263,7 +263,8 @@ def test_production_landing_env_runner_supports_xiaomi_llm_preflight_action(tmp_
     assert any("production_landing_xiaomi_llm_preflight_runner.py" in part for part in captured["command"])
     assert "--execute-network-check" in captured["command"]
     assert "--output-dir" in captured["command"]
-    assert "child_xiaomi_llm_preflight" in payload["command"]
+    assert "docs/reports/production_landing_xiaomi_llm_preflight" in payload["command"]
+    assert "child_xiaomi_llm_preflight" not in payload["command"]
     assert payload["child_summary"]["status"] == "skipped"
     assert payload["child_xiaomi_preflight"]["api_key_present"] is False
     assert payload["child_xiaomi_preflight"]["network_check_requested"] is True

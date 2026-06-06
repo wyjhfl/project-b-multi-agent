@@ -195,3 +195,23 @@ def test_business_system_production_readiness_brief_blocks_write_or_secret_evide
     assert "boundary:business_write_detected" in payload["missing_conditions"]
     assert "boundary:secret_plaintext_output_detected" in payload["missing_conditions"]
     assert payload["public_production_direct_launch"] == "No-Go"
+
+
+def test_business_system_production_readiness_brief_reports_secret_detection_flag(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    _set_ready_env(monkeypatch)
+    smoke_dir = tmp_path / "smoke"
+    _write_smoke_report(smoke_dir, {"note": "token=leaky-fixture"})
+
+    summary = build_business_system_production_readiness_brief(
+        output_dir=tmp_path / "out",
+        business_smoke_report_dir=smoke_dir,
+    )
+    payload = _payload(summary)
+
+    assert payload["status"] == "blocked"
+    assert payload["secret_plaintext_output"] is True
+    assert summary["secret_plaintext_output"] is True
+    assert "boundary:secret_like_text_detected" in payload["missing_conditions"]

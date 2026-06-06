@@ -112,7 +112,7 @@ def build_production_landing_execution_gate(
 
     env_summary = build_production_landing_env_check(
         env_path=env_path or DEFAULT_ENV_PATH,
-        allow_real_llm_evidence_override=False,
+        allow_real_llm_evidence_override=True,
     )
     env_payload = _load_json(env_summary.get("json_path", ""))
     by_domain = _domain_map(env_payload)

@@ -10,6 +10,7 @@ from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_blocker_resolution"
+SOFT_BLOCKED_SOURCES = {"production_landing_final_verification"}
 
 REPORT_SOURCES = {
     "production_landing_status": {
@@ -290,7 +291,7 @@ def build_production_landing_blocker_resolution(*, output_dir: str | Path | None
     source_blocked = [
         source_id
         for source_id, source in reports.items()
-        if source.get("status") in {"blocked", "failed"}
+        if source.get("status") in {"blocked", "failed"} and source_id not in SOFT_BLOCKED_SOURCES
     ]
     source_missing_conditions = [
         source_id

@@ -30,8 +30,8 @@ def test_xiaomi_llm_landing_resume_ps1_runs_preflight_and_refresh_without_plaint
     assert "Read-Host" in text
     assert "-AsSecureString" in text
     assert "CheckPythonOnly" in text
-    assert "production_landing_env_runner.py" in text
-    assert "xiaomi-llm-preflight" in text
+    assert "production_landing_xiaomi_llm_preflight_runner.py" in text
+    assert "--execute-network-check" in text
     assert "manual_signoff_evidence_ack_status.py" in text
     assert "manual_signoff_record_validator.py" in text
     assert "production_landing_blocker_resolution.py" in text

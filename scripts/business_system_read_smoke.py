@@ -63,6 +63,20 @@ def _contains_secret_like(value: Any) -> bool:
     return False
 
 
+def _redact_secret_like(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(_redact_secret_like(key)): _redact_secret_like(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_secret_like(item) for item in value]
+    if isinstance(value, str):
+        return "[redacted-secret-like-text]" if _contains_secret_like(value) else value
+    return value
+
+
+def _is_local_business_target(config: Any) -> bool:
+    return getattr(config, "system_name", "") == "local_business_read_mock"
+
+
 def _missing_conditions(execute: bool) -> list[str]:
     config = load_business_system_config()
     missing: list[str] = []
@@ -131,7 +145,7 @@ def _execute_smoke() -> dict[str, Any]:
     }
 
 
-def _env_profile(config: Any, execute: bool, missing: list[str]) -> dict[str, Any]:
+def _env_profile(config: Any, execute: bool, missing: list[str], *, local_business_mock_used: bool = False) -> dict[str, Any]:
     auth_mode = "bearer" if config.auth_header_name.lower() == "authorization" and config.auth_scheme else "api_key_header"
     return {
         "execution_requested": execute,
@@ -173,7 +187,8 @@ def _env_profile(config: Any, execute: bool, missing: list[str]) -> dict[str, An
             "auth_header_configured": bool(config.auth_header_name),
             "auth_scheme_configured": bool(config.auth_scheme),
         },
-        "public_production_gap": not (execute and not missing),
+        "local_business_mock_used": local_business_mock_used,
+        "public_production_gap": local_business_mock_used or not (execute and not missing),
         "next_action": "在本地进程环境或外部 secret manager 注入真实只读 URL/token 后执行安全 PowerShell 入口。",
     }
 
@@ -264,6 +279,7 @@ def build_business_system_read_smoke(
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
     config = load_business_system_config()
     missing = _missing_conditions(execute)
+    effective_local_business_mock_used = local_business_mock_used or _is_local_business_target(config)
 
     smoke: dict[str, Any] = {}
     if missing:
@@ -282,10 +298,15 @@ def build_business_system_read_smoke(
         "status_vocabulary": STATUS_VOCABULARY,
         "execute": execute,
         "execution_requested": execute,
-        "local_business_mock_used": local_business_mock_used,
+        "local_business_mock_used": effective_local_business_mock_used,
         "read_only": True,
         "config": safe_config_summary(config),
-        "env_profile": _env_profile(config, execute, missing),
+        "env_profile": _env_profile(
+            config,
+            execute,
+            missing,
+            local_business_mock_used=effective_local_business_mock_used,
+        ),
         "missing_conditions": missing,
         "smoke": smoke,
         "business_system_connected": status == "success",
@@ -304,8 +325,9 @@ def build_business_system_read_smoke(
     }
     if _contains_secret_like(payload):
         payload["status"] = "blocked"
-        payload["secret_plaintext_output"] = False
+        payload["secret_plaintext_output"] = True
         payload["missing_conditions"] = sorted(set(payload["missing_conditions"] + ["output:secret_like_text_detected"]))
+        payload = _redact_secret_like(payload)
 
     paths = _write_report(payload, output_root)
     return {
@@ -313,12 +335,12 @@ def build_business_system_read_smoke(
         "generated_at": generated_at,
         "commit": commit,
         "execute": execute,
-        "local_business_mock_used": local_business_mock_used,
+        "local_business_mock_used": effective_local_business_mock_used,
         "business_system_connected": payload["business_system_connected"],
         "business_read_executed": payload["business_read_executed"],
         "business_write_executed": False,
         "business_data_written": False,
-        "secret_plaintext_output": False,
+        "secret_plaintext_output": payload["secret_plaintext_output"],
         "json_path": paths["json_path"],
         "markdown_path": paths["markdown_path"],
         "output_dir": str(output_root),

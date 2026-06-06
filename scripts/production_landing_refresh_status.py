@@ -18,6 +18,9 @@ from scripts.production_landing_action_pack import build_production_landing_acti
 from scripts.production_landing_blocker_resolution import build_production_landing_blocker_resolution
 from scripts.production_landing_execution_gate import build_production_landing_execution_gate
 from scripts.production_landing_final_verification import build_production_landing_final_verification
+from scripts.business_system_input_packet import build_business_system_input_packet
+from scripts.business_system_landing_execution_pack import build_business_system_landing_execution_pack
+from scripts.business_system_production_readiness_brief import build_business_system_production_readiness_brief
 from scripts.production_landing_input_readiness import (
     DEFAULT_CLOSURE_EVIDENCE,
     build_production_landing_input_readiness,
@@ -108,6 +111,9 @@ def build_production_landing_refresh_status(
         "real_integration_staging_gate": build_real_integration_staging_gate,
         "real_integration_gap_register": build_real_integration_gap_register,
         "real_production_environment_checklist": build_real_production_environment_checklist,
+        "business_system_input_packet": build_business_system_input_packet,
+        "business_system_production_readiness": build_business_system_production_readiness_brief,
+        "business_system_landing_execution_pack": build_business_system_landing_execution_pack,
         "production_landing_input_readiness": build_production_landing_input_readiness,
         "manual_signoff_evidence_ack_status": build_manual_signoff_evidence_ack_status,
         "manual_signoff_record_validation": build_manual_signoff_record_validation,
@@ -132,6 +138,19 @@ def build_production_landing_refresh_status(
         _safe_step_summary(
             "real_production_environment_checklist",
             effective_builders["real_production_environment_checklist"](),
+        )
+    )
+    steps.append(_safe_step_summary("business_system_input_packet", effective_builders["business_system_input_packet"]()))
+    steps.append(
+        _safe_step_summary(
+            "business_system_production_readiness",
+            effective_builders["business_system_production_readiness"](),
+        )
+    )
+    steps.append(
+        _safe_step_summary(
+            "business_system_landing_execution_pack",
+            effective_builders["business_system_landing_execution_pack"](),
         )
     )
     pilot_signoff = effective_builders["production_pilot_signoff"]()

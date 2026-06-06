@@ -242,5 +242,8 @@ def test_business_system_landing_execution_pack_blocks_secret_or_write_evidence(
     )
 
     assert summary["status"] == "blocked"
-    assert summary["secret_plaintext_output"] is False
+    assert summary["secret_plaintext_output"] is True
     assert "sk-should-not-leak" not in merged
+    payload = _payload(summary)
+    assert payload["secret_plaintext_output"] is True
+    assert "boundary:secret_like_text_detected" in payload["missing_conditions"]

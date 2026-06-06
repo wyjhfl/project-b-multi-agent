@@ -307,6 +307,39 @@ def test_production_landing_input_readiness_accepts_successful_business_read_smo
     assert business["business_data_written"] is False
 
 
+def test_production_landing_input_readiness_rejects_local_business_mock_smoke(
+    tmp_path: Path,
+) -> None:
+    business_env = tmp_path / "business.env"
+    closure = tmp_path / "closure.json"
+    signoff = tmp_path / "signoff.json"
+    pilot = tmp_path / "pilot_signoff.json"
+    smoke = tmp_path / "business_smoke.json"
+    business_env.write_text("", encoding="utf-8")
+    _write_json(closure, _closure_payload())
+    _write_json(signoff, _signoff_payload())
+    _write_json(pilot, _pilot_signoff_payload(ready=True))
+    local_smoke = _business_smoke_payload()
+    local_smoke["local_business_mock_used"] = True
+    _write_json(smoke, local_smoke)
+
+    summary = build_production_landing_input_readiness(
+        output_dir=tmp_path / "out",
+        business_env=business_env,
+        business_smoke=smoke,
+        closure_evidence=closure,
+        manual_signoff=signoff,
+        pilot_signoff=pilot,
+    )
+    payload = _read_payload(summary)
+    business = next(item for item in payload["inputs"] if item["input_id"] == "business_system_read_only_credentials")
+
+    assert summary["status"] == "partial"
+    assert business["status"] == "partial"
+    assert business["local_business_mock_used"] is True
+    assert "business_smoke:local_business_mock_not_valid_for_real_production" in business["missing_conditions"]
+
+
 def test_production_landing_input_readiness_blocks_secret_like_json_without_leak(tmp_path: Path) -> None:
     business_env = tmp_path / "business.env"
     closure = tmp_path / "closure.json"

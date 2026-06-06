@@ -128,6 +128,7 @@ SECRET_TEXT_PATTERNS = [
     re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
     re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^,\s]+"),
+    re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\s*[:=]\s*([^\s,]+)"),
 ]
 
 
@@ -162,6 +163,16 @@ def _contains_secret_like_text(value: Any) -> bool:
         return any(_contains_secret_like_text(item) for item in value)
     text = str(value)
     return any(pattern.search(text) for pattern in SECRET_TEXT_PATTERNS)
+
+
+def _redact_secret_like_text(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(_redact_secret_like_text(key)): _redact_secret_like_text(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_secret_like_text(item) for item in value]
+    if isinstance(value, str):
+        return "[redacted-secret-like-text]" if _contains_secret_like_text(value) else value
+    return value
 
 
 def _value_for_key(key: str, file_values: dict[str, str]) -> tuple[str, str]:
@@ -247,6 +258,20 @@ def _get_xiaomi_preflight_report_dir(override: str | Path | None = None) -> Path
     return Path(env_override) if env_override else XIAOMI_PREFLIGHT_REPORT_DIR
 
 
+def _successful_xiaomi_preflight_payload(payload: dict[str, Any]) -> bool:
+    preflight = payload.get("preflight") if isinstance(payload.get("preflight"), dict) else {}
+    blockers = payload.get("acceptance_blockers")
+    return bool(
+        payload.get("status") == "success"
+        and payload.get("api_key_present") is True
+        and payload.get("real_llm_executed") is True
+        and preflight.get("network_check_executed") is True
+        and payload.get("secret_plaintext_output") is False
+        and isinstance(blockers, list)
+        and not blockers
+    )
+
+
 def _real_llm_preflight_evidence_ready(report_dir: str | Path | None = None) -> dict[str, Any]:
     latest = _latest_json_report(_get_xiaomi_preflight_report_dir(report_dir), "*_production_landing_xiaomi_llm_preflight.json")
     if latest is None:
@@ -254,8 +279,10 @@ def _real_llm_preflight_evidence_ready(report_dir: str | Path | None = None) -> 
             "latest_report": "",
             "ready": False,
             "status": "missing",
+            "api_key_present": False,
             "real_llm_executed": False,
             "network_check_executed": False,
+            "acceptance_blocker_count": 0,
         }
     try:
         payload = json.loads(latest.read_text(encoding="utf-8"))
@@ -264,22 +291,22 @@ def _real_llm_preflight_evidence_ready(report_dir: str | Path | None = None) -> 
             "latest_report": str(latest),
             "ready": False,
             "status": "blocked",
+            "api_key_present": False,
             "real_llm_executed": False,
             "network_check_executed": False,
+            "acceptance_blocker_count": 0,
         }
     preflight = payload.get("preflight") if isinstance(payload.get("preflight"), dict) else {}
-    ready = (
-        payload.get("status") == "success"
-        and payload.get("real_llm_executed") is True
-        and preflight.get("network_check_executed") is True
-        and payload.get("secret_plaintext_output") is False
-    )
+    blockers = payload.get("acceptance_blockers") if isinstance(payload.get("acceptance_blockers"), list) else []
+    ready = _successful_xiaomi_preflight_payload(payload)
     return {
         "latest_report": str(latest),
         "ready": ready,
         "status": str(payload.get("status") or "skipped"),
+        "api_key_present": bool(payload.get("api_key_present", False)),
         "real_llm_executed": bool(payload.get("real_llm_executed", False)),
         "network_check_executed": bool(preflight.get("network_check_executed", False)),
+        "acceptance_blocker_count": len(blockers),
     }
 
 
@@ -355,7 +382,11 @@ def build_production_landing_env_check(
         "commit": commit,
         "version": "4.6.0",
         "phase": "v4.6 Production Landing Local Env Check",
-        "status": "success" if ready_domain_count == len(domains) else "partial",
+        "status": (
+            "blocked"
+            if secret_plaintext_output
+            else ("success" if ready_domain_count == len(domains) else "partial")
+        ),
         "mode": "read_only_env_check",
         "read_only": True,
         "env_path": str(path),
@@ -366,11 +397,13 @@ def build_production_landing_env_check(
         "domains": domains,
         "staging_smoke_command": SAFE_INFRA_AND_LLM_SMOKE_COMMAND,
         "business_smoke_command": SAFE_BUSINESS_READ_SMOKE_COMMAND,
-        "secret_plaintext_output": False if not secret_plaintext_output else False,
+        "secret_plaintext_output": bool(secret_plaintext_output),
         "contains_real_secret": False,
         "public_production_direct_launch": "No-Go",
         "allow_real_llm_evidence_override": allow_real_llm_evidence_override,
     }
+    if secret_plaintext_output:
+        payload = _redact_secret_like_text(payload)
     short_commit = commit[:8] if commit != "unknown" else "unknown"
     stem = f"{generated_at.replace(':', '-').replace('+', '_')}_{short_commit}_production_landing_env_check"
     json_path = output_root / f"{stem}.json"
@@ -386,7 +419,7 @@ def build_production_landing_env_check(
         "ready_domain_count": ready_domain_count,
         "domain_count": len(domains),
         "blocked_domain_count": len(domains) - ready_domain_count,
-        "secret_plaintext_output": False,
+        "secret_plaintext_output": bool(secret_plaintext_output),
     }
 
 

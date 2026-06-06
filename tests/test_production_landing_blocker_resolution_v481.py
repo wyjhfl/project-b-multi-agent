@@ -195,6 +195,29 @@ def test_blocker_resolution_success_when_all_actions_resolved(tmp_path: Path, mo
     assert {item["status"] for item in payload["actions"]} == {"resolved"}
 
 
+def test_blocker_resolution_treats_final_verification_blocked_as_soft_source(
+    tmp_path: Path, monkeypatch
+) -> None:
+    dirs = _patch_sources(monkeypatch, tmp_path / "reports")
+    _write_ready_reports(dirs)
+    _write_json(
+        dirs["production_landing_final_verification"] / "002_production_landing_final_verification.json",
+        {
+            "generated_at": "2026-06-05T00:01:00+00:00",
+            "status": "blocked",
+            "missing_conditions": ["production_landing_status:status_not_success"],
+            "secret_plaintext_output": False,
+        },
+    )
+
+    summary = build_production_landing_blocker_resolution(output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "success"
+    assert payload["source_blocked_or_failed"] == []
+    assert "production_landing_final_verification" in payload["source_missing_conditions"]
+
+
 def test_blocker_resolution_blocks_secret_like_report_without_leak(tmp_path: Path, monkeypatch) -> None:
     dirs = _patch_sources(monkeypatch, tmp_path / "reports")
     _write_ready_reports(dirs)

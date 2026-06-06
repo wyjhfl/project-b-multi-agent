@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from scripts import production_landing_env_check as env_check_module
 from scripts.production_landing_env_check import build_production_landing_env_check
 from scripts.production_landing_env_template import build_production_landing_env_template
 
@@ -147,8 +148,10 @@ def test_production_landing_env_check_allows_successful_llm_preflight_evidence_w
     payload = {
         "generated_at": "2026-06-04T00:00:00+00:00",
         "status": "success",
+        "api_key_present": True,
         "real_llm_executed": True,
         "secret_plaintext_output": False,
+        "acceptance_blockers": [],
         "preflight": {"network_check_executed": True},
     }
     (report_dir / "001_production_landing_xiaomi_llm_preflight.json").write_text(
@@ -167,5 +170,71 @@ def test_production_landing_env_check_allows_successful_llm_preflight_evidence_w
     assert real_llm["ready_for_execute"] is True
     assert real_llm["evidence_ready_override"] is True
     assert real_llm["evidence"]["ready"] is True
+    assert real_llm["evidence"]["api_key_present"] is True
     assert real_llm["evidence"]["real_llm_executed"] is True
+    assert real_llm["evidence"]["acceptance_blocker_count"] == 0
     assert real_llm["placeholder_count"] == 0
+
+
+def test_production_landing_env_check_rejects_incomplete_llm_preflight_evidence_without_key_file(
+    tmp_path: Path,
+) -> None:
+    env_path = tmp_path / "landing.env"
+    build_production_landing_env_template(output_path=env_path)
+    report_dir = tmp_path / "reports" / "xiaomi"
+    report_dir.mkdir(parents=True)
+    payload = {
+        "generated_at": "2026-06-04T00:00:00+00:00",
+        "status": "success",
+        "real_llm_executed": True,
+        "secret_plaintext_output": False,
+        "preflight": {"network_check_executed": True},
+    }
+    (report_dir / "001_production_landing_xiaomi_llm_preflight.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    summary = build_production_landing_env_check(
+        env_path=env_path,
+        output_dir=tmp_path / "out",
+        xiaomi_preflight_report_dir=report_dir,
+    )
+    result = _payload(summary)
+    real_llm = next(item for item in result["domains"] if item["domain_id"] == "real_llm")
+
+    assert real_llm["ready_for_execute"] is False
+    assert real_llm["evidence_ready_override"] is False
+    assert real_llm["evidence"]["ready"] is False
+    assert real_llm["evidence"]["api_key_present"] is False
+    assert "XIAOMI_LLM_API_KEY" in real_llm["placeholder_keys"]
+
+
+def test_production_landing_env_check_reports_secret_detection_flag_without_leak(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    env_path = tmp_path / "landing.env"
+    build_production_landing_env_template(output_path=env_path)
+    monkeypatch.setitem(
+        env_check_module.COMMAND_AFTER_FILL_BY_DOMAIN,
+        "real_llm",
+        "token=leaky-fixture-command",
+    )
+
+    summary = build_production_landing_env_check(
+        env_path=env_path,
+        output_dir=tmp_path / "out",
+        xiaomi_preflight_report_dir=tmp_path / "missing_xiaomi_reports",
+    )
+    payload = _payload(summary)
+    merged = Path(summary["json_path"]).read_text(encoding="utf-8") + Path(summary["markdown_path"]).read_text(
+        encoding="utf-8"
+    )
+
+    assert summary["status"] == "blocked"
+    assert summary["secret_plaintext_output"] is True
+    assert payload["status"] == "blocked"
+    assert payload["secret_plaintext_output"] is True
+    assert "leaky-fixture-command" not in merged
+    assert "[redacted-secret-like-text]" in merged

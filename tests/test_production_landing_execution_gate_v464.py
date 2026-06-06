@@ -13,9 +13,19 @@ def _payload(summary: dict) -> dict:
     return json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
 
 
-def test_production_landing_execution_gate_blocks_placeholder_values_without_leaking(tmp_path: Path) -> None:
+def _isolate_xiaomi_reports(monkeypatch, tmp_path: Path) -> Path:
+    report_dir = tmp_path / "missing_xiaomi_reports"
+    monkeypatch.setenv("PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_REPORT_DIR", str(report_dir))
+    return report_dir
+
+
+def test_production_landing_execution_gate_blocks_placeholder_values_without_leaking(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     env_path = tmp_path / "landing.env"
     build_production_landing_env_template(output_path=env_path)
+    _isolate_xiaomi_reports(monkeypatch, tmp_path)
 
     summary = build_production_landing_execution_gate(env_path=env_path, output_dir=tmp_path / "out")
     payload = _payload(summary)
@@ -40,7 +50,7 @@ def test_production_landing_execution_gate_blocks_placeholder_values_without_lea
     assert "tp-" not in json.dumps(payload, ensure_ascii=False)
 
 
-def test_production_landing_execution_gate_ignores_historical_llm_evidence_for_env_readiness(
+def test_production_landing_execution_gate_rejects_incomplete_llm_evidence_for_env_readiness(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -74,8 +84,53 @@ def test_production_landing_execution_gate_ignores_historical_llm_evidence_for_e
     assert real_llm["blocker_reason"] == "placeholder_env"
 
 
-def test_production_landing_execution_gate_recommends_local_infra_smoke_when_postgres_redis_ready(tmp_path: Path) -> None:
+def test_production_landing_execution_gate_allows_successful_llm_preflight_evidence_without_key_file(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     env_path = tmp_path / "landing.env"
+    build_production_landing_env_template(output_path=env_path)
+    report_dir = tmp_path / "xiaomi_reports"
+    report_dir.mkdir()
+    monkeypatch.setenv("PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_REPORT_DIR", str(report_dir))
+    (report_dir / "001_production_landing_xiaomi_llm_preflight.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-05T00:00:00+00:00",
+                "status": "success",
+                "api_key_present": True,
+                "real_llm_executed": True,
+                "preflight": {"network_check_executed": True},
+                "acceptance_blockers": [],
+                "secret_plaintext_output": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    summary = build_production_landing_execution_gate(env_path=env_path, output_dir=tmp_path / "out", domains="real_llm")
+    payload = _payload(summary)
+    real_llm = next(item for item in payload["domains"] if item["domain_id"] == "real_llm")
+
+    assert summary["execution_allowed"] is True
+    assert payload["ready_domains"] == ["real_llm"]
+    assert payload["blocked_domains"] == []
+    assert real_llm["ready_for_execute"] is True
+    assert real_llm["placeholder_keys"] == []
+    assert real_llm["blocker_reason"] == ""
+    assert payload["safe_runner_commands"] == [
+        "python scripts/production_landing_env_runner.py --action env-check",
+        "python scripts/production_landing_env_runner.py --action staging-smoke",
+    ]
+
+
+def test_production_landing_execution_gate_recommends_local_infra_smoke_when_postgres_redis_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    env_path = tmp_path / "landing.env"
+    _isolate_xiaomi_reports(monkeypatch, tmp_path)
     env_path.write_text(
         "\n".join(
             [
@@ -118,8 +173,12 @@ def test_production_landing_execution_gate_recommends_local_infra_smoke_when_pos
     assert "python scripts/production_landing_env_runner.py --action staging-smoke" not in payload["safe_runner_commands"]
 
 
-def test_production_landing_execution_gate_recommends_local_infra_mcp_smoke_when_mcp_ready(tmp_path: Path) -> None:
+def test_production_landing_execution_gate_recommends_local_infra_mcp_smoke_when_mcp_ready(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     env_path = tmp_path / "landing.env"
+    _isolate_xiaomi_reports(monkeypatch, tmp_path)
     env_path.write_text(
         "\n".join(
             [
@@ -150,8 +209,12 @@ def test_production_landing_execution_gate_recommends_local_infra_mcp_smoke_when
     assert "python scripts/production_landing_env_runner.py --action staging-smoke" not in payload["safe_runner_commands"]
 
 
-def test_production_landing_execution_gate_allows_filled_requested_domains_without_value_output(tmp_path: Path) -> None:
+def test_production_landing_execution_gate_allows_filled_requested_domains_without_value_output(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     env_path = tmp_path / "landing.env"
+    _isolate_xiaomi_reports(monkeypatch, tmp_path)
     fake_llm_secret = "tp-" + "local-real-secret-not-output"
     env_path.write_text(
         "\n".join(

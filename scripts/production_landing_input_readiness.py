@@ -308,6 +308,8 @@ def _check_business_smoke(path: Path | None) -> dict[str, Any] | None:
         smoke_missing.append("business_smoke:business_read_executed_not_true")
     if payload.get("business_write_executed") is True or payload.get("business_data_written") is True:
         smoke_missing.append("business_smoke:write_or_data_written_unexpected")
+    if payload.get("local_business_mock_used") is True:
+        smoke_missing.append("business_smoke:local_business_mock_not_valid_for_real_production")
     if payload.get("approval_bypassed") is True or payload.get("audit_bypassed") is True:
         smoke_missing.append("business_smoke:approval_or_audit_bypassed")
     if secret_detected:
@@ -324,6 +326,7 @@ def _check_business_smoke(path: Path | None) -> dict[str, Any] | None:
         "business_read_executed": payload.get("business_read_executed") is True,
         "business_write_executed": payload.get("business_write_executed") is True,
         "business_data_written": payload.get("business_data_written") is True,
+        "local_business_mock_used": payload.get("local_business_mock_used") is True,
         "read_only": payload.get("read_only") is True,
         "write_enabled": False,
         "secret_plaintext_output": False,
@@ -520,7 +523,7 @@ def build_production_landing_input_readiness(
         else (_latest_json(DEFAULT_BUSINESS_SMOKE_DIR, "*_business_system_read_smoke.json") if business_env is None else None)
     )
     business_input = _check_business_smoke(business_smoke_path)
-    if business_input is None or business_input.get("status") != "ready":
+    if business_input is None:
         business_input = _check_business_env(Path(business_env) if business_env else DEFAULT_BUSINESS_ENV)
     inputs = _attach_next_actions([
         business_input,

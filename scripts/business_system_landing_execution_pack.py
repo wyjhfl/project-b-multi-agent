@@ -97,6 +97,16 @@ def _safe_text(value: Any) -> str:
     return "[redacted-secret-like-text]" if _contains_secret_like(text) else text
 
 
+def _redact_secret_like(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(_redact_secret_like(key)): _redact_secret_like(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_secret_like(item) for item in value]
+    if isinstance(value, str):
+        return _safe_text(value)
+    return value
+
+
 def _safe_list(value: Any, limit: int = 32) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -233,6 +243,8 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         if source.get("status") in {"blocked", "failed", "missing"}:
             source_missing.append(f"{source_id}:not_usable")
         source_missing.extend(str(item) for item in source.get("missing_conditions", []))
+        if source.get("secret_detected"):
+            source_missing.append("boundary:secret_like_text_detected")
 
     input_missing = _safe_list(input_payload.get("missing_conditions"))
     readiness_missing = _safe_list(readiness_payload.get("missing_conditions"))
@@ -251,7 +263,8 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         and smoke_payload.get("local_business_mock_used") is not True
         and smoke_payload.get("secret_plaintext_output") is not True
     )
-    blocked = any(source.get("secret_detected") for source in sources.values()) or any(
+    source_secret_detected = any(source.get("secret_detected") for source in sources.values())
+    blocked = source_secret_detected or any(
         condition.startswith("boundary:") for condition in missing_conditions
     )
     status = "blocked" if blocked else ("ready" if real_read_smoke_complete and not missing_conditions else "needs_input")
@@ -301,7 +314,7 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "business_data_written": False,
         "audit_data_written": False,
         "metrics_data_written": False,
-        "secret_plaintext_output": False,
+        "secret_plaintext_output": bool(source_secret_detected),
         "public_production_direct_launch": "No-Go",
     }
 
@@ -381,12 +394,13 @@ def build_business_system_landing_execution_pack(
     }
     if _contains_secret_like(payload):
         payload["status"] = "blocked"
-        payload["secret_plaintext_output"] = False
+        payload["secret_plaintext_output"] = True
         payload["missing_conditions"] = sorted(
             set(payload["missing_conditions"] + ["boundary:secret_like_text_detected"])
         )
         payload["missing_condition_count"] = len(payload["missing_conditions"])
         payload["missing_by_category"] = _group_missing(payload["missing_conditions"])
+        payload = _redact_secret_like(payload)
 
     output_root = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
     output_root.mkdir(parents=True, exist_ok=True)
@@ -406,7 +420,7 @@ def build_business_system_landing_execution_pack(
         "real_read_smoke_complete": payload["real_read_smoke_complete"],
         "safe_next_action": payload["safe_next_action"],
         "missing_condition_count": payload["missing_condition_count"],
-        "secret_plaintext_output": False,
+        "secret_plaintext_output": payload["secret_plaintext_output"],
         "public_production_direct_launch": "No-Go",
         "json_path": str(json_path),
         "markdown_path": str(markdown_path),

@@ -100,6 +100,15 @@ def _missing_conditions() -> list[str]:
     return sorted(set(missing))
 
 
+def _owner_safety_conditions() -> list[str]:
+    unsafe: list[str] = []
+    for owner_name, env_key in OWNER_ENV.items():
+        value = os.getenv(env_key, "") or ""
+        if _contains_secret_like(value):
+            unsafe.append(f"owner:{owner_name}_secret_like")
+    return unsafe
+
+
 def _contains_secret_like(value: Any) -> bool:
     text = json.dumps(value, ensure_ascii=False, default=str) if isinstance(value, (dict, list)) else str(value)
     lowered = text.lower()
@@ -123,6 +132,16 @@ def _contains_secret_like(value: Any) -> bool:
                 return True
             start = index + len(marker)
     return False
+
+
+def _redact_secret_like(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(_redact_secret_like(key)): _redact_secret_like(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_redact_secret_like(item) for item in value]
+    if isinstance(value, str):
+        return "[redacted-secret-like-text]" if _contains_secret_like(value) else value
+    return value
 
 
 def _build_markdown(payload: dict[str, Any]) -> str:
@@ -178,7 +197,8 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
     generated_at = _utc_now_iso()
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
     config = load_business_system_config()
-    missing = _missing_conditions()
+    owner_safety = _owner_safety_conditions()
+    missing = sorted(set(_missing_conditions() + owner_safety))
     owner_inputs_present = {name: _present(env_key) for name, env_key in OWNER_ENV.items()}
     ready = not missing
     payload: dict[str, Any] = {
@@ -239,6 +259,7 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
             },
         ],
         "recommended_commands": [
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 -UseExistingEnv",
@@ -250,19 +271,20 @@ def build_business_system_input_packet(*, output_dir: str | Path | None = None) 
         "public_production_direct_launch": "No-Go",
         "output_dir": str(output_root),
     }
-    if _contains_secret_like(payload):
+    if owner_safety or _contains_secret_like(payload):
         payload["status"] = "blocked"
         payload["ready_for_real_read_smoke"] = False
-        payload["secret_plaintext_output"] = False
+        payload["secret_plaintext_output"] = True
         payload["missing_conditions"] = sorted(set(payload["missing_conditions"] + ["boundary:secret_like_text_detected"]))
         payload["missing_condition_count"] = len(payload["missing_conditions"])
+        payload = _redact_secret_like(payload)
     paths = _write_report(payload, output_root)
     return {
         "status": payload["status"],
         "generated_at": generated_at,
         "ready_for_real_read_smoke": payload["ready_for_real_read_smoke"],
         "missing_condition_count": payload["missing_condition_count"],
-        "secret_plaintext_output": False,
+        "secret_plaintext_output": payload["secret_plaintext_output"],
         "public_production_direct_launch": "No-Go",
         "json_path": paths["json_path"],
         "markdown_path": paths["markdown_path"],

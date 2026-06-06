@@ -106,9 +106,8 @@ try {
 
   Write-Host "[xiaomi_llm_landing_resume] step=xiaomi-llm-preflight" -ForegroundColor Yellow
   Invoke-CheckedPython @(
-    (Join-Path $repoRoot "scripts/production_landing_env_runner.py"),
-    "--action",
-    "xiaomi-llm-preflight",
+    (Join-Path $repoRoot "scripts/production_landing_xiaomi_llm_preflight_runner.py"),
+    "--execute-network-check",
     "--timeout-seconds",
     "$TimeoutSeconds"
   )

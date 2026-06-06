@@ -271,6 +271,62 @@ def test_manual_signoff_evidence_ack_status_accepts_optional_business_read_gap_f
     assert payload["public_production_direct_launch"] == "No-Go"
 
 
+def test_manual_signoff_evidence_ack_status_rejects_local_business_mock_for_real_ack(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    dirs = _patch_report_specs(monkeypatch, tmp_path)
+    _write_json(
+        dirs["real_llm_preflight"],
+        "001_production_landing_xiaomi_llm_preflight.json",
+        {
+            "status": "success",
+            "real_llm_executed": True,
+            "preflight": {"network_check_executed": True},
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["postgres_redis_mcp_smoke"],
+        "001_real_integration_staging_smoke.json",
+        {
+            "status": "success",
+            "database_connected": True,
+            "redis_connected": True,
+            "external_mcp_connected": True,
+            "migration_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_read_smoke"],
+        "001_business_system_read_smoke.json",
+        {
+            "status": "success",
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": True,
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["closure_evidence_review"],
+        "001_launch_blocker_closure_workflow.json",
+        {"status": "partial", "closure_item_count": 1, "review_ready_count": 1, "evidence_incomplete_count": 0},
+    )
+
+    summary = build_manual_signoff_evidence_ack_status(output_dir=tmp_path / "out")
+    payload = _read_payload(summary)
+    business = next(item for item in payload["items"] if item["item"] == "business_read_smoke")
+
+    assert summary["status"] == "partial"
+    assert business["recommended_accept"] is False
+    assert "business_read_smoke:local_business_mock_not_valid_for_real_production" in business["missing_conditions"]
+
+
 def test_manual_signoff_evidence_ack_status_blocks_secret_like_payload(tmp_path: Path, monkeypatch) -> None:
     dirs = _patch_report_specs(monkeypatch, tmp_path)
     secret_value = "sk-" + "secret"

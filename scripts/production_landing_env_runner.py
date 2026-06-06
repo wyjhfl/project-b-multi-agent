@@ -207,7 +207,7 @@ def build_production_landing_env_runner(
             ]
         )
     elif action == "xiaomi-llm-preflight":
-        action_args.extend(["--output-dir", str(output_root / "child_xiaomi_llm_preflight")])
+        action_args.extend(["--output-dir", "docs/reports/production_landing_xiaomi_llm_preflight"])
     env = {**os.environ, **env_values}
     owner_env_present = _inject_business_owner_env(
         env,

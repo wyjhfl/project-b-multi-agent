@@ -90,3 +90,15 @@ def test_production_landing_text_quality_default_targets_include_business_system
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_read_smoke.py").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_production_readiness_brief.py").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_input_packet.py").as_posix() in targets
+
+
+def test_business_system_read_smoke_doc_documents_env_path_and_localhost_tunnel_boundary() -> None:
+    text = (text_quality.ROOT_DIR / "docs" / "business_system_read_smoke_v45.md").read_text(encoding="utf-8")
+
+    assert "business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env" in text
+    assert "BUSINESS_SYSTEM_BASE_URL" in text
+    assert "BUSINESS_SYSTEM_TOKEN" in text
+    assert "真实 URL/token 仍必须来自当前进程环境、外部 secret manager 或交互式输入" in text
+    assert "localhost" in text
+    assert "不会被自动判为 local mock" in text
+    assert "BUSINESS_SYSTEM_NAME=local_business_read_mock" in text

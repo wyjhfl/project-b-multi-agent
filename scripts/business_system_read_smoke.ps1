@@ -29,14 +29,46 @@ $ownerEnvNames = @(
   "BUSINESS_SYSTEM_OPERATIONS_OWNER",
   "BUSINESS_SYSTEM_DATA_OWNER"
 )
+$envPathSafeKeys = @(
+  "BUSINESS_INTEGRATION_ENABLED",
+  "BUSINESS_INTEGRATION_READ_ONLY",
+  "BUSINESS_INTEGRATION_WRITE_ENABLED",
+  "BUSINESS_INTEGRATION_APPROVAL_REQUIRED",
+  "BUSINESS_INTEGRATION_AUDIT_REQUIRED",
+  "BUSINESS_SYSTEM_NAME",
+  "BUSINESS_SYSTEM_BASE_URL_ENV",
+  "BUSINESS_SYSTEM_TOKEN_ENV",
+  "BUSINESS_SYSTEM_TOOL_ALLOWLIST",
+  "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST",
+  "BUSINESS_SYSTEM_TIMEOUT_SECONDS",
+  "BUSINESS_SYSTEM_READ_PROBE_PATH",
+  "BUSINESS_SYSTEM_AUTH_HEADER_NAME",
+  "BUSINESS_SYSTEM_AUTH_SCHEME",
+  "BUSINESS_SYSTEM_BUSINESS_OWNER",
+  "BUSINESS_SYSTEM_SECURITY_REVIEWER",
+  "BUSINESS_SYSTEM_OPERATIONS_OWNER",
+  "BUSINESS_SYSTEM_DATA_OWNER"
+)
+$envPathSecretKeys = @(
+  "BUSINESS_SYSTEM_BASE_URL",
+  "BUSINESS_SYSTEM_TOKEN",
+  "DATABASE_URL",
+  "REDIS_URL",
+  "XIAOMI_LLM_API_KEY",
+  "JWT_SECRET"
+)
 $previousOwnerEnv = @{}
 $hadPreviousOwnerEnv = @{}
 foreach ($ownerEnvName in $ownerEnvNames) {
   $previousOwnerEnv[$ownerEnvName] = [Environment]::GetEnvironmentVariable($ownerEnvName, "Process")
   $hadPreviousOwnerEnv[$ownerEnvName] = -not [string]::IsNullOrWhiteSpace($previousOwnerEnv[$ownerEnvName])
 }
+$previousEnvPathEnv = @{}
+$hadPreviousEnvPathEnv = @{}
+$envPathLoadedKeys = New-Object System.Collections.Generic.List[string]
 $valuesInjectedForRun = $false
 $ownerValuesInjectedForRun = $false
+$envPathLoadedForRun = $false
 
 function Initialize-CodexProcessEnvironment {
   [Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -137,6 +169,62 @@ function Assert-OwnerValue {
   }
 }
 
+function Set-EnvPathProcessValue {
+  param(
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][string]$Value
+  )
+
+  if (-not $previousEnvPathEnv.ContainsKey($Name)) {
+    $previousEnvPathEnv[$Name] = [Environment]::GetEnvironmentVariable($Name, "Process")
+    $hadPreviousEnvPathEnv[$Name] = -not [string]::IsNullOrWhiteSpace($previousEnvPathEnv[$Name])
+    [void]$envPathLoadedKeys.Add($Name)
+  }
+  [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
+}
+
+function Import-BusinessEnvPath {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    return @{ loaded = 0; skipped_secret = 0 }
+  }
+  $resolvedPath = Resolve-Path -LiteralPath $Path -ErrorAction Stop
+  $loaded = 0
+  $skippedSecret = 0
+  foreach ($rawLine in [System.IO.File]::ReadLines($resolvedPath.Path, [System.Text.UTF8Encoding]::new($false))) {
+    $line = $rawLine.Trim()
+    if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#") -or -not $line.Contains("=")) {
+      continue
+    }
+    $parts = $line.Split("=", 2)
+    $key = $parts[0].Trim()
+    $value = $parts[1].Trim().Trim('"').Trim("'")
+    if ($envPathSecretKeys -contains $key) {
+      $skippedSecret += 1
+      continue
+    }
+    if ($envPathSafeKeys -contains $key) {
+      Set-EnvPathProcessValue -Name $key -Value $value
+      $loaded += 1
+    }
+  }
+  return @{ loaded = $loaded; skipped_secret = $skippedSecret }
+}
+
+function Read-CurrentEnvValue {
+  param(
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][string]$Fallback
+  )
+
+  $value = [Environment]::GetEnvironmentVariable($Name, "Process")
+  if ([string]::IsNullOrWhiteSpace($value)) {
+    return $Fallback
+  }
+  return $value.Trim()
+}
+
 function Read-OrUseOwnerValue {
   param(
     [Parameter(Mandatory = $true)][string]$Prompt,
@@ -158,7 +246,29 @@ if ($CheckPythonOnly) {
 
 try {
   Initialize-CodexProcessEnvironment
-  Assert-HeaderName -Value $AuthHeaderName
+
+  if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+    $envPathSummary = Import-BusinessEnvPath -Path $EnvPath
+    $envPathLoadedForRun = $true
+    Write-Host "[business_system_read_smoke] env_path_loaded_keys=$($envPathSummary.loaded)" -ForegroundColor Cyan
+    Write-Host "[business_system_read_smoke] env_path_secret_keys_skipped=$($envPathSummary.skipped_secret)" -ForegroundColor Cyan
+  }
+
+  $effectiveTimeoutSeconds = $TimeoutSeconds
+  if (-not $PSBoundParameters.ContainsKey("TimeoutSeconds")) {
+    $timeoutFromEnv = [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_TIMEOUT_SECONDS", "Process")
+    if (-not [string]::IsNullOrWhiteSpace($timeoutFromEnv)) {
+      $parsedTimeout = 0
+      if ([int]::TryParse($timeoutFromEnv, [ref]$parsedTimeout) -and $parsedTimeout -gt 0) {
+        $effectiveTimeoutSeconds = $parsedTimeout
+      }
+    }
+  }
+  $effectiveReadProbePath = if ($PSBoundParameters.ContainsKey("ReadProbePath")) { $ReadProbePath } else { Read-CurrentEnvValue -Name "BUSINESS_SYSTEM_READ_PROBE_PATH" -Fallback $ReadProbePath }
+  $effectiveAuthHeaderName = if ($PSBoundParameters.ContainsKey("AuthHeaderName")) { $AuthHeaderName } else { Read-CurrentEnvValue -Name "BUSINESS_SYSTEM_AUTH_HEADER_NAME" -Fallback $AuthHeaderName }
+  $effectiveAuthScheme = if ($PSBoundParameters.ContainsKey("AuthScheme")) { $AuthScheme } else { Read-CurrentEnvValue -Name "BUSINESS_SYSTEM_AUTH_SCHEME" -Fallback $AuthScheme }
+
+  Assert-HeaderName -Value $effectiveAuthHeaderName
 
   Write-Host "[business_system_read_smoke] mode=real_business_read_only_smoke" -ForegroundColor Cyan
   Write-Host "[business_system_read_smoke] input=secure_process_env_only" -ForegroundColor Cyan
@@ -185,10 +295,10 @@ try {
     Write-Host "[business_system_read_smoke] input=existing_process_env" -ForegroundColor Cyan
   }
 
-  $effectiveBusinessOwner = Read-OrUseOwnerValue -Prompt "business_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($BusinessOwner)) { $BusinessOwner } else { $previousOwnerEnv["BUSINESS_SYSTEM_BUSINESS_OWNER"] }))
-  $effectiveSecurityReviewer = Read-OrUseOwnerValue -Prompt "security_reviewer name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($SecurityReviewer)) { $SecurityReviewer } else { $previousOwnerEnv["BUSINESS_SYSTEM_SECURITY_REVIEWER"] }))
-  $effectiveOperationsOwner = Read-OrUseOwnerValue -Prompt "operations_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($OperationsOwner)) { $OperationsOwner } else { $previousOwnerEnv["BUSINESS_SYSTEM_OPERATIONS_OWNER"] }))
-  $effectiveDataOwner = Read-OrUseOwnerValue -Prompt "data_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($DataOwner)) { $DataOwner } else { $previousOwnerEnv["BUSINESS_SYSTEM_DATA_OWNER"] }))
+  $effectiveBusinessOwner = Read-OrUseOwnerValue -Prompt "business_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($BusinessOwner)) { $BusinessOwner } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_BUSINESS_OWNER", "Process") }))
+  $effectiveSecurityReviewer = Read-OrUseOwnerValue -Prompt "security_reviewer name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($SecurityReviewer)) { $SecurityReviewer } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_SECURITY_REVIEWER", "Process") }))
+  $effectiveOperationsOwner = Read-OrUseOwnerValue -Prompt "operations_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($OperationsOwner)) { $OperationsOwner } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_OPERATIONS_OWNER", "Process") }))
+  $effectiveDataOwner = Read-OrUseOwnerValue -Prompt "data_owner name or staff id" -CurrentValue ($(if (-not [string]::IsNullOrWhiteSpace($DataOwner)) { $DataOwner } else { [Environment]::GetEnvironmentVariable("BUSINESS_SYSTEM_DATA_OWNER", "Process") }))
   Assert-OwnerValue -Name "BUSINESS_SYSTEM_BUSINESS_OWNER" -Value $effectiveBusinessOwner
   Assert-OwnerValue -Name "BUSINESS_SYSTEM_SECURITY_REVIEWER" -Value $effectiveSecurityReviewer
   Assert-OwnerValue -Name "BUSINESS_SYSTEM_OPERATIONS_OWNER" -Value $effectiveOperationsOwner
@@ -208,10 +318,10 @@ try {
   [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_TOKEN_ENV", $tokenEnv, "Process")
   [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_TOOL_ALLOWLIST", "business_read_probe", "Process")
   [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST", "", "Process")
-  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_TIMEOUT_SECONDS", "$TimeoutSeconds", "Process")
-  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_READ_PROBE_PATH", $ReadProbePath, "Process")
-  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_HEADER_NAME", $AuthHeaderName, "Process")
-  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_SCHEME", $AuthScheme, "Process")
+  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_TIMEOUT_SECONDS", "$effectiveTimeoutSeconds", "Process")
+  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_READ_PROBE_PATH", $effectiveReadProbePath, "Process")
+  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_HEADER_NAME", $effectiveAuthHeaderName, "Process")
+  [Environment]::SetEnvironmentVariable("BUSINESS_SYSTEM_AUTH_SCHEME", $effectiveAuthScheme, "Process")
 
   Write-Host "[business_system_read_smoke] status=running" -ForegroundColor Yellow
   Invoke-ResolvedPython @(
@@ -300,5 +410,15 @@ try {
       }
     }
     Write-Host "[business_system_read_smoke] owner_process_env_restored=true" -ForegroundColor Cyan
+  }
+  if ($envPathLoadedForRun) {
+    foreach ($envName in $envPathLoadedKeys) {
+      if ($hadPreviousEnvPathEnv[$envName]) {
+        [Environment]::SetEnvironmentVariable($envName, $previousEnvPathEnv[$envName], "Process")
+      } else {
+        [Environment]::SetEnvironmentVariable($envName, $null, "Process")
+      }
+    }
+    Write-Host "[business_system_read_smoke] env_path_process_env_restored=true" -ForegroundColor Cyan
   }
 }

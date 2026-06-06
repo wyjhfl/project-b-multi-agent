@@ -138,6 +138,8 @@ def _evaluate_business(payload: dict[str, Any]) -> list[str]:
         missing.append("business_read_smoke:business_read_executed_not_true")
     if payload.get("business_write_executed") is True or payload.get("business_data_written") is True:
         missing.append("business_read_smoke:write_or_data_written_unexpected")
+    if payload.get("local_business_mock_used") is True:
+        missing.append("business_read_smoke:local_business_mock_not_valid_for_real_production")
     if payload.get("secret_plaintext_output") is not False:
         missing.append("business_read_smoke:secret_plaintext_output_not_false")
     return missing
@@ -179,6 +181,7 @@ def _evaluate_item(item_id: str) -> dict[str, Any]:
         recommended_accept = not any(condition in unexpected for condition in missing)
     if item_id == "business_read_smoke" and missing and not secret_detected:
         unexpected = {
+            "business_read_smoke:local_business_mock_not_valid_for_real_production",
             "business_read_smoke:write_or_data_written_unexpected",
             "business_read_smoke:secret_plaintext_output_not_false",
         }

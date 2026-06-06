@@ -57,6 +57,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ
 ```
 
+如需要从本地 ignored env 文件加载非密钥配置和 owner，可使用 `-EnvPath`。该入口会跳过 `BUSINESS_SYSTEM_BASE_URL`、`BUSINESS_SYSTEM_TOKEN`、`DATABASE_URL`、`REDIS_URL`、`XIAOMI_LLM_API_KEY`、`JWT_SECRET`，真实 URL/token 仍必须来自当前进程环境、外部 secret manager 或交互式输入：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -EnvPath local\production_landing.staging.env
+```
+
 自动化环境仍可使用 Python 入口：
 
 ```powershell
@@ -65,7 +71,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scr
 
 成功后输出 `business_system_connected=true`、`business_read_executed=true`、`business_write_executed=false`、`business_data_written=false`，并生成脱敏 JSON/Markdown 报告。
 
-通过本地 mock 入口生成证据时，报告必须带有 `local_business_mock_used=true`；真实业务系统验收必须满足 `local_business_mock_used=false`。
+通过本地 mock 入口生成证据时，报告必须带有 `local_business_mock_used=true`；真实业务系统验收必须满足 `local_business_mock_used=false`。通过 SSH tunnel、反向代理或 port-forward 暴露到 `localhost` 的真实业务系统不会被自动判为 local mock；只有显式设置 `BUSINESS_SYSTEM_NAME=local_business_read_mock` 或运行 `local-business-smoke` 才会标记 local mock。
 
 ## 输入准备包
 

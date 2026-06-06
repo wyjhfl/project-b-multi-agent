@@ -109,6 +109,7 @@ def test_business_system_input_packet_ready_without_secret_leak(tmp_path: Path, 
     assert "BUSINESS_SYSTEM_BASE_URL=<secret-managed-url>" in merged
     assert "只读 token 仅进入当前进程环境" in merged
     assert "业务系统真实接入输入准备包" in merged
+    assert "business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env" in merged
     assert "scripts\\business_system_landing_resume.ps1 -UseExistingEnv" in merged
     assert "public_production_direct_launch" in merged
     assert "No-Go" in merged
@@ -125,6 +126,10 @@ def test_business_system_input_packet_does_not_emit_owner_values(tmp_path: Path,
         encoding="utf-8"
     )
 
-    assert payload["status"] == "ready"
-    assert payload["ready_for_real_read_smoke"] is True
+    assert payload["status"] == "blocked"
+    assert payload["ready_for_real_read_smoke"] is False
+    assert payload["secret_plaintext_output"] is True
+    assert summary["secret_plaintext_output"] is True
+    assert "boundary:secret_like_text_detected" in payload["missing_conditions"]
+    assert "owner:business_owner_secret_like" in payload["missing_conditions"]
     assert "sk-should-not-leak" not in merged

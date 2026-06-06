@@ -109,7 +109,7 @@ def build_production_landing_local_business_bootstrap(*, env_path: str | Path | 
         "next_commands": [
             "python scripts/local_business_read_mock_server.py",
             "python scripts/production_landing_env_check.py",
-            "python scripts/production_landing_env_runner.py --action business-smoke",
+            "python scripts/production_landing_env_runner.py --action local-business-smoke",
         ],
         "secret_plaintext_output": False,
         "contains_real_secret": False,

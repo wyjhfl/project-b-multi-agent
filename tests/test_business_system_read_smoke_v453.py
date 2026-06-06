@@ -57,11 +57,14 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 class _FixtureServer:
+    def __init__(self, host: str = "127.0.0.1") -> None:
+        self.host = host
+
     def __enter__(self):
         _Handler.token_seen = ""
         _Handler.custom_token_seen = ""
         _Handler.response_status = 200
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
+        self.server = ThreadingHTTPServer((self.host, 0), _Handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         host, port = self.server.server_address
@@ -104,6 +107,7 @@ def test_business_system_read_smoke_default_skipped(tmp_path: Path, monkeypatch)
     assert payload["execution_requested"] is False
     assert payload["env_profile"]["execution_requested"] is False
     assert payload["env_profile"]["ready_for_execute"] is False
+    assert payload["env_profile"]["local_business_mock_used"] is False
     assert "BUSINESS_SYSTEM_TOKEN=<secret-managed-token>" in payload["env_profile"]["required_env"]
     assert payload["env_profile"]["auth_mode"] == "bearer"
     assert payload["env_profile"]["public_production_gap"] is True
@@ -337,15 +341,68 @@ def test_business_system_read_smoke_execute_success_without_secret_leak(tmp_path
     assert payload["execution_requested"] is True
     assert payload["env_profile"]["ready_for_execute"] is True
     assert payload["env_profile"]["auth_mode"] == "bearer"
+    assert payload["env_profile"]["local_business_mock_used"] is False
     assert payload["env_profile"]["public_production_gap"] is False
     assert payload["env_profile"]["present"]["write_tool_allowlist_empty"] is True
     assert payload["business_system_connected"] is True
     assert payload["business_read_executed"] is True
     assert payload["business_write_executed"] is False
     assert payload["business_data_written"] is False
+    assert payload["local_business_mock_used"] is False
     assert _Handler.token_seen == "Bearer business-token-sensitive"
     assert "business-token-sensitive" not in merged
     assert "Bearer " not in merged
     assert server.url not in merged
     assert "<secret-managed-token>" in merged
     assert payload["secret_plaintext_output"] is False
+
+
+def test_business_system_read_smoke_marks_only_explicit_local_mock_as_public_gap(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    with _FixtureServer() as server:
+        _set_opt_in(monkeypatch, server.url)
+        monkeypatch.setenv("BUSINESS_SYSTEM_NAME", "local_business_read_mock")
+
+        summary = build_business_system_read_smoke(output_dir=tmp_path / "out", execute=True)
+
+    payload = _read_payload(summary)
+
+    assert payload["status"] == "success"
+    assert payload["business_read_executed"] is True
+    assert payload["local_business_mock_used"] is True
+    assert payload["env_profile"]["local_business_mock_used"] is True
+    assert payload["env_profile"]["public_production_gap"] is True
+
+
+def test_business_system_read_smoke_does_not_treat_localhost_tunnel_as_mock(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    with _FixtureServer(host="localhost") as server:
+        _set_opt_in(monkeypatch, server.url)
+
+        summary = build_business_system_read_smoke(output_dir=tmp_path / "out", execute=True)
+
+    payload = _read_payload(summary)
+
+    assert payload["status"] == "success"
+    assert payload["business_read_executed"] is True
+    assert payload["local_business_mock_used"] is False
+    assert payload["env_profile"]["local_business_mock_used"] is False
+    assert payload["env_profile"]["public_production_gap"] is False
+
+
+def test_business_system_read_smoke_reports_secret_detection_flag(tmp_path: Path, monkeypatch) -> None:
+    _clear_env(monkeypatch)
+    _set_opt_in(monkeypatch, "http://127.0.0.1:1")
+    monkeypatch.setenv("BUSINESS_SYSTEM_NAME", "token=leaky-fixture")
+
+    summary = build_business_system_read_smoke(output_dir=tmp_path / "out", execute=True)
+    payload = _read_payload(summary)
+
+    assert payload["status"] == "blocked"
+    assert payload["secret_plaintext_output"] is True
+    assert summary["secret_plaintext_output"] is True
+    assert "output:secret_like_text_detected" in payload["missing_conditions"]
