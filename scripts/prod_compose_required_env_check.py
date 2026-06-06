@@ -23,6 +23,18 @@ def _safe_tail(text: str, max_lines: int = 20) -> list[str]:
     return (text or "").splitlines()[-max_lines:]
 
 
+def _mentions_required_env_error(text: str, required_env_keys: tuple[str, ...]) -> bool:
+    lower_text = text.lower()
+    mentions_required = (
+        "required variable" in lower_text
+        or " is required" in lower_text
+        or "missing a value" in lower_text
+        or "interpolating" in lower_text
+    )
+    mentions_key = any(key in text for key in required_env_keys)
+    return mentions_required and mentions_key
+
+
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -82,6 +94,11 @@ def build_prod_compose_required_env_check(
             stderr_tail = _safe_tail(completed.stderr)
             if completed.returncode == 0:
                 missing_conditions.append("compose:prod_config_succeeded_without_required_env")
+            elif not _mentions_required_env_error(
+                f"{completed.stdout}\n{completed.stderr}",
+                required_env_keys,
+            ):
+                missing_conditions.append("compose:prod_config_failed_without_required_env_error")
         finally:
             for key, value in original_values.items():
                 if value is None:

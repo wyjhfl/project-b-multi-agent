@@ -1,10 +1,12 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
 
 jobs:
   test:
@@ -15,10 +17,10 @@ jobs:
       REAL_LLM_SMOKE_ENABLED: "false"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: "pip"
@@ -38,11 +40,14 @@ jobs:
       - name: Initialize demo DB
         run: python scripts/init_demo_db.py
 
+      - name: Production landing text quality check
+        run: python scripts/production_landing_text_quality_check.py
+
       - name: Run tests
         run: python -m pytest -q
 
       - name: Setup Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
