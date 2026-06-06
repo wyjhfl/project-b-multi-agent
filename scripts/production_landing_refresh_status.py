@@ -23,6 +23,7 @@ from scripts.production_landing_final_verification import build_production_landi
 from scripts.business_system_input_packet import build_business_system_input_packet
 from scripts.business_system_landing_execution_pack import build_business_system_landing_execution_pack
 from scripts.business_system_production_readiness_brief import build_business_system_production_readiness_brief
+from scripts.business_system_real_readiness_gate import build_business_system_real_readiness_gate
 from scripts.business_system_read_smoke import build_business_system_read_smoke
 from scripts.production_landing_local_business_smoke import build_production_landing_local_business_smoke
 from scripts.production_landing_input_readiness import (
@@ -152,6 +153,7 @@ def build_production_landing_refresh_status(
         "real_integration_gap_register": build_real_integration_gap_register,
         "real_production_environment_checklist": build_real_production_environment_checklist,
         "business_system_input_packet": build_business_system_input_packet,
+        "business_system_real_readiness_gate": build_business_system_real_readiness_gate,
         "business_system_read_smoke": build_business_system_read_smoke,
         "local_business_smoke": build_production_landing_local_business_smoke,
         "business_system_production_readiness": build_business_system_production_readiness_brief,
@@ -184,6 +186,8 @@ def build_production_landing_refresh_status(
     )
     env_values = _parse_env_file(env_path)
     with _temporary_process_env(env_values):
+        business_real_gate = effective_builders["business_system_real_readiness_gate"](env_path=env_path)
+        steps.append(_safe_step_summary("business_system_real_readiness_gate", business_real_gate))
         if str(env_values.get("BUSINESS_SYSTEM_NAME") or "").strip() == "local_business_read_mock":
             business_read_smoke = effective_builders["local_business_smoke"](env_path=env_path)
         else:

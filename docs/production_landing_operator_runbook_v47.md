@@ -74,6 +74,12 @@
    python scripts/production_landing_env_runner.py --action business-smoke
    ```
 
+   在真实业务系统 smoke 前，先运行真实配置门禁。该门禁不连接业务系统，只检查当前 env 是否仍是 local mock、owner 是否齐全、写入开关是否关闭、真实 URL/token 是否只以 present 布尔进入证据：
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\business_system_real_readiness_gate.py --env-path local\production_landing.staging.env
+   ```
+
    更推荐使用安全 PowerShell 入口。它可以通过 `-EnvPath` 读取非密钥配置和 owner 标识，但会跳过 `BUSINESS_SYSTEM_BASE_URL`、`BUSINESS_SYSTEM_TOKEN` 等 secret 值；真实 URL/token 仍只来自当前进程环境或交互式输入：
 
    ```powershell

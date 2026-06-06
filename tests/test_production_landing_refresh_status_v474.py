@@ -354,8 +354,9 @@ def test_production_landing_refresh_status_runs_embedded_local_business_smoke_fo
     assert calls == ["local_smoke"]
     assert observed["readiness_smoke_json_path"] == str(tmp_path / "local_smoke.json")
     assert observed["pack_source_json_paths"]["business_system_read_smoke"] == str(tmp_path / "local_smoke.json")
-    assert payload["steps"][4]["step_id"] == "business_system_read_smoke"
-    assert payload["steps"][4]["status"] == "success"
+    assert payload["steps"][4]["step_id"] == "business_system_real_readiness_gate"
+    assert payload["steps"][5]["step_id"] == "business_system_read_smoke"
+    assert payload["steps"][5]["status"] == "success"
     assert payload["public_production_direct_launch"] == "No-Go"
 
 

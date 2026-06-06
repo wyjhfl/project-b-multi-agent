@@ -28,6 +28,10 @@ REPORT_SOURCES = {
         "dir": ROOT_DIR / "docs" / "reports" / "business_system_read_smoke",
         "pattern": "*_business_system_read_smoke.json",
     },
+    "business_real_readiness_gate": {
+        "dir": ROOT_DIR / "docs" / "reports" / "business_system_real_readiness_gate",
+        "pattern": "*_business_system_real_readiness_gate.json",
+    },
     "business_production_readiness": {
         "dir": ROOT_DIR / "docs" / "reports" / "business_system_production_readiness",
         "pattern": "*_business_system_production_readiness.json",
@@ -288,6 +292,7 @@ def _derive_status(
     gate: dict[str, Any],
     xiaomi_preflight: dict[str, Any],
     business: dict[str, Any],
+    business_real_gate: dict[str, Any],
     business_readiness: dict[str, Any],
     business_execution_pack: dict[str, Any],
     action_pack: dict[str, Any],
@@ -302,6 +307,7 @@ def _derive_status(
             gate,
             xiaomi_preflight,
             business,
+            business_real_gate,
             business_readiness,
             business_execution_pack,
             action_pack,
@@ -314,6 +320,11 @@ def _derive_status(
     gate_payload = gate.get("payload") if isinstance(gate.get("payload"), dict) else {}
     env_payload = env_check.get("payload") if isinstance(env_check.get("payload"), dict) else {}
     business_payload = business.get("payload") if isinstance(business.get("payload"), dict) else {}
+    business_real_gate_payload = (
+        business_real_gate.get("payload")
+        if isinstance(business_real_gate.get("payload"), dict)
+        else {}
+    )
     business_execution_payload = (
         business_execution_pack.get("payload")
         if isinstance(business_execution_pack.get("payload"), dict)
@@ -367,6 +378,14 @@ def _derive_status(
             blockers.append("business_system:real_read_smoke_required")
         else:
             blockers.append("business_landing_execution_pack:not_ready")
+    if business_real_gate_payload.get("ready_for_real_read_smoke") is not True:
+        missing_conditions = (
+            business_real_gate_payload.get("missing_conditions")
+            if isinstance(business_real_gate_payload.get("missing_conditions"), list)
+            else []
+        )
+        if "business_system:local_mock_configured" in missing_conditions:
+            blockers.append("business_system:real_config_required")
 
     manual_signoff = _manual_signoff_summary(
         pilot_payload=pilot_payload,
@@ -390,6 +409,7 @@ def build_production_landing_status(*, output_dir: str | Path | None = None) -> 
         gate=sources["execution_gate"],
         xiaomi_preflight=sources["xiaomi_llm_preflight"],
         business=sources["business_read_smoke"],
+        business_real_gate=sources["business_real_readiness_gate"],
         business_readiness=sources["business_production_readiness"],
         business_execution_pack=sources["business_landing_execution_pack"],
         action_pack=sources["action_pack"],
@@ -400,6 +420,7 @@ def build_production_landing_status(*, output_dir: str | Path | None = None) -> 
     env_check = payloads.get("env_check", {})
     xiaomi = payloads.get("xiaomi_llm_preflight", {})
     business = payloads.get("business_read_smoke", {})
+    business_real_gate = payloads.get("business_real_readiness_gate", {})
     business_readiness = payloads.get("business_production_readiness", {})
     business_execution_pack = payloads.get("business_landing_execution_pack", {})
     action_pack = payloads.get("action_pack", {})
@@ -447,6 +468,19 @@ def build_production_landing_status(*, output_dir: str | Path | None = None) -> 
     },
         "business_system": {
             "status": str(business.get("status") or "skipped"),
+            "real_readiness_gate_status": str(business_real_gate.get("status") or "skipped"),
+            "real_readiness_gate_ready": bool(business_real_gate.get("ready_for_real_read_smoke", False)),
+            "real_readiness_gate_local_mock_configured": bool(
+                business_real_gate.get("local_mock_configured", False)
+            ),
+            "real_readiness_gate_missing_conditions": [
+                str(item)
+                for item in (
+                    business_real_gate.get("missing_conditions")
+                    if isinstance(business_real_gate.get("missing_conditions"), list)
+                    else []
+                )[:16]
+            ],
             "connected": bool(business.get("business_system_connected", False)),
             "read_executed": bool(business.get("business_read_executed", False)),
             "write_executed": bool(business.get("business_write_executed", False)),

@@ -91,6 +91,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scr
 
 该脚本只检查环境变量是否存在，不读取或输出 URL/token 原文。输出会列出缺口、推荐命令、owner 字段和安全边界。
 
+## 真实配置门禁
+
+执行真实业务系统 read smoke 前，先运行真实配置门禁：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\business_system_real_readiness_gate.py --env-path local\production_landing.staging.env
+```
+
+该门禁只读取 env 键名和存在性，不连接真实业务系统，不输出 `BUSINESS_SYSTEM_BASE_URL` 或 `BUSINESS_SYSTEM_TOKEN` 原文。当前 `BUSINESS_SYSTEM_NAME=local_business_read_mock` 时必须输出 `needs_input`，因为 local mock 只能证明本地链路，不可关闭真实生产只读 smoke 缺口。
+
+门禁为 `ready` 后，再执行真实 read smoke：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ
+```
+
 ## 边界
 
 - 不执行业务写入。

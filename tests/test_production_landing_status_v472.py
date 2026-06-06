@@ -22,6 +22,7 @@ def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
         "execution_gate": root / "execution_gate",
         "xiaomi_llm_preflight": root / "xiaomi_llm_preflight",
         "business_read_smoke": root / "business_read_smoke",
+        "business_real_readiness_gate": root / "business_real_readiness_gate",
         "business_production_readiness": root / "business_production_readiness",
         "business_landing_execution_pack": root / "business_landing_execution_pack",
         "action_pack": root / "action_pack",
@@ -39,6 +40,10 @@ def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
                 "pattern": "*_production_landing_xiaomi_llm_preflight.json",
             },
             "business_read_smoke": {"dir": dirs["business_read_smoke"], "pattern": "*_business_system_read_smoke.json"},
+            "business_real_readiness_gate": {
+                "dir": dirs["business_real_readiness_gate"],
+                "pattern": "*_business_system_real_readiness_gate.json",
+            },
             "business_production_readiness": {
                 "dir": dirs["business_production_readiness"],
                 "pattern": "*_business_system_production_readiness.json",
@@ -117,6 +122,18 @@ def _write_ready_reports(dirs: dict[str, Path]) -> None:
             },
             "business_write_executed": False,
             "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    _write_json(
+        dirs["business_real_readiness_gate"] / "001_business_system_real_readiness_gate.json",
+        {
+            "status": "ready",
+            "ready_for_real_read_smoke": True,
+            "local_mock_configured": False,
+            "missing_conditions": [],
+            "missing_condition_count": 0,
             "secret_plaintext_output": False,
             "public_production_direct_launch": "No-Go",
         },
@@ -477,6 +494,19 @@ def test_production_landing_status_reports_local_mock_as_real_read_smoke_gap(
     dirs = _patch_sources(monkeypatch, tmp_path / "reports")
     _write_ready_reports(dirs)
     _write_json(
+        dirs["business_real_readiness_gate"] / "002_business_system_real_readiness_gate.json",
+        {
+            "generated_at": "2026-06-05T06:30:00+00:00",
+            "status": "needs_input",
+            "ready_for_real_read_smoke": False,
+            "local_mock_configured": True,
+            "missing_condition_count": 1,
+            "missing_conditions": ["business_system:local_mock_configured"],
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    _write_json(
         dirs["business_landing_execution_pack"] / "002_business_system_landing_execution_pack.json",
         {
             "generated_at": "2026-06-05T06:30:01+00:00",
@@ -499,7 +529,14 @@ def test_production_landing_status_reports_local_mock_as_real_read_smoke_gap(
 
     assert summary["status"] == "partial"
     assert "business_system:real_read_smoke_required" in payload["blockers"]
+    assert "business_system:real_config_required" in payload["blockers"]
     assert "business_landing_execution_pack:not_ready" not in payload["blockers"]
+    assert payload["business_system"]["real_readiness_gate_status"] == "needs_input"
+    assert payload["business_system"]["real_readiness_gate_ready"] is False
+    assert payload["business_system"]["real_readiness_gate_local_mock_configured"] is True
+    assert payload["business_system"]["real_readiness_gate_missing_conditions"] == [
+        "business_system:local_mock_configured"
+    ]
     assert payload["business_system"]["landing_execution_missing_conditions"] == [
         "evidence:local_business_mock_not_valid_for_real_production"
     ]
