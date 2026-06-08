@@ -14,6 +14,7 @@ DEFAULT_CLOSURE_INDEX_DIR = ROOT_DIR / "docs" / "reports" / "closure_evidence_in
 DEFAULT_SIGNOFF_RECORD = DEFAULT_OUTPUT_DIR / "manual_signoff_record.template.json"
 DEFAULT_FILLED_SIGNOFF_RECORD = DEFAULT_OUTPUT_DIR / "manual_signoff_record.json"
 DEFAULT_DRAFT_SIGNOFF_RECORD = DEFAULT_OUTPUT_DIR / "manual_signoff_record.draft.json"
+DEFAULT_REAL_LLM_PREFLIGHT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_real_llm_preflight"
 DEFAULT_XIAOMI_PREFLIGHT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight"
 DEFAULT_STAGING_SMOKE_DIR = ROOT_DIR / "docs" / "reports" / "real_integration_staging_smoke"
 DEFAULT_BUSINESS_SMOKE_DIR = ROOT_DIR / "docs" / "reports" / "business_system_read_smoke"
@@ -21,6 +22,8 @@ DEFAULT_CLOSURE_WORKFLOW_DIR = ROOT_DIR / "docs" / "reports" / "launch_blocker_c
 
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
+    re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
+    re.compile(r"\bk-[A-Za-z0-9_\-]{24,}"),
     re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)=([^,\s]+)"),
     re.compile(r"(?i)\"(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\"\s*:\s*\"[^\"]+\""),
     re.compile(r"(?i)(postgres(?:ql)?|redis)://[^,\s]+"),
@@ -96,6 +99,19 @@ def _latest_json(directory: Path, pattern: str) -> Path | None:
 def _latest_evidence_path(directory: Path, pattern: str) -> str:
     latest = _latest_json(directory, pattern)
     return _sanitize_text(latest) if latest else ""
+
+
+def _latest_real_llm_evidence_path() -> str:
+    latest = _latest_evidence_path(
+        DEFAULT_REAL_LLM_PREFLIGHT_DIR,
+        "*_production_landing_real_llm_preflight.json",
+    )
+    if latest:
+        return latest
+    return _latest_evidence_path(
+        DEFAULT_XIAOMI_PREFLIGHT_DIR,
+        "*_production_landing_xiaomi_llm_preflight.json",
+    )
 
 
 def _resolve_cli_default_inputs(
@@ -513,11 +529,8 @@ def _evidence_ack_template() -> list[dict[str, Any]]:
         {
             "item": "real_llm_preflight",
             "accepted": False,
-            "latest_report": _latest_evidence_path(
-                DEFAULT_XIAOMI_PREFLIGHT_DIR,
-                "*_production_landing_xiaomi_llm_preflight.json",
-            ),
-            "note": "确认小米真实 LLM 预检报告为 success，且未输出 API key 原文。",
+            "latest_report": _latest_real_llm_evidence_path(),
+            "note": "确认 OpenAI-compatible 真实 LLM 预检报告为 success，且未输出 API key 原文。",
         },
         {
             "item": "postgres_redis_mcp_smoke",

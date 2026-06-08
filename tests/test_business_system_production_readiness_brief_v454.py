@@ -178,6 +178,70 @@ def test_business_system_production_readiness_brief_binds_explicit_current_smoke
     assert "evidence:business_system_real_read_smoke_not_executed" in payload["missing_conditions"]
 
 
+def test_business_system_production_readiness_brief_loads_safe_env_path_without_secret_values(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _clear_env(monkeypatch)
+    env_path = tmp_path / "landing.env"
+    env_path.write_text(
+        "\n".join(
+            [
+                "BUSINESS_INTEGRATION_ENABLED=true",
+                "BUSINESS_INTEGRATION_READ_ONLY=true",
+                "BUSINESS_INTEGRATION_WRITE_ENABLED=false",
+                "BUSINESS_INTEGRATION_APPROVAL_REQUIRED=true",
+                "BUSINESS_INTEGRATION_AUDIT_REQUIRED=true",
+                "BUSINESS_SYSTEM_NAME=crm",
+                "BUSINESS_SYSTEM_BASE_URL_ENV=BUSINESS_SYSTEM_BASE_URL",
+                "BUSINESS_SYSTEM_TOKEN_ENV=BUSINESS_SYSTEM_TOKEN",
+                "BUSINESS_SYSTEM_BASE_URL=https://must-not-be-loaded.example.test",
+                "BUSINESS_SYSTEM_TOKEN=must-not-be-loaded-token",
+                "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
+                "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST=",
+                "BUSINESS_SYSTEM_READ_PROBE_PATH=/health",
+                "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization",
+                "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=wyj",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=wyj",
+                "BUSINESS_SYSTEM_DATA_OWNER=wyj",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("BUSINESS_SYSTEM_BASE_URL", "https://process.example.test")
+    monkeypatch.setenv("BUSINESS_SYSTEM_TOKEN", "process-token")
+    smoke_dir = tmp_path / "smoke"
+    _write_smoke_report(smoke_dir, {"business_read_executed": False, "status": "skipped"})
+
+    summary = build_business_system_production_readiness_brief(
+        output_dir=tmp_path / "out",
+        business_smoke_report_dir=smoke_dir,
+        env_path=env_path,
+    )
+    payload = _payload(summary)
+    merged = Path(summary["json_path"]).read_text(encoding="utf-8") + Path(summary["markdown_path"]).read_text(
+        encoding="utf-8"
+    )
+
+    assert payload["status"] == "needs_input"
+    assert payload["owner_inputs_present"] == {
+        "business_owner": True,
+        "security_reviewer": True,
+        "operations_owner": True,
+        "data_owner": True,
+    }
+    assert "owner:business_owner_missing" not in payload["missing_conditions"]
+    assert "opt_in:BUSINESS_INTEGRATION_ENABLED_not_enabled" not in payload["missing_conditions"]
+    assert "env:BUSINESS_SYSTEM_BASE_URL_ENV_missing" not in payload["missing_conditions"]
+    assert "env_target:BUSINESS_SYSTEM_BASE_URL_ENV_missing" not in payload["missing_conditions"]
+    assert "env_target:BUSINESS_SYSTEM_TOKEN_ENV_missing" not in payload["missing_conditions"]
+    assert "evidence:business_system_real_read_smoke_not_executed" in payload["missing_conditions"]
+    assert payload["env_path_secret_keys_skipped"] == ["BUSINESS_SYSTEM_BASE_URL", "BUSINESS_SYSTEM_TOKEN"]
+    assert "must-not-be-loaded" not in merged
+    assert "process-token" not in merged
+
+
 def test_business_system_production_readiness_brief_rejects_local_mock_smoke(
     tmp_path: Path, monkeypatch
 ) -> None:

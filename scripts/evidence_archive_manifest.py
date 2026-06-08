@@ -21,6 +21,7 @@ DEFAULT_EVIDENCE_ROOTS: dict[str, Path] = {
     "live_drill_window": ROOT_DIR / "docs" / "reports" / "live_drill_window",
     "operator_workflow": ROOT_DIR / "docs" / "reports" / "operator_workflow",
     "incident_rehearsal": ROOT_DIR / "docs" / "reports" / "incident_rehearsal",
+    "controlled_pilot_run_packet": ROOT_DIR / "docs" / "reports" / "controlled_pilot_run_packet",
     "release_review": ROOT_DIR / "docs",
     "post_release_handoff": ROOT_DIR / "docs",
 }

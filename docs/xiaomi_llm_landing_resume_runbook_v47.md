@@ -19,7 +19,7 @@ powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_landing_resume.ps1
 
 1. 使用 `Read-Host -AsSecureString` 读取 `XIAOMI_LLM_API_KEY`。
 2. 仅注入当前 PowerShell 进程环境。
-3. 执行 `python scripts/production_landing_env_runner.py --action xiaomi-llm-preflight`。
+3. 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_runner.py --action xiaomi-llm-preflight`。
 4. 执行 `python scripts/manual_signoff_evidence_ack_status.py`。
 5. 执行 `python scripts/manual_signoff_record_validator.py`。
 6. 执行 `python scripts/production_landing_blocker_resolution.py`。

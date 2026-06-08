@@ -188,6 +188,16 @@ def test_business_system_landing_resume_ps1_refreshes_landing_chain_without_plai
     assert "controlled-pilot-operator-packet-prime" in text
     assert "controlled_pilot_status_summary.py" in text
     assert "controlled_pilot_operator_packet.py" in text
+    assert "controlled-pilot-delivery-gate" in text
+    assert "controlled-pilot-launch-gate" in text
+    assert "controlled-pilot-launch-package" in text
+    assert "controlled-pilot-run-packet" in text
+    assert "evidence-archive-manifest" in text
+    assert "controlled_pilot_delivery_gate.py" in text
+    assert "controlled_pilot_launch_gate.py" in text
+    assert "controlled_pilot_launch_package.py" in text
+    assert "controlled_pilot_run_packet.py" in text
+    assert "evidence_archive_manifest.py" in text
     assert "CheckPythonOnly" in text
     assert "Resolve-PythonExecutable" in text
     assert "WindowsApps" in text

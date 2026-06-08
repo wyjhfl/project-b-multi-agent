@@ -25,6 +25,10 @@ REPORT_SOURCES = {
         "dir": ROOT_DIR / "docs" / "reports" / "production_landing_final_verification",
         "pattern": "*_production_landing_final_verification.json",
     },
+    "production_landing_real_llm_preflight": {
+        "dir": ROOT_DIR / "docs" / "reports" / "production_landing_real_llm_preflight",
+        "pattern": "*_production_landing_real_llm_preflight.json",
+    },
     "production_landing_xiaomi_llm_preflight": {
         "dir": ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight",
         "pattern": "*_production_landing_xiaomi_llm_preflight.json",
@@ -46,6 +50,7 @@ REPORT_SOURCES = {
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
     re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
+    re.compile(r"\bk-[A-Za-z0-9_\-]{24,}"),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
     re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^,\s]+"),
     re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\s*[:=]\s*([^\s,]+)"),
@@ -174,16 +179,46 @@ def _make_action(action_id: str, status: str, owner: str, evidence: dict[str, An
     }
 
 
+def _select_real_llm_payload(reports: dict[str, dict[str, Any]]) -> tuple[str, dict[str, Any], bool]:
+    real_payload = reports.get("production_landing_real_llm_preflight", {}).get("payload", {})
+    if real_payload:
+        return (
+            "production_landing_real_llm_preflight",
+            real_payload if isinstance(real_payload, dict) else {},
+            False,
+        )
+    xiaomi_payload = reports.get("production_landing_xiaomi_llm_preflight", {}).get("payload", {})
+    return (
+        "production_landing_xiaomi_llm_preflight",
+        xiaomi_payload if isinstance(xiaomi_payload, dict) else {},
+        True,
+    )
+
+
+def _select_real_llm_status(
+    status_payload: dict[str, Any],
+    source_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    if source_id == "production_landing_real_llm_preflight":
+        status = status_payload.get("real_llm") if isinstance(status_payload.get("real_llm"), dict) else {}
+        if status:
+            return status
+        return payload
+    status = status_payload.get("xiaomi_llm") if isinstance(status_payload.get("xiaomi_llm"), dict) else {}
+    return status or payload
+
+
 def _derive_actions(reports: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     status_payload = reports["production_landing_status"].get("payload", {})
     action_payload = reports["production_landing_action_pack"].get("payload", {})
-    xiaomi_payload = reports["production_landing_xiaomi_llm_preflight"].get("payload", {})
+    real_llm_source_id, real_llm_payload, real_llm_fallback_used = _select_real_llm_payload(reports)
     ack_payload = reports["manual_signoff_evidence_ack_status"].get("payload", {})
     validation_payload = reports["manual_signoff_record_validation"].get("payload", {})
     promote_payload = reports["manual_signoff_record_promote"].get("payload", {})
 
-    xiaomi_status = status_payload.get("xiaomi_llm") if isinstance(status_payload.get("xiaomi_llm"), dict) else {}
-    xiaomi_preflight = xiaomi_payload.get("preflight") if isinstance(xiaomi_payload.get("preflight"), dict) else {}
+    real_llm_status = _select_real_llm_status(status_payload, real_llm_source_id, real_llm_payload)
+    real_llm_preflight = real_llm_payload.get("preflight") if isinstance(real_llm_payload.get("preflight"), dict) else {}
     manual = status_payload.get("manual_signoff") if isinstance(status_payload.get("manual_signoff"), dict) else {}
     required_inputs = action_payload.get("required_inputs") if isinstance(action_payload.get("required_inputs"), list) else []
     action_ids = {str(item.get("input_id") or "") for item in required_inputs if isinstance(item, dict)}
@@ -193,38 +228,40 @@ def _derive_actions(reports: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
             "real_llm_preflight",
             "resolved"
             if (
-                xiaomi_status.get("status") == "success"
-                and xiaomi_status.get("api_key_present") is True
-                and xiaomi_status.get("network_check_executed") is True
-                and xiaomi_status.get("real_llm_executed") is True
+                real_llm_status.get("status") == "success"
+                and real_llm_status.get("api_key_present") is True
+                and real_llm_status.get("network_check_executed") is True
+                and real_llm_status.get("real_llm_executed") is True
             )
             else "required",
             "operator",
             {
-                "status": xiaomi_status.get("status", xiaomi_payload.get("status", "skipped")),
-                "api_key_present": xiaomi_status.get("api_key_present", xiaomi_payload.get("api_key_present", False)),
-                "network_check_requested": xiaomi_status.get(
+                "source_id": real_llm_source_id,
+                "compat_fallback_used": real_llm_fallback_used,
+                "status": real_llm_status.get("status", real_llm_payload.get("status", "skipped")),
+                "api_key_present": real_llm_status.get("api_key_present", real_llm_payload.get("api_key_present", False)),
+                "network_check_requested": real_llm_status.get(
                     "network_check_requested",
-                    xiaomi_preflight.get("network_check_requested", xiaomi_payload.get("execute_network_check", False)),
+                    real_llm_preflight.get("network_check_requested", real_llm_payload.get("execute_network_check", False)),
                 ),
-                "network_check_allowed": xiaomi_status.get(
+                "network_check_allowed": real_llm_status.get(
                     "network_check_allowed",
-                    xiaomi_preflight.get("network_check_allowed", False),
+                    real_llm_preflight.get("network_check_allowed", False),
                 ),
-                "network_check_executed": xiaomi_status.get(
+                "network_check_executed": real_llm_status.get(
                     "network_check_executed",
-                    xiaomi_preflight.get("network_check_executed", False),
+                    real_llm_preflight.get("network_check_executed", False),
                 ),
-                "real_llm_executed": xiaomi_status.get("real_llm_executed", xiaomi_payload.get("real_llm_executed", False)),
-                "safe_next_action": xiaomi_status.get("safe_next_action", xiaomi_payload.get("safe_next_action", "")),
-                "acceptance_blockers": xiaomi_status.get(
+                "real_llm_executed": real_llm_status.get("real_llm_executed", real_llm_payload.get("real_llm_executed", False)),
+                "safe_next_action": real_llm_status.get("safe_next_action", real_llm_payload.get("safe_next_action", "")),
+                "acceptance_blockers": real_llm_status.get(
                     "acceptance_blockers",
-                    xiaomi_payload.get("acceptance_blockers", []),
+                    real_llm_payload.get("acceptance_blockers", []),
                 ),
-                "secret_plaintext_output": xiaomi_payload.get("secret_plaintext_output", False),
+                "secret_plaintext_output": real_llm_payload.get("secret_plaintext_output", False),
             },
             [
-                "powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_landing_resume.ps1",
+                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1",
                 "python scripts/production_landing_final_verification.py",
             ],
         ),

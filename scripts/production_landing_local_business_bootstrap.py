@@ -34,6 +34,18 @@ LOCAL_BUSINESS_VALUES = {
 }
 
 
+def _codex_python(command: str) -> str:
+    if command.startswith("python scripts/"):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        ).replace("/", "\\")
+    if command.startswith("python -m "):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        )
+    return command
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -105,11 +117,11 @@ def build_production_landing_local_business_bootstrap(*, env_path: str | Path | 
         "write_enabled": False,
         "tool_allowlist": ["business_read_probe"],
         "requires_local_mock_server": True,
-        "local_mock_command": "python scripts/local_business_read_mock_server.py",
+        "local_mock_command": _codex_python("python scripts/local_business_read_mock_server.py"),
         "next_commands": [
-            "python scripts/local_business_read_mock_server.py",
-            "python scripts/production_landing_env_check.py",
-            "python scripts/production_landing_env_runner.py --action local-business-smoke",
+            _codex_python("python scripts/local_business_read_mock_server.py"),
+            _codex_python("python scripts/production_landing_env_check.py"),
+            _codex_python("python scripts/production_landing_env_runner.py --action local-business-smoke"),
         ],
         "secret_plaintext_output": False,
         "contains_real_secret": False,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from scripts.real_production_environment_checklist import build_real_production_environment_checklist
 
-MOJIBAKE_MARKERS = ("鐪", "榛", "涓嶆", "浠讳", "銆?", "€?")
+MOJIBAKE_MARKERS = ("鐪", "钀", "藉", "闆", "璐", "锛", "銆", "€")
 
 
 def _read_payload(summary: dict) -> dict:
@@ -16,6 +16,7 @@ def _read_payload(summary: dict) -> dict:
 def _make_evidence_dirs(root: Path) -> dict[str, Path]:
     mapping = {
         "env_profile": root / "real_integration_env_profile",
+        "real_llm_preflight": root / "production_landing_real_llm_preflight",
         "xiaomi_llm_preflight": root / "production_landing_xiaomi_llm_preflight",
         "staging_smoke": root / "real_integration_staging_smoke",
         "staging_gate": root / "real_integration_staging_gate",
@@ -27,8 +28,8 @@ def _make_evidence_dirs(root: Path) -> dict[str, Path]:
     return mapping
 
 
-def _write_json(directory: Path, payload: dict) -> None:
-    (directory / "001.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+def _write_json(directory: Path, payload: dict, name: str = "001.json") -> None:
+    (directory / name).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _base_evidence(*, status: str = "partial") -> dict:
@@ -47,6 +48,20 @@ def _base_evidence(*, status: str = "partial") -> dict:
         "business_data_written": False,
         "audit_data_written": False,
         "metrics_data_written": False,
+        "secret_plaintext_output": False,
+    }
+
+
+def _successful_llm_preflight() -> dict:
+    return {
+        **_base_evidence(status="success"),
+        "api_key_present": True,
+        "real_llm_executed": True,
+        "preflight": {
+            "network_check_allowed": True,
+            "network_check_executed": True,
+        },
+        "acceptance_blockers": [],
         "secret_plaintext_output": False,
     }
 
@@ -83,13 +98,17 @@ def test_real_production_environment_checklist_covers_real_domains_and_commands(
 
     assert payload["status"] == "partial"
     assert set(domains) == {"real_llm", "postgres", "redis", "external_mcp", "business_system"}
-    assert domains["real_llm"]["smoke_command"].endswith("scripts\\xiaomi_llm_preflight.ps1")
-    assert domains["postgres"]["smoke_command"].endswith("scripts\\real_integration_infra_smoke.ps1 -Domains postgres")
-    assert domains["redis"]["smoke_command"].endswith("scripts\\real_integration_infra_smoke.ps1 -Domains redis")
+    assert domains["real_llm"]["smoke_command"].endswith("scripts\\real_llm_preflight.ps1")
+    assert domains["real_llm"]["compat_smoke_command"].endswith("scripts\\xiaomi_llm_preflight.ps1")
+    assert "scripts\\real_integration_infra_smoke.ps1 -Domains postgres" in domains["postgres"]["smoke_command"]
+    assert "-UseExistingEnv -EnvPath local\\production_landing.staging.env" in domains["postgres"]["smoke_command"]
+    assert "scripts\\real_integration_infra_smoke.ps1 -Domains redis" in domains["redis"]["smoke_command"]
+    assert "-UseExistingEnv -EnvPath local\\production_landing.staging.env" in domains["redis"]["smoke_command"]
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains external_mcp" in domains["external_mcp"]["smoke_command"]
+    assert "-UseExistingEnv -EnvPath local\\production_landing.staging.env" in domains["external_mcp"]["smoke_command"]
     assert domains["business_system"]["smoke_command"].endswith("scripts\\business_system_read_smoke.ps1")
     assert domains["real_llm"]["owner"] == "LLM 集成负责人"
-    assert "LLM preflight 网络检查通过" in domains["real_llm"]["required_evidence"]
+    assert "通用 real LLM preflight 网络检查通过" in domains["real_llm"]["required_evidence"]
     assert "Alembic migration 仅在人工批准窗口执行" in domains["postgres"]["required_config"]
     assert "断连降级、恢复、告警证据" in domains["redis"]["required_evidence"]
     assert "ToolGateway discovery/call 二次 allowlist 证据" in domains["external_mcp"]["required_evidence"]
@@ -234,29 +253,67 @@ def test_real_production_environment_checklist_uses_aggregated_safe_infra_eviden
     assert payload["evidence"]["staging_smoke"]["safe_summary"]["aggregated_safe_report_count"] == 1
 
 
-def test_real_production_environment_checklist_accepts_xiaomi_llm_preflight_evidence(tmp_path: Path) -> None:
+def test_real_production_environment_checklist_accepts_generic_real_llm_preflight_evidence(tmp_path: Path) -> None:
     evidence_dirs = _make_evidence_dirs(tmp_path / "evidence")
     for key, directory in evidence_dirs.items():
         payload = _base_evidence(status="partial")
         if key == "staging_smoke":
-            payload.update(
-                {
-                    "status": "skipped",
-                    "real_llm_executed": False,
-                    "secret_plaintext_output": False,
-                }
-            )
+            payload.update({"status": "skipped", "real_llm_executed": False, "secret_plaintext_output": False})
+        if key == "real_llm_preflight":
+            payload = _successful_llm_preflight()
+        _write_json(directory, payload)
+
+    summary = build_real_production_environment_checklist(output_dir=tmp_path / "out", evidence_dirs=evidence_dirs)
+    payload = _read_payload(summary)
+    real_llm = {item["domain_id"]: item for item in payload["domains"]}["real_llm"]
+
+    assert payload["real_llm_evidence_source"] == "real_llm_preflight"
+    assert "real_llm:not_executed" not in real_llm["missing_conditions"]
+    assert "staging_smoke:report_missing_or_skipped" not in real_llm["missing_conditions"]
+    assert payload["evidence"]["real_llm_preflight"]["safe_summary"]["api_key_present"] is True
+    assert payload["evidence"]["real_llm_preflight"]["safe_summary"]["network_check_executed"] is True
+
+
+def test_real_production_environment_checklist_accepts_xiaomi_fallback_when_generic_missing(tmp_path: Path) -> None:
+    evidence_dirs = _make_evidence_dirs(tmp_path / "evidence")
+    # Leave generic report dir empty to exercise compatibility fallback.
+    for key, directory in evidence_dirs.items():
+        if key == "real_llm_preflight":
+            continue
+        payload = _base_evidence(status="partial")
+        if key == "staging_smoke":
+            payload.update({"status": "skipped", "real_llm_executed": False, "secret_plaintext_output": False})
+        if key == "xiaomi_llm_preflight":
+            payload = _successful_llm_preflight()
+        _write_json(directory, payload)
+
+    summary = build_real_production_environment_checklist(output_dir=tmp_path / "out", evidence_dirs=evidence_dirs)
+    payload = _read_payload(summary)
+    real_llm = {item["domain_id"]: item for item in payload["domains"]}["real_llm"]
+
+    assert payload["real_llm_evidence_source"] == "xiaomi_llm_preflight"
+    assert "real_llm:not_executed" not in real_llm["missing_conditions"]
+    assert payload["evidence"]["xiaomi_llm_preflight"]["safe_summary"]["api_key_present"] is True
+
+
+def test_real_production_environment_checklist_ignores_secret_like_xiaomi_when_generic_present(
+    tmp_path: Path,
+) -> None:
+    evidence_dirs = _make_evidence_dirs(tmp_path / "evidence")
+    for key, directory in evidence_dirs.items():
+        payload = _base_evidence(status="partial")
+        if key == "staging_smoke":
+            payload.update({"status": "skipped", "real_llm_executed": False, "secret_plaintext_output": False})
+        if key == "real_llm_preflight":
+            payload = _successful_llm_preflight()
         if key == "xiaomi_llm_preflight":
             payload.update(
                 {
-                    "status": "success",
+                    "status": "blocked",
                     "api_key_present": True,
                     "real_llm_executed": True,
-                    "preflight": {
-                        "network_check_allowed": True,
-                        "network_check_executed": True,
-                    },
-                    "acceptance_blockers": [],
+                    "preflight": {"network_check_executed": True},
+                    "note": "api_key=sk-compat-xiaomi-secret",
                     "secret_plaintext_output": False,
                 }
             )
@@ -264,19 +321,23 @@ def test_real_production_environment_checklist_accepts_xiaomi_llm_preflight_evid
 
     summary = build_real_production_environment_checklist(output_dir=tmp_path / "out", evidence_dirs=evidence_dirs)
     payload = _read_payload(summary)
-    real_llm = {item["domain_id"]: item for item in payload["domains"]}["real_llm"]
+    merged = Path(summary["json_path"]).read_text(encoding="utf-8") + Path(summary["markdown_path"]).read_text(
+        encoding="utf-8"
+    )
 
-    assert "real_llm:not_executed" not in real_llm["missing_conditions"]
-    assert "staging_smoke:report_missing_or_skipped" not in real_llm["missing_conditions"]
-    assert payload["evidence"]["xiaomi_llm_preflight"]["safe_summary"]["api_key_present"] is True
-    assert payload["evidence"]["xiaomi_llm_preflight"]["safe_summary"]["network_check_executed"] is True
+    assert payload["status"] == "partial"
+    assert payload["real_llm_evidence_source"] == "real_llm_preflight"
+    assert payload["evidence"]["xiaomi_llm_preflight"]["compat_ignored_by_generic_real_llm"] is True
+    assert "sk-compat-xiaomi-secret" not in merged
 
 
-def test_real_production_environment_checklist_blocks_secret_like_xiaomi_preflight_without_leaking(
+def test_real_production_environment_checklist_blocks_secret_like_xiaomi_fallback_without_leaking(
     tmp_path: Path,
 ) -> None:
     evidence_dirs = _make_evidence_dirs(tmp_path / "evidence")
     for key, directory in evidence_dirs.items():
+        if key == "real_llm_preflight":
+            continue
         payload = _base_evidence(status="partial")
         if key == "xiaomi_llm_preflight":
             payload.update(
@@ -332,7 +393,7 @@ def test_real_production_environment_checklist_allows_secret_managed_placeholder
         payload = _base_evidence(status="partial")
         if key == "staging_smoke":
             payload["required_env"] = [
-                "XIAOMI_LLM_API_KEY=<secret-managed-token>",
+                "REAL_LLM_API_KEY=<secret-managed-token>",
                 "DATABASE_URL=<secret-managed-url>",
             ]
         _write_json(directory, payload)

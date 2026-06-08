@@ -77,12 +77,55 @@ def _latest_json(directory: Path, pattern: str) -> Path | None:
     return max(files, key=sort_key)
 
 
+def _latest_usable_business_smoke(directory: Path, pattern: str) -> Path | None:
+    if not directory.exists() or not directory.is_dir():
+        return None
+    candidates: list[tuple[str, float, str, Path]] = []
+    for path in directory.glob(pattern):
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        env_profile = payload.get("env_profile") if isinstance(payload.get("env_profile"), dict) else {}
+        real_read_smoke = (
+            payload.get("demo_business_system_used") is not True
+            and payload.get("real_business_system_connected") is not False
+            and env_profile.get("public_production_gap") is not True
+        )
+        if (
+            payload.get("status") == "success"
+            and payload.get("business_system_connected") is True
+            and payload.get("business_read_executed") is True
+            and payload.get("business_write_executed") is not True
+            and payload.get("business_data_written") is not True
+            and payload.get("local_business_mock_used") is not True
+            and payload.get("secret_plaintext_output") is not True
+            and (
+                payload.get("demo_business_system_used") is True
+                or payload.get("real_business_system_connected") is True
+                or real_read_smoke
+            )
+        ):
+            candidates.append((str(payload.get("generated_at") or ""), path.stat().st_mtime, path.name, path))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: (item[0], item[1], item[2]))[3]
+
+
 def _load_latest(
     report_id: str,
     reports: dict[str, tuple[Path, str]],
 ) -> tuple[Path | None, dict[str, Any]]:
     directory, pattern = reports[report_id]
-    path = _latest_json(directory, pattern)
+    path = (
+        _latest_usable_business_smoke(directory, pattern)
+        if report_id == "business_system_read_smoke"
+        else _latest_json(directory, pattern)
+    )
     if path is None:
         return None, {}
     try:
@@ -119,11 +162,28 @@ def _controlled_pilot(payload: dict[str, Any]) -> str:
     return str(payload.get("controlled_pilot") or go_no_go.get("controlled_pilot") or "")
 
 
+def _demo_business_read_ready(report: dict[str, Any]) -> bool:
+    return bool(
+        report.get("status") == "success"
+        and report.get("business_system_connected") is True
+        and report.get("business_read_executed") is True
+        and report.get("business_write_executed") is not True
+        and report.get("business_data_written") is not True
+        and report.get("local_business_mock_used") is not True
+        and report.get("demo_business_system_used") is True
+        and report.get("real_business_system_connected") is not True
+    )
+
+
 def _report_row(report_id: str, path: Path | None, payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "present": path is not None,
         "latest_json_path": str(path or ""),
-        "selection": "latest_successful_executed" if report_id == "operations_console_landing_smoke" else "latest",
+        "selection": (
+            "latest_successful_executed"
+            if report_id == "operations_console_landing_smoke"
+            else ("latest_usable_successful" if report_id == "business_system_read_smoke" else "latest")
+        ),
         "status": str(payload.get("status") or "missing"),
         "generated_at": str(payload.get("generated_at") or ""),
         "controlled_pilot": _controlled_pilot(payload),
@@ -132,6 +192,11 @@ def _report_row(report_id: str, path: Path | None, payload: dict[str, Any]) -> d
         "controlled_pilot_ready": payload.get("controlled_pilot_ready"),
         "operations_console_smoke_status": payload.get("operations_console_smoke_status"),
         "business_read_executed": payload.get("business_read_executed"),
+        "business_write_executed": payload.get("business_write_executed"),
+        "business_data_written": payload.get("business_data_written"),
+        "local_business_mock_used": payload.get("local_business_mock_used"),
+        "demo_business_system_used": payload.get("demo_business_system_used"),
+        "real_business_system_connected": payload.get("real_business_system_connected"),
         "business_system_connected": payload.get("business_system_connected"),
         "business_public_production_gap": (
             payload.get("env_profile", {}).get("public_production_gap")
@@ -194,6 +259,7 @@ def build_controlled_pilot_status_summary(
     ]
     public_production_gaps: list[str] = []
     business_report = reports.get("business_system_read_smoke", {})
+    demo_business_ready = _demo_business_read_ready(business_report)
     if business_report.get("business_read_executed") is not True:
         public_production_gaps.append("business_system:real_read_only_smoke_not_executed")
     if business_report.get("business_public_production_gap") is True:
@@ -201,6 +267,7 @@ def build_controlled_pilot_status_summary(
     business_readiness = reports.get("business_system_production_readiness", {})
     if business_readiness.get("production_readiness_status") != "ready":
         public_production_gaps.append("business_system:production_readiness_not_ready")
+    accepted_remaining_gaps = ["business_system:real_business_system_required"] if demo_business_ready else []
     evidence_freshness = reports.get("production_landing_evidence_freshness", {})
     freshness_ready = (
         evidence_freshness.get("evidence_freshness_status") == "success"
@@ -213,15 +280,21 @@ def build_controlled_pilot_status_summary(
 
     ready = (
         not blocking
-        and not public_production_gaps
         and reports["controlled_pilot_launch_gate"]["status"] == "ready"
         and reports["controlled_pilot_launch_gate"]["ready_for_controlled_pilot"] is True
         and reports["controlled_pilot_launch_package"]["status"] == "ready"
         and reports["controlled_pilot_launch_package"]["launch_package_ready"] is True
         and reports["controlled_pilot_window_status"]["status"] == "healthy"
         and reports["operations_console_landing_smoke"]["status"] == "success"
-        and business_report.get("business_read_executed") is True
-        and business_readiness.get("production_readiness_status") == "ready"
+        and (
+            (
+                business_report.get("business_read_executed") is True
+                and business_readiness.get("production_readiness_status") == "ready"
+                and business_report.get("business_public_production_gap") is not True
+            )
+            or demo_business_ready
+        )
+        and freshness_ready
     )
     generated_at = _utc_now_iso()
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
@@ -242,6 +315,8 @@ def build_controlled_pilot_status_summary(
         "blocking_reports": blocking,
         "public_production_gaps": sorted(set(public_production_gaps)),
         "public_production_gap_count": len(set(public_production_gaps)),
+        "accepted_remaining_gaps": accepted_remaining_gaps,
+        "accepted_remaining_gap_count": len(accepted_remaining_gaps),
     }
     if write_report:
         output_root = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR

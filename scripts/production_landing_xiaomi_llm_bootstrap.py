@@ -30,6 +30,18 @@ XIAOMI_LLM_VALUES = {
 }
 
 
+def _codex_python(command: str) -> str:
+    if command.startswith("python scripts/"):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        ).replace("/", "\\")
+    if command.startswith("python -m "):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        )
+    return command
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -151,9 +163,9 @@ def build_production_landing_xiaomi_llm_bootstrap(
         "real_llm_model": "mimo-v2.5-pro",
         "real_llm_base_url": "https://token-plan-cn.xiaomimimo.com/v1",
         "next_commands": [
-            "python scripts/production_landing_env_check.py",
-            "python scripts/production_landing_execution_gate.py",
-            "python scripts/production_landing_env_runner.py --action env-check",
+            _codex_python("python scripts/production_landing_env_check.py"),
+            _codex_python("python scripts/production_landing_execution_gate.py"),
+            _codex_python("python scripts/production_landing_env_runner.py --action env-check"),
         ],
         "secret_plaintext_output": False,
         "contains_real_secret": False,

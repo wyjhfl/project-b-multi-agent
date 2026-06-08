@@ -54,7 +54,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read
 如已由外部 secret manager 注入 `BUSINESS_SYSTEM_BASE_URL` 与 `BUSINESS_SYSTEM_TOKEN`，可使用：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -UseExistingEnv
 ```
 
 如需要从本地 ignored env 文件加载非密钥配置和 owner，可使用 `-EnvPath`。该入口会跳过 `BUSINESS_SYSTEM_BASE_URL`、`BUSINESS_SYSTEM_TOKEN`、`DATABASE_URL`、`REDIS_URL`、`XIAOMI_LLM_API_KEY`、`JWT_SECRET`，真实 URL/token 仍必须来自当前进程环境、外部 secret manager 或交互式输入：
@@ -110,7 +110,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scr
 门禁为 `ready` 后，再执行真实 read smoke：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -UseExistingEnv
 ```
 
 ## 边界
@@ -127,7 +127,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read
 非交互负责人示例：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\business_system_read_smoke.ps1 -BusinessOwner <owner-or-staff-id> -SecurityReviewer <owner-or-staff-id> -OperationsOwner <owner-or-staff-id> -DataOwner <owner-or-staff-id>
 ```
 
 如只需要在已有进程环境中续跑落地链路，可使用 `business_system_landing_resume.ps1`。如果已经有本轮 `business_system_read_smoke` JSON，应显式传入 `-BusinessReadSmokeJsonPath`，resume 脚本会继续绑定本轮 input/readiness/execution pack 证据，避免回退到旧报告：

@@ -110,10 +110,15 @@ def test_production_landing_text_quality_default_targets_include_business_system
 
     assert (text_quality.ROOT_DIR / "pyproject.toml").as_posix() in targets
     assert (text_quality.ROOT_DIR / "docs" / "business_system_read_smoke_v45.md").as_posix() in targets
+    assert (text_quality.ROOT_DIR / "docs" / "evidence_archive_manifest_v34.md").as_posix() in targets
+    assert (text_quality.ROOT_DIR / "docs" / "controlled_pilot_run_packet_v49.md").as_posix() in targets
+    assert (text_quality.ROOT_DIR / "docs" / "demo_business_read_only_interface_v49.md").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_read_smoke.py").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_read_smoke.ps1").as_posix() in targets
+    assert (text_quality.ROOT_DIR / "scripts" / "controlled_pilot_run_packet.py").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_production_readiness_brief.py").as_posix() in targets
     assert (text_quality.ROOT_DIR / "scripts" / "business_system_input_packet.py").as_posix() in targets
+    assert (text_quality.ROOT_DIR / "scripts" / "production_landing_blocker_resolution.py").as_posix() in targets
 
 
 def test_business_system_read_smoke_doc_documents_env_path_and_localhost_tunnel_boundary() -> None:

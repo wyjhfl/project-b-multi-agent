@@ -173,6 +173,69 @@ def test_litellm_provider_openai_compatible_fallback_normalizes_metadata(monkeyp
     assert metadata.total_tokens == 5
 
 
+def test_litellm_provider_openai_compatible_http_error_includes_safe_detail(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "gpt-5.5")
+    monkeypatch.setattr(settings, "llm_timeout_seconds", 10.0)
+    monkeypatch.setattr(settings, "llm_max_retries", 0)
+
+    class _Response:
+        status_code = 400
+
+        def json(self):
+            return {
+                "error": {
+                    "code": "MODEL_NOT_FOUND",
+                    "message": "model gpt-5.5 is unavailable",
+                }
+            }
+
+    monkeypatch.setattr("httpx.post", lambda *args, **kwargs: _Response())
+
+    provider = LiteLLMProvider(base_url="http://100.119.206.22:8300/v1")
+    with pytest.raises(ProviderResponseError) as exc_info:
+        provider._generate_openai_compatible("hello", 0.0)
+
+    detail = str(exc_info.value)
+    assert "OpenAI-compatible endpoint returned 400" in detail
+    assert "MODEL_NOT_FOUND" in detail
+    assert "model gpt-5.5 is unavailable" in detail
+    assert "demo-key" not in detail
+
+
+def test_litellm_provider_openai_compatible_http_error_redacts_secret_detail(monkeypatch):
+    monkeypatch.setattr(settings, "llm_api_key", "demo-key")
+    monkeypatch.setattr(settings, "llm_model", "gpt-5.5")
+    monkeypatch.setattr(settings, "llm_timeout_seconds", 10.0)
+    monkeypatch.setattr(settings, "llm_max_retries", 0)
+
+    class _Response:
+        status_code = 400
+
+        def json(self):
+            return {
+                "error": {
+                    "code": "BAD_REQUEST",
+                    "message": (
+                        "upstream rejected sk-secret-value "
+                        "at https://user:pass@example.test/v1?token=bad"
+                    ),
+                }
+            }
+
+    monkeypatch.setattr("httpx.post", lambda *args, **kwargs: _Response())
+
+    provider = LiteLLMProvider(base_url="http://100.119.206.22:8300/v1")
+    with pytest.raises(ProviderResponseError) as exc_info:
+        provider._generate_openai_compatible("hello", 0.0)
+
+    detail = str(exc_info.value)
+    assert "BAD_REQUEST" in detail
+    assert "sk-secret-value" not in detail
+    assert "token=bad" not in detail
+    assert "user:pass" not in detail
+
+
 @pytest.mark.parametrize(
     ("exc", "expected"),
     [

@@ -6,6 +6,12 @@ from pathlib import Path
 from scripts.production_landing_local_mcp_bootstrap import build_production_landing_local_mcp_bootstrap
 
 
+def _codex_python(script_command: str) -> str:
+    return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + script_command.replace(
+        "/", "\\"
+    )
+
+
 def test_local_mcp_bootstrap_writes_controlled_stdio_fixture_config(tmp_path: Path) -> None:
     env_path = tmp_path / "local" / "production_landing.staging.env"
 
@@ -25,5 +31,7 @@ def test_local_mcp_bootstrap_writes_controlled_stdio_fixture_config(tmp_path: Pa
     assert "MCP_SERVER_COMMAND_ALLOWLIST=" in env_text
     assert "MCP_TOOL_ALLOWLIST=stdio_date_lookup" in env_text
     assert "stdio_refund_update" not in env_text
+    assert _codex_python("scripts/production_landing_env_runner.py --action staging-smoke") in summary["next_commands"]
+    assert not any(command.startswith("python scripts/") for command in summary["next_commands"])
     assert "token=" not in summary_text.lower()
     assert summary["secret_plaintext_output"] is False

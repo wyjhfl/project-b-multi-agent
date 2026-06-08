@@ -46,6 +46,9 @@ def test_operations_summary_should_return_empty_states_when_report_dir_missing(m
     monkeypatch.setenv("FRONTEND_PRODUCTION_BUILD_REPORT_DIR", str(tmp_path / "missing_frontend_build"))
     monkeypatch.setenv("PRODUCTION_RUNTIME_SMOKE_REPORT_DIR", str(tmp_path / "missing_runtime_smoke"))
     monkeypatch.setenv("PRODUCTION_PILOT_BOOTSTRAP_REPORT_DIR", str(tmp_path / "missing_bootstrap"))
+    monkeypatch.setenv("CONTROLLED_PILOT_DELIVERY_GATE_REPORT_DIR", str(tmp_path / "missing_controlled_pilot_delivery_gate"))
+    monkeypatch.setenv("CONTROLLED_PILOT_RUN_PACKET_REPORT_DIR", str(tmp_path / "missing_controlled_pilot_run_packet"))
+    monkeypatch.setenv("EVIDENCE_ARCHIVE_REPORT_DIR", str(tmp_path / "missing_evidence_archive"))
     monkeypatch.setenv("CONTROLLED_PILOT_LAUNCH_GATE_REPORT_DIR", str(tmp_path / "missing_controlled_pilot_gate"))
     monkeypatch.setenv("CONTROLLED_PILOT_LAUNCH_PACKAGE_REPORT_DIR", str(tmp_path / "missing_controlled_pilot_package"))
     monkeypatch.setenv("CONTROLLED_PILOT_WINDOW_RECORD_REPORT_DIR", str(tmp_path / "missing_controlled_pilot_window"))
@@ -143,6 +146,7 @@ def test_operations_summary_should_return_empty_states_when_report_dir_missing(m
     assert data["observability"]["v4_evidence"]["entries"]["frontend_production_build"]["runbook_path"] == "scripts/frontend_production_build_check.py"
     assert data["observability"]["v4_evidence"]["entries"]["production_runtime_smoke"]["runbook_path"] == "scripts/production_runtime_smoke.py"
     assert data["observability"]["v4_evidence"]["entries"]["production_pilot_bootstrap"]["runbook_path"] == "scripts/production_pilot_bootstrap.py"
+    assert data["observability"]["v4_evidence"]["entries"]["controlled_pilot_delivery_gate"]["runbook_path"] == "scripts/controlled_pilot_delivery_gate.py"
     assert data["observability"]["v4_evidence"]["entries"]["controlled_pilot_launch_gate"]["runbook_path"] == "scripts/controlled_pilot_launch_gate.py"
     assert data["observability"]["v4_evidence"]["entries"]["controlled_pilot_launch_package"]["runbook_path"] == "scripts/controlled_pilot_launch_package.py"
     assert data["observability"]["v4_evidence"]["entries"]["controlled_pilot_window_record"]["runbook_path"] == "scripts/controlled_pilot_window_record.py"
@@ -241,6 +245,19 @@ def test_operations_summary_should_return_empty_states_when_report_dir_missing(m
     assert data["observability"]["production_pilot_bootstrap"]["pilot_evidence_bundle_passed"] is False
     assert data["observability"]["production_pilot_bootstrap"]["operations_console_smoke_status"] == "skipped"
     assert data["observability"]["production_pilot_bootstrap"]["public_production_direct_launch"] == "No-Go"
+    assert data["observability"]["controlled_pilot_delivery_gate"]["status"] == "skipped"
+    assert data["observability"]["controlled_pilot_delivery_gate"]["latest_report_present"] is False
+    assert data["observability"]["controlled_pilot_delivery_gate"]["controlled_pilot_delivery_ready"] is False
+    assert data["observability"]["controlled_pilot_delivery_gate"]["public_production_direct_launch"] == "No-Go"
+    assert data["observability"]["controlled_pilot_run_packet"]["status"] == "skipped"
+    assert data["observability"]["controlled_pilot_run_packet"]["latest_report_present"] is False
+    assert data["observability"]["controlled_pilot_run_packet"]["run_packet_ready"] is False
+    assert data["observability"]["controlled_pilot_run_packet"]["public_production_direct_launch"] == "No-Go"
+    assert data["observability"]["evidence_archive"]["status"] == "skipped"
+    assert data["observability"]["evidence_archive"]["latest_report_present"] is False
+    assert data["observability"]["evidence_archive"]["read_only"] is True
+    assert data["observability"]["evidence_archive"]["real_llm_executed"] is False
+    assert data["observability"]["evidence_archive"]["retention_policy"]["deletion_enabled"] is False
     assert data["observability"]["controlled_pilot_launch_gate"]["status"] == "blocked"
     assert data["observability"]["controlled_pilot_launch_gate"]["ready_for_controlled_pilot"] is False
     assert data["observability"]["controlled_pilot_launch_gate"]["controlled_pilot"] == "Manual-Review"
@@ -1595,6 +1612,133 @@ def test_operations_summary_should_include_controlled_pilot_launch_gate_ready_st
     assert gate["auto_closed"] is False
 
 
+def test_operations_summary_should_allow_delivery_gate_ready_for_demo_business_gap(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    delivery_dir = tmp_path / "docs" / "reports" / "controlled_pilot_delivery_gate"
+    bundle_dir = tmp_path / "docs" / "reports" / "production_pilot_evidence_bundle"
+    final_dir = tmp_path / "docs" / "reports" / "production_landing_final_verification"
+    closeout_dir = tmp_path / "docs" / "reports" / "production_landing_signoff_closeout"
+    bootstrap_dir = tmp_path / "docs" / "reports" / "production_pilot_bootstrap"
+    for report_dir in (delivery_dir, bundle_dir, final_dir, closeout_dir, bootstrap_dir):
+        report_dir.mkdir(parents=True)
+    monkeypatch.setenv("CONTROLLED_PILOT_DELIVERY_GATE_REPORT_DIR", str(delivery_dir))
+    monkeypatch.setenv("PRODUCTION_PILOT_EVIDENCE_BUNDLE_REPORT_DIR", str(bundle_dir))
+    monkeypatch.setenv("PRODUCTION_LANDING_FINAL_VERIFICATION_REPORT_DIR", str(final_dir))
+    monkeypatch.setenv("PRODUCTION_LANDING_SIGNOFF_CLOSEOUT_REPORT_DIR", str(closeout_dir))
+    monkeypatch.setenv("PRODUCTION_PILOT_BOOTSTRAP_REPORT_DIR", str(bootstrap_dir))
+
+    (delivery_dir / "001_delivery.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T08:00:00+00:00",
+                "status": "success",
+                "controlled_pilot_delivery_ready": True,
+                "enterprise_landing_scope": "controlled_internal_pilot",
+                "accepted_remaining_gaps": ["business_system:real_business_system_required"],
+                "missing_condition_count": 0,
+                "missing_conditions": [],
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+                "auto_approved": False,
+                "auto_closed": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (bundle_dir / "001_bundle.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T08:00:01+00:00",
+                "status": "partial",
+                "controlled_pilot_ready": False,
+                "missing_condition_count": 1,
+                "missing_conditions": ["production_landing_final_verification:not_success"],
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+                "auto_approved": False,
+                "auto_closed": False,
+                "go_no_go": {"controlled_pilot": "Manual-Review", "public_production_direct_launch": "No-Go"},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (final_dir / "001_final.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T08:00:02+00:00",
+                "status": "partial",
+                "passed_count": 6,
+                "requirement_count": 10,
+                "missing_conditions": ["business_system:real_business_system_required"],
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+                "auto_approved": False,
+                "auto_closed": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (closeout_dir / "001_closeout.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T08:00:03+00:00",
+                "status": "partial",
+                "final_status": "partial",
+                "target_record_written": True,
+                "missing_conditions": ["business_system:real_business_system_required"],
+                "missing_condition_count": 1,
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+                "auto_signed": False,
+                "auto_approved": False,
+                "auto_closed": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (bootstrap_dir / "001_bootstrap.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T08:00:04+00:00",
+                "status": "partial",
+                "secret_plaintext_output": False,
+                "go_no_go": {"public_production_direct_launch": "No-Go"},
+                "next_commands": {},
+                "evidence_runs": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    data = response.json()
+
+    delivery = data["observability"]["controlled_pilot_delivery_gate"]
+    gate = data["observability"]["controlled_pilot_launch_gate"]
+
+    assert delivery["status"] == "success"
+    assert delivery["controlled_pilot_delivery_ready"] is True
+    assert delivery["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
+    assert gate["status"] == "ready"
+    assert gate["ready_for_controlled_pilot"] is True
+    assert gate["controlled_pilot"] == "Go"
+    assert gate["delivery_gate_status"] == "success"
+    assert gate["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
+    assert gate["public_production_direct_launch"] == "No-Go"
+    assert gate["missing_condition_count"] == 0
+    assert gate["secret_plaintext_output"] is False
+
+
 def test_operations_summary_should_include_controlled_pilot_launch_package_latest_report(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
     monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
@@ -1610,6 +1754,7 @@ def test_operations_summary_should_include_controlled_pilot_launch_package_lates
         "controlled_pilot": "Go",
         "public_production_direct_launch": "No-Go",
         "manual_signoff_required": True,
+        "accepted_remaining_gaps": ["business_system:real_business_system_required"],
         "missing_conditions": [],
         "missing_condition_count": 0,
         "safe_next_action": "open_controlled_pilot_window",
@@ -1682,6 +1827,7 @@ def test_operations_summary_should_include_controlled_pilot_launch_package_lates
     assert package["controlled_pilot"] == "Go"
     assert package["public_production_direct_launch"] == "No-Go"
     assert package["manual_signoff_required"] is True
+    assert package["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
     assert package["safe_next_action"] == "open_controlled_pilot_window"
     assert package["operator_commands"][0].endswith("scripts\\production_landing_signoff_closeout.ps1")
     assert package["operator_commands"][1] == "[redacted-secret-like-command]"
@@ -1700,6 +1846,170 @@ def test_operations_summary_should_include_controlled_pilot_launch_package_lates
     assert package["auto_approved"] is False
     assert package["auto_closed"] is False
     assert data["observability"]["last_known_report_counts"]["controlled_pilot_launch_package_reports"] == 1
+    assert "sk-should-not-leak" not in text
+
+
+def test_operations_summary_should_include_controlled_pilot_run_packet_latest_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    report_dir = tmp_path / "docs" / "reports" / "controlled_pilot_run_packet"
+    report_dir.mkdir(parents=True)
+    monkeypatch.setenv("CONTROLLED_PILOT_RUN_PACKET_REPORT_DIR", str(report_dir))
+    payload = {
+        "generated_at": "2026-06-08T09:00:00+00:00",
+        "status": "ready",
+        "run_packet_ready": True,
+        "controlled_internal_pilot": "Go",
+        "ready_scope": "controlled_internal_pilot",
+        "public_production_direct_launch": "No-Go",
+        "accepted_remaining_gaps": ["business_system:real_business_system_required"],
+        "real_production_remaining_gaps": ["business_system:real_business_system_required"],
+        "business_system_boundary": {
+            "connected": True,
+            "read_executed": True,
+            "write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": True,
+            "real_business_system_connected": False,
+        },
+        "safety_boundary": {
+            "read_only": True,
+            "manual_signoff_required": True,
+            "rollback_required": True,
+            "external_expansion_requires_new_manual_go_no_go": True,
+            "public_production_direct_launch": "No-Go",
+        },
+        "operator_commands": {
+            "verify_console": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\controlled_pilot_console_verify.ps1",
+            "unsafe": "token=sk-should-not-leak",
+        },
+        "evidence_paths": {
+            "controlled_pilot_delivery_gate": "docs/reports/controlled_pilot_delivery_gate/001.json",
+            "unsafe": "token=sk-should-not-leak",
+        },
+        "source_statuses": {"controlled_pilot_delivery_gate": "success"},
+        "sources": {
+            "controlled_pilot_delivery_gate": {
+                "present": True,
+                "status": "success",
+                "generated_at": "2026-06-08T08:59:00+00:00",
+                "latest_json_path": "docs/reports/controlled_pilot_delivery_gate/001.json",
+                "missing_conditions": [],
+                "secret_detected": False,
+            }
+        },
+        "missing_conditions": [],
+        "missing_condition_count": 0,
+        "secret_plaintext_output": False,
+        "business_data_written": False,
+        "audit_data_written": False,
+        "metrics_data_written": False,
+    }
+    (report_dir / "001_controlled_pilot_run_packet.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    data = response.json()
+    run_packet = data["observability"]["controlled_pilot_run_packet"]
+    text = json.dumps(data, ensure_ascii=False)
+
+    assert run_packet["latest_report_present"] is True
+    assert run_packet["status"] == "ready"
+    assert run_packet["run_packet_ready"] is True
+    assert run_packet["controlled_internal_pilot"] == "Go"
+    assert run_packet["ready_scope"] == "controlled_internal_pilot"
+    assert run_packet["public_production_direct_launch"] == "No-Go"
+    assert run_packet["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
+    assert run_packet["real_production_remaining_gaps"] == ["business_system:real_business_system_required"]
+    assert run_packet["business_system_boundary"]["demo_business_system_used"] is True
+    assert run_packet["business_system_boundary"]["real_business_system_connected"] is False
+    assert run_packet["safety_boundary"]["rollback_required"] is True
+    assert run_packet["safety_boundary"]["external_expansion_requires_new_manual_go_no_go"] is True
+    assert run_packet["operator_commands"]["verify_console"].endswith("scripts\\controlled_pilot_console_verify.ps1")
+    assert run_packet["operator_commands"]["unsafe"] == "[redacted-secret-like-command]"
+    assert run_packet["evidence_paths"]["unsafe"] == "[redacted-secret-like-command]"
+    assert run_packet["missing_condition_count"] == 0
+    assert run_packet["secret_plaintext_output"] is False
+    assert data["observability"]["last_known_report_counts"]["controlled_pilot_run_packet_reports"] == 1
+    assert "sk-should-not-leak" not in text
+
+
+def test_operations_summary_should_include_evidence_archive_latest_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    report_dir = tmp_path / "docs" / "reports" / "evidence_archive"
+    report_dir.mkdir(parents=True)
+    monkeypatch.setenv("EVIDENCE_ARCHIVE_REPORT_DIR", str(report_dir))
+    payload = {
+        "generated_at": "2026-06-08T09:30:00+00:00",
+        "status": "warning",
+        "manifest_id": "manifest-test-001",
+        "version": "3.6.0",
+        "read_only": True,
+        "real_llm_executed": False,
+        "total_files": 3,
+        "total_size_bytes": 128,
+        "missing_expected_types": ["acceptance_snapshot"],
+        "retention_policy": {
+            "apply_mode": "report_only",
+            "deletion_enabled": False,
+            "auto_cleanup_enabled": False,
+        },
+        "latest_by_type": {
+            "controlled_pilot_run_packet": {
+                "evidence_type": "controlled_pilot_run_packet",
+                "path": "docs/reports/controlled_pilot_run_packet/001.json",
+                "size_bytes": 64,
+                "modified_at": "2026-06-08T09:29:00+00:00",
+                "extension": ".json",
+            },
+            "unsafe": {
+                "evidence_type": "unsafe",
+                "path": "token=sk-should-not-leak",
+                "size_bytes": 64,
+                "modified_at": "2026-06-08T09:29:00+00:00",
+                "extension": ".json",
+            },
+        },
+        "boundary_declarations": [
+            "不删除文件",
+            "不读取报告内容",
+            "secret=sk-should-not-leak",
+        ],
+    }
+    (report_dir / "001_evidence_archive_manifest.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    data = response.json()
+    archive = data["observability"]["evidence_archive"]
+    text = json.dumps(data, ensure_ascii=False)
+
+    assert archive["latest_report_present"] is True
+    assert archive["status"] == "warning"
+    assert archive["manifest_id"] == "manifest-test-001"
+    assert archive["total_files"] == 3
+    assert archive["missing_expected_types"] == ["acceptance_snapshot"]
+    assert archive["retention_policy"]["deletion_enabled"] is False
+    assert archive["latest_by_type"]["controlled_pilot_run_packet"]["path"].endswith("001.json")
+    assert archive["latest_by_type"]["unsafe"]["path"] == "[redacted-secret-like-command]"
+    assert archive["boundary_declarations"][2] == "[redacted-secret-like-command]"
+    assert archive["read_only"] is True
+    assert archive["real_llm_executed"] is False
+    assert data["observability"]["last_known_report_counts"]["evidence_archive_reports"] == 1
     assert "sk-should-not-leak" not in text
 
 
@@ -2071,6 +2381,81 @@ def test_operations_summary_should_include_xiaomi_llm_preflight_latest_report(mo
     assert preflight["public_production_direct_launch"] == "No-Go"
     assert data["observability"]["last_known_report_counts"]["production_landing_xiaomi_llm_preflight_reports"] == 1
     assert "tp-should-not-leak" not in text
+
+
+def test_operations_summary_should_prefer_generic_real_llm_preflight_latest_report(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    generic_dir = tmp_path / "docs" / "reports" / "production_landing_real_llm_preflight"
+    xiaomi_dir = tmp_path / "docs" / "reports" / "production_landing_xiaomi_llm_preflight"
+    generic_dir.mkdir(parents=True)
+    xiaomi_dir.mkdir(parents=True)
+    monkeypatch.setenv("PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_REPORT_DIR", str(generic_dir))
+    monkeypatch.setenv("PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_REPORT_DIR", str(xiaomi_dir))
+    generic_payload = {
+        "generated_at": "2026-06-07T00:00:00+00:00",
+        "status": "success",
+        "api_key_env": "REAL_LLM_API_KEY",
+        "api_key_present": True,
+        "real_llm_model": "gpt-5.5",
+        "real_llm_base_url": "http://100.119.206.22:8300",
+        "execute_network_check": True,
+        "preflight": {
+            "network_check_requested": True,
+            "network_check_allowed": True,
+            "network_check_executed": True,
+        },
+        "real_llm_executed": True,
+        "env_file_written": False,
+        "local_env_modified": False,
+        "safe_next_action": "refresh_landing_status_and_continue_manual_signoff",
+        "acceptance_blockers": [],
+        "warnings": [],
+        "errors": [],
+        "public_production_direct_launch": "No-Go",
+        "secret_plaintext_output": False,
+    }
+    xiaomi_payload = {
+        **generic_payload,
+        "generated_at": "2026-06-07T00:01:00+00:00",
+        "status": "skipped",
+        "api_key_env": "XIAOMI_LLM_API_KEY",
+        "real_llm_model": "mimo-v2.5-pro",
+        "real_llm_base_url": "https://token-plan-cn.xiaomimimo.com",
+        "real_llm_executed": False,
+        "safe_next_action": "run_scripts_xiaomi_llm_preflight_ps1_and_enter_key_securely",
+        "acceptance_blockers": ["missing_process_env:XIAOMI_LLM_API_KEY"],
+    }
+    (generic_dir / "001_production_landing_real_llm_preflight.json").write_text(
+        json.dumps(generic_payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (xiaomi_dir / "001_production_landing_xiaomi_llm_preflight.json").write_text(
+        json.dumps(xiaomi_payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    data = response.json()
+    selected = data["observability"]["production_landing_real_llm_preflight"]
+    compat = data["observability"]["production_landing_xiaomi_llm_preflight"]
+
+    assert selected["source_id"] == "real_llm_preflight"
+    assert selected["compat_fallback_used"] is False
+    assert selected["status"] == "success"
+    assert selected["api_key_env"] == "REAL_LLM_API_KEY"
+    assert selected["real_llm_model"] == "gpt-5.5"
+    assert selected["real_llm_executed"] is True
+    assert selected["acceptance_blockers"] == []
+    assert selected["safe_next_action"] == "refresh_landing_status_and_continue_manual_signoff"
+    assert compat["source_id"] == "xiaomi_llm_preflight"
+    assert compat["compat_ignored_by_generic_real_llm"] is True
+    assert data["observability"]["last_known_report_counts"]["production_landing_real_llm_preflight_reports"] == 1
+    assert data["observability"]["last_known_report_counts"]["production_landing_xiaomi_llm_preflight_reports"] == 1
 
 
 def test_operations_summary_should_include_production_landing_status_latest_report(monkeypatch, tmp_path):

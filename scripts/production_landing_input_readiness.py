@@ -21,13 +21,20 @@ DEFAULT_PILOT_SIGNOFF_DIR = ROOT_DIR / "docs" / "reports" / "production_pilot_si
 DEFAULT_LAUNCH_BLOCKER_DIR = ROOT_DIR / "docs" / "reports" / "launch_blockers"
 DEFAULT_CLOSURE_INDEX_DIR = ROOT_DIR / "docs" / "reports" / "closure_evidence_index"
 
+SAFE_REAL_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1"
 SAFE_BUSINESS_READ_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
-SAFE_POSTGRES_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres"
-SAFE_REDIS_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains redis"
+SAFE_POSTGRES_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains postgres -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
+SAFE_REDIS_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains redis -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
 SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
-    "-Domains external_mcp -McpServerCommand <approved-command> "
+    "-Domains external_mcp -UseExistingEnv -EnvPath local\\production_landing.staging.env -McpServerCommand <approved-command> "
     "-McpServerCommandAllowlist <approved-command> -McpToolAllowlist <approved-tools>"
 )
 
@@ -164,7 +171,7 @@ def _next_action_specs() -> dict[str, dict[str, Any]]:
             "next_action": "在本地 secret 管理环境中启用 Postgres/Redis/MCP 同轮真实 smoke，并重新生成 signoff。",
             "command_after_fill": " ; ".join(
                 [
-                    SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+                    SAFE_REAL_LLM_PREFLIGHT_COMMAND,
                     SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
                     SAFE_REDIS_INFRA_SMOKE_COMMAND,
                     SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
@@ -178,10 +185,10 @@ def _next_action_specs() -> dict[str, dict[str, Any]]:
                 "REAL_LLM_SMOKE_ENABLED=true",
                 "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
                 "REAL_LLM_PROVIDER=litellm",
-                "REAL_LLM_MODEL=mimo-v2.5-pro",
-                "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-                "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-                "XIAOMI_LLM_API_KEY=<secret-managed-token>",
+                "REAL_LLM_MODEL=gpt-5.5",
+                "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+                "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+                "REAL_LLM_API_KEY=<secret-managed-token>",
                 "POSTGRES_STAGING_SMOKE_EXECUTE=true",
                 "REDIS_STAGING_SMOKE_EXECUTE=true",
                 "MCP_STAGING_SMOKE_EXECUTE=true",

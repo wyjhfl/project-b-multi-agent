@@ -1,46 +1,47 @@
-# v4.5 小米 OpenAI-compatible LLM 接入说明
+# v4.5 OpenAI-compatible LLM 接入说明
 
 ## 定位
 
-本项目通过既有 `LiteLLMProvider` 接入 OpenAI-compatible LLM 服务。小米提供的 OpenAI-compatible URL 通过 `REAL_LLM_BASE_URL` 接入，密钥只通过本地受控环境变量注入，不写入仓库、报告、日志、Markdown 或审计导出原文。
+项目通过现有 `LiteLLMProvider` 接入 OpenAI-compatible LLM 服务。当前默认落地入口使用通用 `REAL_LLM_*` 配置，模型可配置为 `gpt-5.5`，小米 `mimo-v2.5-pro` 入口继续作为兼容路径保留。
 
-## 必需配置
+密钥只允许通过当前进程环境、外部 secret manager 或交互式安全输入注入；不得写入仓库、报告、日志、Markdown 或审计导出原文。
 
-本轮已确认的 provider 配置：
+## 通用配置
 
 ```powershell
 $env:REAL_LLM_ACCEPTANCE_ENABLED="true"
 $env:REAL_LLM_PREFLIGHT_ENABLED="true"
 $env:REAL_LLM_PROVIDER="litellm"
-$env:REAL_LLM_MODEL="mimo-v2.5-pro"
-$env:REAL_LLM_BASE_URL="https://token-plan-cn.xiaomimimo.com/v1"
-$env:REAL_LLM_API_KEY_ENV="XIAOMI_LLM_API_KEY"
+$env:REAL_LLM_MODEL="gpt-5.5"
+$env:REAL_LLM_BASE_URL="http://100.119.206.22:8300/v1"
+$env:REAL_LLM_API_KEY_ENV="REAL_LLM_API_KEY"
 $env:REAL_LLM_PREFLIGHT_NETWORK_CHECK="true"
 ```
 
-密钥必须通过进程环境或交互式安全输入注入：
+推荐使用交互式安全脚本执行真实 preflight：
 
 ```powershell
-$env:XIAOMI_LLM_API_KEY="<external-secret-managed-token>"
-python scripts/production_landing_xiaomi_llm_preflight_runner.py --execute-network-check
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\real_llm_preflight.ps1
 ```
 
-如果不希望在命令行或 shell 历史中设置密钥，使用交互式安全脚本：
+脚本使用 `Read-Host -AsSecureString`，只在当前 PowerShell 子进程内临时设置 `REAL_LLM_API_KEY`，结束后恢复进程环境。
+
+## 小米兼容路径
+
+如需继续使用小米兼容服务，可执行：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_preflight.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\xiaomi_llm_preflight.ps1
 ```
-
-该脚本使用 `Read-Host -AsSecureString`，只在当前 PowerShell 子进程内临时设置 `XIAOMI_LLM_API_KEY`，结束后恢复进程环境。
 
 ## 进入受控 staging smoke
 
 真实 LLM preflight 成功后，再执行受控真实集成 smoke：
 
 ```powershell
-python scripts/production_landing_env_check.py
-python scripts/production_landing_execution_gate.py
-python scripts/real_integration_staging_smoke.py --execute --domains real_llm,postgres,redis,external_mcp
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_check.py
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_execution_gate.py
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\real_integration_staging_smoke.py --execute --domains real_llm,postgres,redis,external_mcp
 ```
 
 ## 当前边界

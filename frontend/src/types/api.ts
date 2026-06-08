@@ -896,6 +896,8 @@ export interface ControlledPilotLaunchGateSummary {
   controlled_pilot: string;
   public_production_direct_launch: string;
   manual_signoff_required: boolean;
+  delivery_gate_status?: string;
+  accepted_remaining_gaps?: string[];
   evidence_bundle_status: string;
   final_verification_status: string;
   signoff_closeout_status: string;
@@ -909,6 +911,102 @@ export interface ControlledPilotLaunchGateSummary {
   secret_plaintext_output: boolean;
   auto_approved: boolean;
   auto_closed: boolean;
+}
+
+export interface ControlledPilotDeliveryGateSummary {
+  mode: string;
+  runbook_path: string;
+  report_dir: string;
+  directory_exists: boolean;
+  latest_report_present: boolean;
+  latest_json_path?: string;
+  status: string;
+  generated_at: string;
+  controlled_pilot_delivery_ready: boolean;
+  enterprise_landing_scope: string;
+  accepted_remaining_gaps: string[];
+  missing_condition_count: number;
+  missing_conditions: string[];
+  public_production_direct_launch: string;
+  secret_plaintext_output: boolean;
+  auto_approved: boolean;
+  auto_closed: boolean;
+}
+
+export interface ControlledPilotRunPacketSummary {
+  mode: string;
+  runbook_path: string;
+  report_dir: string;
+  directory_exists: boolean;
+  latest_report_present: boolean;
+  latest_json_path?: string;
+  status: string;
+  generated_at: string;
+  run_packet_ready: boolean;
+  controlled_internal_pilot: string;
+  ready_scope: string;
+  public_production_direct_launch: string;
+  accepted_remaining_gaps: string[];
+  real_production_remaining_gaps: string[];
+  business_system_boundary: {
+    connected?: boolean;
+    read_executed?: boolean;
+    write_executed?: boolean;
+    business_data_written?: boolean;
+    local_business_mock_used?: boolean;
+    demo_business_system_used?: boolean;
+    real_business_system_connected?: boolean;
+  };
+  safety_boundary: {
+    read_only?: boolean;
+    manual_signoff_required?: boolean;
+    rollback_required?: boolean;
+    external_expansion_requires_new_manual_go_no_go?: boolean;
+    public_production_direct_launch?: string;
+  };
+  operator_commands: Record<string, string>;
+  evidence_paths: Record<string, string>;
+  source_statuses: Record<string, string>;
+  missing_condition_count: number;
+  missing_conditions: string[];
+  secret_plaintext_output: boolean;
+  business_data_written: boolean;
+  audit_data_written: boolean;
+  metrics_data_written: boolean;
+}
+
+export interface EvidenceArchiveSummary {
+  mode: string;
+  runbook_path: string;
+  report_dir: string;
+  directory_exists: boolean;
+  latest_report_present: boolean;
+  latest_json_path?: string;
+  status: string;
+  generated_at: string;
+  manifest_id: string;
+  version: string;
+  total_files: number;
+  total_size_bytes: number;
+  missing_expected_types: string[];
+  latest_by_type: Record<
+    string,
+    {
+      evidence_type: string;
+      path: string;
+      size_bytes: number;
+      modified_at: string;
+      extension: string;
+    }
+  >;
+  retention_policy: {
+    apply_mode: string;
+    deletion_enabled: boolean;
+    auto_cleanup_enabled: boolean;
+  };
+  boundary_declarations: string[];
+  read_only: boolean;
+  real_llm_executed: boolean;
 }
 
 export interface ControlledPilotStatusSummary {
@@ -1031,6 +1129,7 @@ export interface ControlledPilotLaunchPackageSummary {
   controlled_pilot: string;
   public_production_direct_launch: string;
   manual_signoff_required: boolean;
+  accepted_remaining_gaps?: string[];
   missing_condition_count: number;
   missing_conditions: string[];
   safe_next_action: string;
@@ -1722,6 +1821,8 @@ export interface OperationsSummary {
       production_landing_blocker_resolution_reports?: number;
       production_landing_final_verification_reports?: number;
       production_pilot_evidence_bundle_reports?: number;
+      controlled_pilot_delivery_gate_reports?: number;
+      controlled_pilot_run_packet_reports?: number;
       controlled_pilot_launch_gate_reports?: number;
       controlled_pilot_launch_package_reports?: number;
       controlled_pilot_window_record_reports?: number;
@@ -1742,6 +1843,7 @@ export interface OperationsSummary {
       manual_signoff_record_promote_reports?: number;
       production_landing_text_quality_reports?: number;
       production_landing_evidence_freshness_reports?: number;
+      evidence_archive_reports?: number;
     };
     production_pilot_bootstrap?: ProductionPilotBootstrapSummary;
     frontend_production_build?: FrontendProductionBuildSummary;
@@ -1765,6 +1867,8 @@ export interface OperationsSummary {
     controlled_pilot_operator_packet?: ControlledPilotOperatorPacketSummary;
     controlled_pilot_console_preflight?: ControlledPilotConsolePreflightSummary;
     controlled_pilot_console_verify?: ControlledPilotConsoleVerifySummary;
+    controlled_pilot_delivery_gate?: ControlledPilotDeliveryGateSummary;
+    controlled_pilot_run_packet?: ControlledPilotRunPacketSummary;
     controlled_pilot_launch_gate?: ControlledPilotLaunchGateSummary;
     controlled_pilot_launch_package?: ControlledPilotLaunchPackageSummary;
     controlled_pilot_window_record?: ControlledPilotWindowRecordSummary;
@@ -1781,6 +1885,7 @@ export interface OperationsSummary {
     manual_signoff_record_promote?: ManualSignoffRecordPromoteSummary;
     production_landing_text_quality?: ProductionLandingTextQualitySummary;
     production_landing_evidence_freshness?: ProductionLandingEvidenceFreshnessSummary;
+    evidence_archive?: EvidenceArchiveSummary;
     v4_evidence?: V4EvidenceSummary;
   };
   demo_evidence: {

@@ -12,6 +12,7 @@ DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "controlled_pilot_launch_pa
 
 SOURCE_DIRS = {
     "controlled_pilot_launch_gate": ROOT_DIR / "docs" / "reports" / "controlled_pilot_launch_gate",
+    "controlled_pilot_delivery_gate": ROOT_DIR / "docs" / "reports" / "controlled_pilot_delivery_gate",
     "production_landing_signoff_closeout": ROOT_DIR / "docs" / "reports" / "production_landing_signoff_closeout",
     "production_landing_final_verification": ROOT_DIR / "docs" / "reports" / "production_landing_final_verification",
     "production_pilot_evidence_bundle": ROOT_DIR / "docs" / "reports" / "production_pilot_evidence_bundle",
@@ -82,9 +83,23 @@ def _source_summary(source_id: str, payload: dict[str, Any]) -> dict[str, Any]:
             "ready_for_controlled_pilot": payload.get("ready_for_controlled_pilot"),
             "controlled_pilot": payload.get("controlled_pilot"),
             "missing_condition_count": payload.get("missing_condition_count"),
+            "delivery_gate_status": payload.get("delivery_gate_status"),
+            "accepted_remaining_gaps": payload.get("accepted_remaining_gaps")
+            if isinstance(payload.get("accepted_remaining_gaps"), list)
+            else [],
             "safe_next_action": payload.get("safe_next_action"),
             "public_production_direct_launch": payload.get("public_production_direct_launch"),
             "manual_signoff_required": payload.get("manual_signoff_required"),
+            "secret_plaintext_output": payload.get("secret_plaintext_output"),
+        }
+    if source_id == "controlled_pilot_delivery_gate":
+        return {
+            "controlled_pilot_delivery_ready": payload.get("controlled_pilot_delivery_ready"),
+            "accepted_remaining_gaps": payload.get("accepted_remaining_gaps")
+            if isinstance(payload.get("accepted_remaining_gaps"), list)
+            else [],
+            "missing_condition_count": payload.get("missing_condition_count"),
+            "public_production_direct_launch": payload.get("public_production_direct_launch"),
             "secret_plaintext_output": payload.get("secret_plaintext_output"),
         }
     if source_id == "production_landing_signoff_closeout":
@@ -184,6 +199,14 @@ def _derive_package(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
 
     gate = sources["controlled_pilot_launch_gate"]
     gate_summary = gate.get("summary", {})
+    accepted_remaining_gaps = [
+        str(item)
+        for item in (
+            gate_summary.get("accepted_remaining_gaps")
+            if isinstance(gate_summary.get("accepted_remaining_gaps"), list)
+            else []
+        )
+    ]
     gate_ready = (
         gate.get("status") == "ready"
         and gate_summary.get("ready_for_controlled_pilot") is True
@@ -211,6 +234,7 @@ def _derive_package(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "controlled_pilot": "Go" if ready else "Manual-Review",
         "public_production_direct_launch": "No-Go",
         "manual_signoff_required": True,
+        "accepted_remaining_gaps": accepted_remaining_gaps,
         "missing_conditions": sorted(set(missing_conditions)),
         "missing_condition_count": len(set(missing_conditions)),
         "safe_next_action": "open_controlled_pilot_window" if ready else "resolve_launch_package_missing_conditions",

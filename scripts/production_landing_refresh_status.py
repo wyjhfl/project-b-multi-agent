@@ -25,6 +25,7 @@ from scripts.business_system_landing_execution_pack import build_business_system
 from scripts.business_system_production_readiness_brief import build_business_system_production_readiness_brief
 from scripts.business_system_real_readiness_gate import build_business_system_real_readiness_gate
 from scripts.business_system_read_smoke import build_business_system_read_smoke
+from scripts.production_landing_demo_business_smoke import build_production_landing_demo_business_smoke
 from scripts.production_landing_local_business_smoke import build_production_landing_local_business_smoke
 from scripts.production_landing_input_readiness import (
     DEFAULT_CLOSURE_EVIDENCE,
@@ -155,6 +156,7 @@ def build_production_landing_refresh_status(
         "business_system_input_packet": build_business_system_input_packet,
         "business_system_real_readiness_gate": build_business_system_real_readiness_gate,
         "business_system_read_smoke": build_business_system_read_smoke,
+        "demo_business_smoke": build_production_landing_demo_business_smoke,
         "local_business_smoke": build_production_landing_local_business_smoke,
         "business_system_production_readiness": build_business_system_production_readiness_brief,
         "business_system_landing_execution_pack": build_business_system_landing_execution_pack,
@@ -188,8 +190,11 @@ def build_production_landing_refresh_status(
     with _temporary_process_env(env_values):
         business_real_gate = effective_builders["business_system_real_readiness_gate"](env_path=env_path)
         steps.append(_safe_step_summary("business_system_real_readiness_gate", business_real_gate))
-        if str(env_values.get("BUSINESS_SYSTEM_NAME") or "").strip() == "local_business_read_mock":
+        business_system_name = str(env_values.get("BUSINESS_SYSTEM_NAME") or "").strip()
+        if business_system_name == "local_business_read_mock":
             business_read_smoke = effective_builders["local_business_smoke"](env_path=env_path)
+        elif business_system_name == "demo_business_system":
+            business_read_smoke = effective_builders["demo_business_smoke"](env_path=env_path)
         else:
             business_read_smoke = effective_builders["business_system_read_smoke"]()
         steps.append(_safe_step_summary("business_system_read_smoke", business_read_smoke))

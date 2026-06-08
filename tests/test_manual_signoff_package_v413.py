@@ -226,7 +226,7 @@ def test_manual_signoff_record_template_is_not_preapproved(tmp_path: Path) -> No
     assert all("latest_report" in item for item in payload["evidence_acknowledgements"])
     rendered = json.dumps(payload, ensure_ascii=False)
     assert "确认发布窗口" in rendered
-    assert "确认小米真实 LLM 预检报告为 success" in rendered
+    assert "确认 OpenAI-compatible 真实 LLM 预检报告为 success" in rendered
     assert "填写真实签核人姓名或工号" in rendered
     assert "纭" not in rendered
     assert "鍙" not in rendered
@@ -236,6 +236,8 @@ def test_manual_signoff_package_runbook_documents_evidence_acknowledgements() ->
     text = Path("docs/manual_signoff_package_v41.md").read_text(encoding="utf-8")
 
     assert "人工签核包" in text
+    assert "OpenAI-compatible 真实 LLM 预检报告" in text
+    assert "小米真实 LLM" not in text
     assert "real_llm_preflight" in text
     assert "postgres_redis_mcp_smoke" in text
     assert "business_read_smoke" in text

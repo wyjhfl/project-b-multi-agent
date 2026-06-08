@@ -18,12 +18,19 @@ def test_production_landing_env_init_creates_local_env_without_real_secret(tmp_p
     assert summary["env_file_overwritten"] is False
     assert summary["contains_real_secret"] is False
     assert summary["secret_plaintext_output"] is False
-    assert "REAL_LLM_MODEL=mimo-v2.5-pro" in text
-    assert "XIAOMI_LLM_API_KEY=<secret-managed-token>" in text
+    assert "REAL_LLM_MODEL=gpt-5.5" in text
+    assert "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1" in text
+    assert "REAL_LLM_API_KEY=<secret-managed-token>" in text
+    assert "XIAOMI_LLM_API_KEY=<secret-managed-token>" not in text
     assert "DATABASE_URL=<secret-managed-url>" in text
     assert "REDIS_URL=<secret-managed-url>" in text
     assert "tp-" not in text
     assert "sk-" not in text
+    assert summary["next_command"].startswith(
+        "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 "
+    )
+    assert "scripts\\production_landing_env_check.py" in summary["next_command"]
+    assert not summary["next_command"].startswith("python scripts/")
 
 
 def test_production_landing_env_init_does_not_overwrite_existing_env_by_default(tmp_path: Path) -> None:

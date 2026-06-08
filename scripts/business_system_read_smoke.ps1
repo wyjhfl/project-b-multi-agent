@@ -453,11 +453,15 @@ try {
     Write-Host "[business_system_read_smoke] input_packet=done" -ForegroundColor Green
 
     Write-Host "[business_system_read_smoke] readiness_brief=running" -ForegroundColor Yellow
-    $readinessOutput = Invoke-ResolvedPythonCapture @(
+    $readinessArguments = @(
       (Join-Path $repoRoot "scripts/business_system_production_readiness_brief.py"),
       "--business-smoke-json-path",
       $businessReadSmokeJsonPath
     )
+    if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+      $readinessArguments += @("--env-path", $EnvPath)
+    }
+    $readinessOutput = Invoke-ResolvedPythonCapture $readinessArguments
     $readinessExitCode = $LASTEXITCODE
     if ($readinessExitCode -ne 0) {
       throw "business_system_production_readiness_brief.py failed with exit code $readinessExitCode"

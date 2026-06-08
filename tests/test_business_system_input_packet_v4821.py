@@ -53,10 +53,10 @@ def _set_ready_env(monkeypatch) -> None:
     monkeypatch.setenv("BUSINESS_SYSTEM_READ_PROBE_PATH", "/health")
     monkeypatch.setenv("BUSINESS_SYSTEM_AUTH_HEADER_NAME", "Authorization")
     monkeypatch.setenv("BUSINESS_SYSTEM_AUTH_SCHEME", "Bearer")
-    monkeypatch.setenv("BUSINESS_SYSTEM_BUSINESS_OWNER", "wyj")
-    monkeypatch.setenv("BUSINESS_SYSTEM_SECURITY_REVIEWER", "wyj")
-    monkeypatch.setenv("BUSINESS_SYSTEM_OPERATIONS_OWNER", "wyj")
-    monkeypatch.setenv("BUSINESS_SYSTEM_DATA_OWNER", "wyj")
+    monkeypatch.setenv("BUSINESS_SYSTEM_BUSINESS_OWNER", "operator-staff-id")
+    monkeypatch.setenv("BUSINESS_SYSTEM_SECURITY_REVIEWER", "operator-staff-id")
+    monkeypatch.setenv("BUSINESS_SYSTEM_OPERATIONS_OWNER", "operator-staff-id")
+    monkeypatch.setenv("BUSINESS_SYSTEM_DATA_OWNER", "operator-staff-id")
 
 
 def _payload(summary: dict) -> dict:
@@ -112,6 +112,8 @@ def test_business_system_input_packet_ready_without_secret_leak(tmp_path: Path, 
     assert "业务系统真实接入输入准备包" in merged
     assert "business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env" in merged
     assert "business_system_read_smoke.ps1 -EnvPath local\\production_landing.staging.env" in merged
+    assert "business_system_read_smoke.ps1 -UseExistingEnv" in merged
+    assert "BusinessOwner WYJ" not in merged
     assert "scripts\\business_system_landing_resume.ps1 -UseExistingEnv -EnvPath local\\production_landing.staging.env" in merged
     assert "public_production_direct_launch" in merged
     assert "No-Go" in merged
@@ -161,10 +163,10 @@ def test_business_system_input_packet_loads_safe_env_path_and_skips_secret_keys(
                 "BUSINESS_SYSTEM_READ_PROBE_PATH=/health",
                 "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization",
                 "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer",
-                "BUSINESS_SYSTEM_BUSINESS_OWNER=WYJ",
-                "BUSINESS_SYSTEM_SECURITY_REVIEWER=WYJ",
-                "BUSINESS_SYSTEM_OPERATIONS_OWNER=WYJ",
-                "BUSINESS_SYSTEM_DATA_OWNER=WYJ",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=operator-staff-id",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_DATA_OWNER=operator-staff-id",
                 "UNRELATED_SECRET=should-be-ignored",
             ]
         ),

@@ -69,7 +69,7 @@ def test_xiaomi_llm_preflight_runner_executes_network_check_with_mocked_prefligh
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    import scripts.production_landing_xiaomi_llm_preflight_runner as runner
+    import scripts.production_landing_real_llm_preflight_runner as runner
 
     fake_key = "tp-" + "local-real-secret-not-output"
     monkeypatch.setenv("XIAOMI_LLM_API_KEY", fake_key)

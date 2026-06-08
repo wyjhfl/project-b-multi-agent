@@ -79,6 +79,10 @@ def _is_local_business_target(config: Any) -> bool:
     return getattr(config, "system_name", "") == "local_business_read_mock"
 
 
+def _is_demo_business_target(config: Any) -> bool:
+    return getattr(config, "system_name", "") == "demo_business_system"
+
+
 def _is_automation_environment() -> bool:
     for name in ("CI", "GITHUB_ACTIONS", "TF_BUILD", "BUILD_BUILDID", "JENKINS_URL"):
         value = (os.environ.get(name, "") or "").strip()
@@ -156,7 +160,14 @@ def _execute_smoke() -> dict[str, Any]:
     }
 
 
-def _env_profile(config: Any, execute: bool, missing: list[str], *, local_business_mock_used: bool = False) -> dict[str, Any]:
+def _env_profile(
+    config: Any,
+    execute: bool,
+    missing: list[str],
+    *,
+    local_business_mock_used: bool = False,
+    demo_business_system_used: bool = False,
+) -> dict[str, Any]:
     auth_mode = "bearer" if config.auth_header_name.lower() == "authorization" and config.auth_scheme else "api_key_header"
     return {
         "execution_requested": execute,
@@ -199,7 +210,8 @@ def _env_profile(config: Any, execute: bool, missing: list[str], *, local_busine
             "auth_scheme_configured": bool(config.auth_scheme),
         },
         "local_business_mock_used": local_business_mock_used,
-        "public_production_gap": local_business_mock_used or not (execute and not missing),
+        "demo_business_system_used": demo_business_system_used,
+        "public_production_gap": local_business_mock_used or demo_business_system_used or not (execute and not missing),
         "next_action": "在本地进程环境或外部 secret manager 注入真实只读 URL/token 后执行安全 PowerShell 入口。",
     }
 
@@ -213,6 +225,7 @@ def _build_markdown(payload: dict[str, Any]) -> str:
         f"- status: {payload.get('status', '')}",
         f"- execute: {payload.get('execute', False)}",
         f"- local_business_mock_used: {payload.get('local_business_mock_used', False)}",
+        f"- demo_business_system_used: {payload.get('demo_business_system_used', False)}",
         f"- business_system_connected: {payload.get('business_system_connected', False)}",
         f"- business_read_executed: {payload.get('business_read_executed', False)}",
         f"- business_write_executed: {payload.get('business_write_executed', False)}",
@@ -284,6 +297,7 @@ def build_business_system_read_smoke(
     output_dir: str | Path | None = None,
     execute: bool = False,
     local_business_mock_used: bool = False,
+    demo_business_system_used: bool = False,
 ) -> dict[str, Any]:
     output_root = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
     generated_at = _utc_now_iso()
@@ -291,7 +305,8 @@ def build_business_system_read_smoke(
     config = load_business_system_config()
     missing = _missing_conditions(execute)
     effective_local_business_mock_used = local_business_mock_used or _is_local_business_target(config)
-    if execute and _is_automation_environment() and not effective_local_business_mock_used:
+    effective_demo_business_system_used = demo_business_system_used or _is_demo_business_target(config)
+    if execute and _is_automation_environment() and not effective_local_business_mock_used and not effective_demo_business_system_used:
         missing.append("automation:real_business_read_smoke_blocked")
         missing = sorted(set(missing))
 
@@ -313,6 +328,7 @@ def build_business_system_read_smoke(
         "execute": execute,
         "execution_requested": execute,
         "local_business_mock_used": effective_local_business_mock_used,
+        "demo_business_system_used": effective_demo_business_system_used,
         "read_only": True,
         "config": safe_config_summary(config),
         "env_profile": _env_profile(
@@ -320,6 +336,7 @@ def build_business_system_read_smoke(
             execute,
             missing,
             local_business_mock_used=effective_local_business_mock_used,
+            demo_business_system_used=effective_demo_business_system_used,
         ),
         "missing_conditions": missing,
         "smoke": smoke,
@@ -350,6 +367,7 @@ def build_business_system_read_smoke(
         "commit": commit,
         "execute": execute,
         "local_business_mock_used": effective_local_business_mock_used,
+        "demo_business_system_used": effective_demo_business_system_used,
         "business_system_connected": payload["business_system_connected"],
         "business_read_executed": payload["business_read_executed"],
         "business_write_executed": False,

@@ -19,7 +19,7 @@ def test_production_landing_env_check_reports_placeholders_without_leaking(tmp_p
     summary = build_production_landing_env_check(
         env_path=env_path,
         output_dir=tmp_path / "out",
-        xiaomi_preflight_report_dir=tmp_path / "missing_xiaomi_reports",
+        real_llm_preflight_report_dir=tmp_path / "missing_real_llm_reports",
     )
     payload = _payload(summary)
     real_llm = next(item for item in payload["domains"] if item["domain_id"] == "real_llm")
@@ -27,13 +27,13 @@ def test_production_landing_env_check_reports_placeholders_without_leaking(tmp_p
     assert summary["status"] == "partial"
     assert summary["env_file_present"] is True
     assert real_llm["ready_for_execute"] is False
-    assert "XIAOMI_LLM_API_KEY" in real_llm["placeholder_keys"]
+    assert "REAL_LLM_API_KEY" in real_llm["placeholder_keys"]
     assert real_llm["blocker_reason"] == "placeholder_env"
-    assert "inject_xiaomi_api_key_in_process_env" in real_llm["next_action"]
-    assert "scripts\\xiaomi_llm_landing_resume.ps1" in real_llm["next_action"]
+    assert "inject_real_llm_api_key_in_process_env" in real_llm["next_action"]
+    assert "scripts\\real_llm_preflight.ps1" in real_llm["next_action"]
     assert "replace_placeholder_keys_in_local_env" not in real_llm["next_action"]
-    assert real_llm["command_after_fill"].endswith("scripts\\xiaomi_llm_preflight.ps1")
-    assert "XIAOMI_LLM_API_KEY" in real_llm["required_env_keys"]
+    assert real_llm["command_after_fill"].endswith("scripts\\real_llm_preflight.ps1")
+    assert "REAL_LLM_API_KEY" in real_llm["required_env_keys"]
     assert payload["blocked_domain_count"] == payload["domain_count"]
     assert payload["secret_plaintext_output"] is False
     assert "<secret-managed-token>" not in json.dumps(payload, ensure_ascii=False)
@@ -53,10 +53,10 @@ def test_production_landing_env_check_success_with_filled_local_values_without_v
                 "REAL_LLM_SMOKE_ENABLED=true",
                 "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
                 "REAL_LLM_PROVIDER=litellm",
-                "REAL_LLM_MODEL=mimo-v2.5-pro",
-                "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-                "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-                f"XIAOMI_LLM_API_KEY={fake_llm_secret}",
+                "REAL_LLM_MODEL=gpt-5.5",
+                "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+                "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+                f"REAL_LLM_API_KEY={fake_llm_secret}",
                 "POSTGRES_STAGING_SMOKE_EXECUTE=true",
                 "STORAGE_BACKEND=postgres",
                 "DATABASE_URL=postgresql://user:pass@localhost/db",
@@ -77,10 +77,10 @@ def test_production_landing_env_check_success_with_filled_local_values_without_v
                 "BUSINESS_SYSTEM_BASE_URL=https://business.example.test",
                 "BUSINESS_SYSTEM_TOKEN=business-local-token-not-output",
                 "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
-                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
-                "BUSINESS_SYSTEM_SECURITY_REVIEWER=wyj",
-                "BUSINESS_SYSTEM_OPERATIONS_OWNER=wyj",
-                "BUSINESS_SYSTEM_DATA_OWNER=wyj",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=operator-staff-id",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_DATA_OWNER=operator-staff-id",
             ]
         )
         + "\n",
@@ -90,7 +90,7 @@ def test_production_landing_env_check_success_with_filled_local_values_without_v
     summary = build_production_landing_env_check(
         env_path=env_path,
         output_dir=tmp_path / "out",
-        xiaomi_preflight_report_dir=tmp_path / "missing_xiaomi_reports",
+        real_llm_preflight_report_dir=tmp_path / "missing_real_llm_reports",
     )
     payload = _payload(summary)
     merged = Path(summary["json_path"]).read_text(encoding="utf-8") + Path(summary["markdown_path"]).read_text(
@@ -116,12 +116,12 @@ def test_production_landing_env_check_allows_process_env_over_secret_placeholder
 ) -> None:
     env_path = tmp_path / "landing.env"
     build_production_landing_env_template(output_path=env_path)
-    monkeypatch.setenv("XIAOMI_LLM_API_KEY", "tp-process-secret-not-output")
+    monkeypatch.setenv("REAL_LLM_API_KEY", "tp-process-secret-not-output")
 
     summary = build_production_landing_env_check(
         env_path=env_path,
         output_dir=tmp_path / "out",
-        xiaomi_preflight_report_dir=tmp_path / "missing_xiaomi_reports",
+        real_llm_preflight_report_dir=tmp_path / "missing_real_llm_reports",
     )
     payload = _payload(summary)
     real_llm = next(item for item in payload["domains"] if item["domain_id"] == "real_llm")
@@ -131,8 +131,8 @@ def test_production_landing_env_check_allows_process_env_over_secret_placeholder
 
     assert real_llm["ready_for_execute"] is True
     assert real_llm["placeholder_count"] == 0
-    assert "XIAOMI_LLM_API_KEY" not in real_llm["placeholder_keys"]
-    key_status = next(item for item in real_llm["keys"] if item["key"] == "XIAOMI_LLM_API_KEY")
+    assert "REAL_LLM_API_KEY" not in real_llm["placeholder_keys"]
+    key_status = next(item for item in real_llm["keys"] if item["key"] == "REAL_LLM_API_KEY")
     assert key_status["source"] == "process_env_over_env_file_placeholder"
     assert "tp-process-secret-not-output" not in merged
 
@@ -143,7 +143,7 @@ def test_production_landing_env_check_allows_successful_llm_preflight_evidence_w
 ) -> None:
     env_path = tmp_path / "landing.env"
     build_production_landing_env_template(output_path=env_path)
-    report_dir = tmp_path / "reports" / "xiaomi"
+    report_dir = tmp_path / "reports" / "real_llm"
     report_dir.mkdir(parents=True)
     payload = {
         "generated_at": "2026-06-04T00:00:00+00:00",
@@ -154,7 +154,7 @@ def test_production_landing_env_check_allows_successful_llm_preflight_evidence_w
         "acceptance_blockers": [],
         "preflight": {"network_check_executed": True},
     }
-    (report_dir / "001_production_landing_xiaomi_llm_preflight.json").write_text(
+    (report_dir / "001_production_landing_real_llm_preflight.json").write_text(
         json.dumps(payload, ensure_ascii=False),
         encoding="utf-8",
     )
@@ -162,7 +162,7 @@ def test_production_landing_env_check_allows_successful_llm_preflight_evidence_w
     summary = build_production_landing_env_check(
         env_path=env_path,
         output_dir=tmp_path / "out",
-        xiaomi_preflight_report_dir=report_dir,
+        real_llm_preflight_report_dir=report_dir,
     )
     result = _payload(summary)
     real_llm = next(item for item in result["domains"] if item["domain_id"] == "real_llm")
@@ -198,7 +198,9 @@ def test_production_landing_env_check_rejects_incomplete_llm_preflight_evidence_
     summary = build_production_landing_env_check(
         env_path=env_path,
         output_dir=tmp_path / "out",
+        real_llm_preflight_report_dir=tmp_path / "reports" / "missing_real_llm",
         xiaomi_preflight_report_dir=report_dir,
+        allow_real_llm_evidence_override=False,
     )
     result = _payload(summary)
     real_llm = next(item for item in result["domains"] if item["domain_id"] == "real_llm")
@@ -207,7 +209,45 @@ def test_production_landing_env_check_rejects_incomplete_llm_preflight_evidence_
     assert real_llm["evidence_ready_override"] is False
     assert real_llm["evidence"]["ready"] is False
     assert real_llm["evidence"]["api_key_present"] is False
-    assert "XIAOMI_LLM_API_KEY" in real_llm["placeholder_keys"]
+    assert "REAL_LLM_API_KEY" in real_llm["placeholder_keys"]
+
+
+def test_production_landing_env_check_uses_explicit_xiaomi_fallback_when_generic_missing(
+    tmp_path: Path,
+) -> None:
+    env_path = tmp_path / "landing.env"
+    build_production_landing_env_template(output_path=env_path)
+    real_report_dir = tmp_path / "reports" / "real_llm"
+    xiaomi_report_dir = tmp_path / "reports" / "xiaomi"
+    real_report_dir.mkdir(parents=True)
+    xiaomi_report_dir.mkdir(parents=True)
+    payload = {
+        "generated_at": "2026-06-04T00:00:00+00:00",
+        "status": "success",
+        "api_key_present": True,
+        "real_llm_executed": True,
+        "secret_plaintext_output": False,
+        "acceptance_blockers": [],
+        "preflight": {"network_check_executed": True},
+    }
+    (xiaomi_report_dir / "001_production_landing_xiaomi_llm_preflight.json").write_text(
+        json.dumps(payload, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    summary = build_production_landing_env_check(
+        env_path=env_path,
+        output_dir=tmp_path / "out",
+        real_llm_preflight_report_dir=real_report_dir,
+        xiaomi_preflight_report_dir=xiaomi_report_dir,
+    )
+    result = _payload(summary)
+    real_llm = next(item for item in result["domains"] if item["domain_id"] == "real_llm")
+
+    assert real_llm["ready_for_execute"] is True
+    assert real_llm["evidence_ready_override"] is True
+    assert real_llm["evidence"]["ready"] is True
+    assert real_llm["evidence"]["latest_report"].endswith("001_production_landing_xiaomi_llm_preflight.json")
 
 
 def test_production_landing_env_check_reports_secret_detection_flag_without_leak(
@@ -225,7 +265,7 @@ def test_production_landing_env_check_reports_secret_detection_flag_without_leak
     summary = build_production_landing_env_check(
         env_path=env_path,
         output_dir=tmp_path / "out",
-        xiaomi_preflight_report_dir=tmp_path / "missing_xiaomi_reports",
+        real_llm_preflight_report_dir=tmp_path / "missing_real_llm_reports",
     )
     payload = _payload(summary)
     merged = Path(summary["json_path"]).read_text(encoding="utf-8") + Path(summary["markdown_path"]).read_text(

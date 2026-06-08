@@ -1334,6 +1334,131 @@ export default async function OperationsOverviewPage() {
           </section>
 
           <section className="section card">
+            <h2 className="card-title">Controlled pilot delivery gate (read only)</h2>
+            {!summary.observability.controlled_pilot_delivery_gate ? (
+              <div className="empty">no controlled pilot delivery gate summary</div>
+            ) : (
+              <div className="stack">
+                <div className="mono path-break">
+                  status={summary.observability.controlled_pilot_delivery_gate.status} ready=
+                  {String(summary.observability.controlled_pilot_delivery_gate.controlled_pilot_delivery_ready)} scope=
+                  {summary.observability.controlled_pilot_delivery_gate.enterprise_landing_scope || "-"}
+                </div>
+                <div className="mono path-break">
+                  report_present={String(summary.observability.controlled_pilot_delivery_gate.latest_report_present)} report_dir=
+                  {summary.observability.controlled_pilot_delivery_gate.report_dir}
+                </div>
+                <div className="mono path-break">
+                  public_production_direct_launch=
+                  {summary.observability.controlled_pilot_delivery_gate.public_production_direct_launch} missing_conditions=
+                  {summary.observability.controlled_pilot_delivery_gate.missing_condition_count}
+                </div>
+                <div className="mono path-break">
+                  accepted_remaining_gaps=
+                  {summary.observability.controlled_pilot_delivery_gate.accepted_remaining_gaps.join(" | ") || "-"}
+                </div>
+                <div className="mono path-break">
+                  auto_approved={String(summary.observability.controlled_pilot_delivery_gate.auto_approved)} auto_closed=
+                  {String(summary.observability.controlled_pilot_delivery_gate.auto_closed)} secret_plaintext_output=
+                  {String(summary.observability.controlled_pilot_delivery_gate.secret_plaintext_output)}
+                </div>
+                <div className="mono path-break">
+                  missing_conditions=
+                  {summary.observability.controlled_pilot_delivery_gate.missing_conditions.join(" | ") || "-"}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section className="section card">
+            <h2 className="card-title">Controlled pilot run packet (read only)</h2>
+            {!summary.observability.controlled_pilot_run_packet ? (
+              <div className="empty">no controlled pilot run packet summary</div>
+            ) : (
+              <div className="stack">
+                <div className="mono path-break">
+                  status={summary.observability.controlled_pilot_run_packet.status} ready=
+                  {String(summary.observability.controlled_pilot_run_packet.run_packet_ready)} internal_pilot=
+                  {summary.observability.controlled_pilot_run_packet.controlled_internal_pilot}
+                </div>
+                <div className="mono path-break">
+                  scope={summary.observability.controlled_pilot_run_packet.ready_scope || "-"} public_production_direct_launch=
+                  {summary.observability.controlled_pilot_run_packet.public_production_direct_launch} missing_conditions=
+                  {summary.observability.controlled_pilot_run_packet.missing_condition_count}
+                </div>
+                <div className="mono path-break">
+                  accepted_remaining_gaps=
+                  {summary.observability.controlled_pilot_run_packet.accepted_remaining_gaps.join(" | ") || "-"}
+                </div>
+                <div className="mono path-break">
+                  real_production_remaining_gaps=
+                  {summary.observability.controlled_pilot_run_packet.real_production_remaining_gaps.join(" | ") || "-"}
+                </div>
+                <div className="mono path-break">
+                  business_boundary={compactJson(summary.observability.controlled_pilot_run_packet.business_system_boundary)}
+                </div>
+                <div className="mono path-break">
+                  safety_boundary={compactJson(summary.observability.controlled_pilot_run_packet.safety_boundary)}
+                </div>
+                <div className="mono path-break">
+                  commands={compactJson(summary.observability.controlled_pilot_run_packet.operator_commands)}
+                </div>
+                <div className="mono path-break">
+                  source_statuses={compactJson(summary.observability.controlled_pilot_run_packet.source_statuses)}
+                </div>
+                <div className="mono path-break">
+                  secret_plaintext_output=
+                  {String(summary.observability.controlled_pilot_run_packet.secret_plaintext_output)} business_data_written=
+                  {String(summary.observability.controlled_pilot_run_packet.business_data_written)}
+                </div>
+                <div className="mono path-break">
+                  missing_conditions=
+                  {summary.observability.controlled_pilot_run_packet.missing_conditions.join(" | ") || "-"}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section className="section card">
+            <h2 className="card-title">Evidence archive manifest (read only)</h2>
+            {!summary.observability.evidence_archive ? (
+              <div className="empty">no evidence archive summary</div>
+            ) : (
+              <div className="stack">
+                <div className="mono path-break">
+                  status={summary.observability.evidence_archive.status} manifest_id=
+                  {summary.observability.evidence_archive.manifest_id || "-"} reports=
+                  {summary.observability.last_known_report_counts.evidence_archive_reports ?? 0}
+                </div>
+                <div className="mono path-break">
+                  report_present={String(summary.observability.evidence_archive.latest_report_present)} report_dir=
+                  {summary.observability.evidence_archive.report_dir}
+                </div>
+                <div className="mono path-break">
+                  total_files={summary.observability.evidence_archive.total_files} total_size_bytes=
+                  {summary.observability.evidence_archive.total_size_bytes} read_only=
+                  {String(summary.observability.evidence_archive.read_only)} real_llm_executed=
+                  {String(summary.observability.evidence_archive.real_llm_executed)}
+                </div>
+                <div className="mono path-break">
+                  retention_policy={compactJson(summary.observability.evidence_archive.retention_policy)}
+                </div>
+                <div className="mono path-break">
+                  missing_expected_types=
+                  {summary.observability.evidence_archive.missing_expected_types.join(" | ") || "-"}
+                </div>
+                <div className="mono path-break">
+                  latest_by_type={compactJson(summary.observability.evidence_archive.latest_by_type)}
+                </div>
+                <div className="mono path-break">
+                  boundary_declarations=
+                  {summary.observability.evidence_archive.boundary_declarations.join(" | ") || "-"}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section className="section card">
             <h2 className="card-title">Controlled pilot launch gate (read only)</h2>
             {!summary.observability.controlled_pilot_launch_gate ? (
               <div className="empty">no controlled pilot launch gate summary</div>
@@ -1348,6 +1473,10 @@ export default async function OperationsOverviewPage() {
                   public_production_direct_launch=
                   {summary.observability.controlled_pilot_launch_gate.public_production_direct_launch} manual_signoff_required=
                   {String(summary.observability.controlled_pilot_launch_gate.manual_signoff_required)}
+                </div>
+                <div className="mono path-break">
+                  delivery_gate={summary.observability.controlled_pilot_launch_gate.delivery_gate_status || "-"} accepted_remaining_gaps=
+                  {(summary.observability.controlled_pilot_launch_gate.accepted_remaining_gaps || []).join(" | ") || "-"}
                 </div>
                 <div className="mono path-break">
                   evidence_bundle={summary.observability.controlled_pilot_launch_gate.evidence_bundle_status} final_verification=
@@ -1399,6 +1528,11 @@ export default async function OperationsOverviewPage() {
                   public_production_direct_launch=
                   {summary.observability.controlled_pilot_launch_package.public_production_direct_launch} manual_signoff_required=
                   {String(summary.observability.controlled_pilot_launch_package.manual_signoff_required)}
+                </div>
+                <div className="mono path-break">
+                  accepted_remaining_gaps=
+                  {(summary.observability.controlled_pilot_launch_package.accepted_remaining_gaps || []).join(" | ") ||
+                    "-"}
                 </div>
                 <div className="mono path-break">
                   safe_next_action={summary.observability.controlled_pilot_launch_package.safe_next_action} missing_conditions=

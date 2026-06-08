@@ -12,21 +12,29 @@ from typing import Any
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_PATH = ROOT_DIR / "local" / "production_landing.staging.env"
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_env_check"
+REAL_LLM_PREFLIGHT_REPORT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_real_llm_preflight"
 XIAOMI_PREFLIGHT_REPORT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight"
 
+SAFE_REAL_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_RESUME_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_landing_resume.ps1"
 SAFE_BUSINESS_READ_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
-SAFE_POSTGRES_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres"
-SAFE_REDIS_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains redis"
+SAFE_POSTGRES_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains postgres -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
+SAFE_REDIS_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains redis -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
 SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
-    "-Domains external_mcp -McpServerCommand <approved-command> "
+    "-Domains external_mcp -UseExistingEnv -EnvPath local\\production_landing.staging.env -McpServerCommand <approved-command> "
     "-McpServerCommandAllowlist <approved-command> -McpToolAllowlist <approved-tools>"
 )
 SAFE_INFRA_AND_LLM_SMOKE_COMMAND = " ; ".join(
     [
-        SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+        SAFE_REAL_LLM_PREFLIGHT_COMMAND,
         SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
         SAFE_REDIS_INFRA_SMOKE_COMMAND,
         SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
@@ -81,7 +89,7 @@ REQUIRED_ENV_BY_DOMAIN = {
 }
 
 COMMAND_AFTER_FILL_BY_DOMAIN = {
-    "real_llm": SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+    "real_llm": SAFE_REAL_LLM_PREFLIGHT_COMMAND,
     "postgres": SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
     "redis": SAFE_REDIS_INFRA_SMOKE_COMMAND,
     "external_mcp": SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
@@ -96,9 +104,6 @@ EXPECTED_VALUES = {
     "REAL_LLM_SMOKE_ENABLED": "true",
     "REAL_LLM_PREFLIGHT_NETWORK_CHECK": "true",
     "REAL_LLM_PROVIDER": "litellm",
-    "REAL_LLM_MODEL": "mimo-v2.5-pro",
-    "REAL_LLM_BASE_URL": "https://token-plan-cn.xiaomimimo.com/v1",
-    "REAL_LLM_API_KEY_ENV": "XIAOMI_LLM_API_KEY",
     "POSTGRES_STAGING_SMOKE_EXECUTE": "true",
     "STORAGE_BACKEND": "postgres",
     "REDIS_STAGING_SMOKE_EXECUTE": "true",
@@ -120,12 +125,14 @@ SECRET_NAME_KEYS = {
     "BUSINESS_SYSTEM_BASE_URL",
     "BUSINESS_SYSTEM_TOKEN",
     "XIAOMI_LLM_API_KEY",
+    "REAL_LLM_API_KEY",
 }
 
 PLACEHOLDER_PATTERN = re.compile(r"^<[^>]+>$")
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
     re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
+    re.compile(r"\bk-[A-Za-z0-9_\-]{24,}"),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
     re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^,\s]+"),
     re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\s*[:=]\s*([^\s,]+)"),
@@ -178,10 +185,15 @@ def _redact_secret_like_text(value: Any) -> Any:
 def _value_for_key(key: str, file_values: dict[str, str]) -> tuple[str, str]:
     process_value = os.getenv(key, "")
     if key in file_values:
-        if key in SECRET_NAME_KEYS and PLACEHOLDER_PATTERN.match(file_values[key]) and process_value:
+        if _is_secret_name_key(key) and PLACEHOLDER_PATTERN.match(file_values[key]) and process_value:
             return str(process_value), "process_env_over_env_file_placeholder"
         return file_values[key], "env_file"
     return str(process_value or ""), "process_env" if process_value else "missing"
+
+
+def _is_secret_name_key(key: str) -> bool:
+    normalized = key.upper()
+    return normalized in SECRET_NAME_KEYS or normalized.endswith("_API_KEY") or normalized.endswith("_TOKEN")
 
 
 def _safe_key_status(key: str, file_values: dict[str, str]) -> dict[str, Any]:
@@ -197,7 +209,7 @@ def _safe_key_status(key: str, file_values: dict[str, str]) -> dict[str, Any]:
         "placeholder": placeholder,
         "expected_value": expected or "",
         "expected_match": expected_match,
-        "secret_value_key": key in SECRET_NAME_KEYS,
+        "secret_value_key": _is_secret_name_key(key),
         "safe_to_execute": present and not placeholder and expected_match,
     }
 
@@ -222,9 +234,11 @@ def _domain_next_action(domain_id: str, *, missing: list[str], placeholders: lis
     if placeholders:
         secret_placeholders = [item for item in placeholders if item in SECRET_NAME_KEYS]
         non_secret_placeholders = [item for item in placeholders if item not in SECRET_NAME_KEYS]
-        if domain_id == "real_llm" and "XIAOMI_LLM_API_KEY" in secret_placeholders:
-            actions.append("inject_xiaomi_api_key_in_process_env")
-            actions.append(f"run:{SAFE_XIAOMI_LLM_RESUME_COMMAND}")
+        if domain_id == "real_llm":
+            llm_secret_placeholders = [item for item in secret_placeholders if item.endswith("_API_KEY")]
+            if llm_secret_placeholders:
+                actions.append("inject_real_llm_api_key_in_process_env")
+                actions.append(f"run:{SAFE_REAL_LLM_PREFLIGHT_COMMAND}")
         if non_secret_placeholders:
             actions.append("replace_non_secret_placeholder_keys_in_local_env")
     if mismatches:
@@ -272,8 +286,38 @@ def _successful_xiaomi_preflight_payload(payload: dict[str, Any]) -> bool:
     )
 
 
-def _real_llm_preflight_evidence_ready(report_dir: str | Path | None = None) -> dict[str, Any]:
-    latest = _latest_json_report(_get_xiaomi_preflight_report_dir(report_dir), "*_production_landing_xiaomi_llm_preflight.json")
+def _get_real_llm_preflight_report_dir(override: str | Path | None = None) -> Path:
+    if override:
+        return Path(override)
+    env_override = (os.getenv("PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_REPORT_DIR", "") or "").strip()
+    return Path(env_override) if env_override else REAL_LLM_PREFLIGHT_REPORT_DIR
+
+
+def _latest_real_llm_preflight_report(
+    *,
+    real_report_dir: str | Path | None = None,
+    xiaomi_report_dir: str | Path | None = None,
+) -> Path | None:
+    real_latest = _latest_json_report(
+        _get_real_llm_preflight_report_dir(real_report_dir),
+        "*_production_landing_real_llm_preflight.json",
+    )
+    if real_latest is not None:
+        return real_latest
+    if real_report_dir is not None and xiaomi_report_dir is None:
+        return None
+    return _latest_json_report(
+        _get_xiaomi_preflight_report_dir(xiaomi_report_dir),
+        "*_production_landing_xiaomi_llm_preflight.json",
+    )
+
+
+def _real_llm_preflight_evidence_ready(
+    *,
+    real_report_dir: str | Path | None = None,
+    xiaomi_report_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    latest = _latest_real_llm_preflight_report(real_report_dir=real_report_dir, xiaomi_report_dir=xiaomi_report_dir)
     if latest is None:
         return {
             "latest_report": "",
@@ -315,6 +359,7 @@ def build_production_landing_env_check(
     env_path: str | Path | None = None,
     output_dir: str | Path | None = None,
     xiaomi_preflight_report_dir: str | Path | None = None,
+    real_llm_preflight_report_dir: str | Path | None = None,
     allow_real_llm_evidence_override: bool = True,
 ) -> dict[str, Any]:
     path = Path(env_path) if env_path else DEFAULT_ENV_PATH
@@ -330,7 +375,10 @@ def build_production_landing_env_check(
             api_key_env = file_values.get("REAL_LLM_API_KEY_ENV") or os.getenv("REAL_LLM_API_KEY_ENV", "")
             if api_key_env:
                 key_statuses.append(_safe_key_status(api_key_env, file_values))
-            evidence = _real_llm_preflight_evidence_ready(xiaomi_preflight_report_dir)
+            evidence = _real_llm_preflight_evidence_ready(
+                real_report_dir=real_llm_preflight_report_dir,
+                xiaomi_report_dir=xiaomi_preflight_report_dir,
+            )
         missing = [item["key"] for item in key_statuses if not item["present"]]
         placeholders = [item["key"] for item in key_statuses if item["placeholder"]]
         mismatches = [item["key"] for item in key_statuses if not item["expected_match"]]
@@ -451,6 +499,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--env-path", default=str(DEFAULT_ENV_PATH))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--xiaomi-preflight-report-dir", default=None)
+    parser.add_argument("--real-llm-preflight-report-dir", default=None)
     return parser
 
 
@@ -460,6 +509,7 @@ def main() -> int:
         env_path=args.env_path,
         output_dir=args.output_dir,
         xiaomi_preflight_report_dir=args.xiaomi_preflight_report_dir,
+        real_llm_preflight_report_dir=args.real_llm_preflight_report_dir,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"json_path={summary['json_path']}")

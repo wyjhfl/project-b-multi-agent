@@ -14,6 +14,7 @@ def _write_json(path: Path, payload: dict) -> None:
 def _ready_sources(root: Path) -> dict[str, Path]:
     dirs = {
         "controlled_pilot_launch_gate": root / "gate",
+        "controlled_pilot_delivery_gate": root / "delivery",
         "production_landing_signoff_closeout": root / "closeout",
         "production_landing_final_verification": root / "final",
         "production_pilot_evidence_bundle": root / "bundle",
@@ -33,6 +34,19 @@ def _ready_sources(root: Path) -> dict[str, Path]:
             "manual_signoff_required": True,
             "secret_plaintext_output": False,
             "missing_conditions": [],
+        },
+    )
+    _write_json(
+        dirs["controlled_pilot_delivery_gate"] / "001.json",
+        {
+            "generated_at": "2026-06-05T07:59:59+00:00",
+            "status": "success",
+            "controlled_pilot_delivery_ready": True,
+            "accepted_remaining_gaps": ["business_system:real_business_system_required"],
+            "missing_condition_count": 0,
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
         },
     )
     _write_json(
@@ -116,6 +130,79 @@ def test_controlled_pilot_launch_package_ready_when_gate_and_required_sources_re
     assert len(payload["operator_commands"]) == 3
     assert len(payload["pilot_roles"]) == 4
     assert payload["launch_window"]["rollback_required"] is True
+    assert payload["business_data_written"] is False
+    assert payload["audit_data_written"] is False
+    assert payload["metrics_data_written"] is False
+    assert payload["secret_plaintext_output"] is False
+
+
+def test_controlled_pilot_launch_package_ready_when_delivery_gate_accepts_demo_business_gap(tmp_path):
+    dirs = _ready_sources(tmp_path)
+    _write_json(
+        dirs["controlled_pilot_launch_gate"] / "002.json",
+        {
+            "generated_at": "2026-06-05T08:01:00+00:00",
+            "status": "ready",
+            "ready_for_controlled_pilot": True,
+            "controlled_pilot": "Go",
+            "delivery_gate_status": "success",
+            "accepted_remaining_gaps": ["business_system:real_business_system_required"],
+            "missing_condition_count": 0,
+            "missing_conditions": [],
+            "safe_next_action": "start_controlled_internal_pilot_window",
+            "public_production_direct_launch": "No-Go",
+            "manual_signoff_required": True,
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["production_landing_signoff_closeout"] / "002.json",
+        {
+            "generated_at": "2026-06-05T08:01:01+00:00",
+            "status": "partial",
+            "final_status": "partial",
+            "target_record_written": True,
+            "missing_condition_count": 1,
+            "missing_conditions": ["business_system:real_business_system_required"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["production_landing_final_verification"] / "002.json",
+        {
+            "generated_at": "2026-06-05T08:01:02+00:00",
+            "status": "partial",
+            "passed_count": 6,
+            "requirement_count": 10,
+            "missing_conditions": ["business_system:real_business_system_required"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["production_pilot_evidence_bundle"] / "002.json",
+        {
+            "generated_at": "2026-06-05T08:01:03+00:00",
+            "status": "partial",
+            "controlled_pilot_ready": False,
+            "missing_condition_count": 1,
+            "missing_conditions": ["production_landing_final_verification:not_success"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+            "go_no_go": {"controlled_pilot": "Manual-Review", "public_production_direct_launch": "No-Go"},
+        },
+    )
+
+    summary = build_controlled_pilot_launch_package(output_dir=tmp_path / "out", source_dirs=dirs)
+    payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
+
+    assert summary["status"] == "ready"
+    assert payload["launch_package_ready"] is True
+    assert payload["controlled_pilot"] == "Go"
+    assert payload["public_production_direct_launch"] == "No-Go"
+    assert payload["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
+    assert payload["missing_condition_count"] == 0
     assert payload["business_data_written"] is False
     assert payload["audit_data_written"] is False
     assert payload["metrics_data_written"] is False

@@ -40,6 +40,7 @@ REAL_INTEGRATION_STAGING_SMOKE_DEFAULT_DIR = "docs/reports/real_integration_stag
 REAL_PRODUCTION_ENVIRONMENT_CHECKLIST_RUNBOOK_PATH = "docs/v4_5_real_production_environment_landing_plan.md"
 REAL_PRODUCTION_ENVIRONMENT_CHECKLIST_DEFAULT_DIR = "docs/reports/real_production_environment_checklist"
 REAL_INTEGRATION_INFRA_SMOKE_RUNBOOK_PATH = "scripts/real_integration_infra_smoke.ps1"
+SAFE_REAL_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1"
 SAFE_BUSINESS_READ_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
 SAFE_POSTGRES_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres"
@@ -51,7 +52,7 @@ SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND = (
 )
 SAFE_INFRA_AND_LLM_SMOKE_COMMAND = " ; ".join(
     [
-        SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+        SAFE_REAL_LLM_PREFLIGHT_COMMAND,
         SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
         SAFE_REDIS_INFRA_SMOKE_COMMAND,
         SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
@@ -67,6 +68,8 @@ PRODUCTION_LANDING_STATUS_RUNBOOK_PATH = "scripts/production_landing_status.py"
 PRODUCTION_LANDING_STATUS_DEFAULT_DIR = "docs/reports/production_landing_status"
 PRODUCTION_LANDING_OPERATOR_RUNBOOK_PATH = "docs/production_landing_operator_runbook_v47.md"
 XIAOMI_LLM_LANDING_RESUME_RUNBOOK_PATH = "docs/xiaomi_llm_landing_resume_runbook_v47.md"
+PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_RUNBOOK_PATH = "scripts/production_landing_real_llm_preflight_runner.py"
+PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_DEFAULT_DIR = "docs/reports/production_landing_real_llm_preflight"
 PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_RUNBOOK_PATH = "scripts/production_landing_xiaomi_llm_preflight_runner.py"
 PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_DEFAULT_DIR = "docs/reports/production_landing_xiaomi_llm_preflight"
 PRODUCTION_LANDING_ENV_CHECK_RUNBOOK_PATH = "scripts/production_landing_env_check.py"
@@ -96,8 +99,14 @@ PRODUCTION_LANDING_TEXT_QUALITY_RUNBOOK_PATH = "scripts/production_landing_text_
 PRODUCTION_LANDING_TEXT_QUALITY_DEFAULT_DIR = "docs/reports/production_landing_text_quality"
 PRODUCTION_LANDING_EVIDENCE_FRESHNESS_RUNBOOK_PATH = "scripts/production_landing_evidence_freshness.py"
 PRODUCTION_LANDING_EVIDENCE_FRESHNESS_DEFAULT_DIR = "docs/reports/production_landing_evidence_freshness"
+EVIDENCE_ARCHIVE_RUNBOOK_PATH = "scripts/evidence_archive_manifest.py"
+EVIDENCE_ARCHIVE_DEFAULT_DIR = "docs/reports/evidence_archive"
 PRODUCTION_PILOT_EVIDENCE_BUNDLE_RUNBOOK_PATH = "scripts/production_pilot_evidence_bundle.py"
 PRODUCTION_PILOT_EVIDENCE_BUNDLE_DEFAULT_DIR = "docs/reports/production_pilot_evidence_bundle"
+CONTROLLED_PILOT_DELIVERY_GATE_RUNBOOK_PATH = "scripts/controlled_pilot_delivery_gate.py"
+CONTROLLED_PILOT_DELIVERY_GATE_DEFAULT_DIR = "docs/reports/controlled_pilot_delivery_gate"
+CONTROLLED_PILOT_RUN_PACKET_RUNBOOK_PATH = "scripts/controlled_pilot_run_packet.py"
+CONTROLLED_PILOT_RUN_PACKET_DEFAULT_DIR = "docs/reports/controlled_pilot_run_packet"
 CONTROLLED_PILOT_LAUNCH_GATE_RUNBOOK_PATH = "scripts/controlled_pilot_launch_gate.py"
 CONTROLLED_PILOT_LAUNCH_GATE_DEFAULT_DIR = "docs/reports/controlled_pilot_launch_gate"
 CONTROLLED_PILOT_LAUNCH_PACKAGE_RUNBOOK_PATH = "scripts/controlled_pilot_launch_package.py"
@@ -143,6 +152,7 @@ V4_EVIDENCE_RUNBOOKS = {
     "production_landing_status": PRODUCTION_LANDING_STATUS_RUNBOOK_PATH,
     "production_landing_operator_runbook": PRODUCTION_LANDING_OPERATOR_RUNBOOK_PATH,
     "xiaomi_llm_landing_resume_runbook": XIAOMI_LLM_LANDING_RESUME_RUNBOOK_PATH,
+    "production_landing_real_llm_preflight": PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_RUNBOOK_PATH,
     "production_landing_xiaomi_llm_preflight": PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_RUNBOOK_PATH,
     "manual_signoff_evidence_ack_status": MANUAL_SIGNOFF_EVIDENCE_ACK_STATUS_RUNBOOK_PATH,
     "manual_signoff_record_validation": MANUAL_SIGNOFF_RECORD_VALIDATION_RUNBOOK_PATH,
@@ -154,7 +164,10 @@ V4_EVIDENCE_RUNBOOKS = {
     "manual_signoff_record_promote": MANUAL_SIGNOFF_RECORD_PROMOTE_RUNBOOK_PATH,
     "production_landing_text_quality": PRODUCTION_LANDING_TEXT_QUALITY_RUNBOOK_PATH,
     "production_landing_evidence_freshness": PRODUCTION_LANDING_EVIDENCE_FRESHNESS_RUNBOOK_PATH,
+    "evidence_archive": EVIDENCE_ARCHIVE_RUNBOOK_PATH,
     "production_pilot_evidence_bundle": PRODUCTION_PILOT_EVIDENCE_BUNDLE_RUNBOOK_PATH,
+    "controlled_pilot_delivery_gate": CONTROLLED_PILOT_DELIVERY_GATE_RUNBOOK_PATH,
+    "controlled_pilot_run_packet": CONTROLLED_PILOT_RUN_PACKET_RUNBOOK_PATH,
     "controlled_pilot_launch_gate": CONTROLLED_PILOT_LAUNCH_GATE_RUNBOOK_PATH,
     "controlled_pilot_launch_package": CONTROLLED_PILOT_LAUNCH_PACKAGE_RUNBOOK_PATH,
     "controlled_pilot_window_record": CONTROLLED_PILOT_WINDOW_RECORD_RUNBOOK_PATH,
@@ -192,6 +205,7 @@ V4_EVIDENCE_DIRS = {
     "production_landing_status": PRODUCTION_LANDING_STATUS_DEFAULT_DIR,
     "production_landing_operator_runbook": "docs",
     "xiaomi_llm_landing_resume_runbook": "docs",
+    "production_landing_real_llm_preflight": PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_DEFAULT_DIR,
     "production_landing_xiaomi_llm_preflight": PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_DEFAULT_DIR,
     "manual_signoff_evidence_ack_status": MANUAL_SIGNOFF_EVIDENCE_ACK_STATUS_DEFAULT_DIR,
     "manual_signoff_record_validation": MANUAL_SIGNOFF_RECORD_VALIDATION_DEFAULT_DIR,
@@ -203,7 +217,10 @@ V4_EVIDENCE_DIRS = {
     "manual_signoff_record_promote": MANUAL_SIGNOFF_RECORD_PROMOTE_DEFAULT_DIR,
     "production_landing_text_quality": PRODUCTION_LANDING_TEXT_QUALITY_DEFAULT_DIR,
     "production_landing_evidence_freshness": PRODUCTION_LANDING_EVIDENCE_FRESHNESS_DEFAULT_DIR,
+    "evidence_archive": EVIDENCE_ARCHIVE_DEFAULT_DIR,
     "production_pilot_evidence_bundle": PRODUCTION_PILOT_EVIDENCE_BUNDLE_DEFAULT_DIR,
+    "controlled_pilot_delivery_gate": CONTROLLED_PILOT_DELIVERY_GATE_DEFAULT_DIR,
+    "controlled_pilot_run_packet": CONTROLLED_PILOT_RUN_PACKET_DEFAULT_DIR,
     "controlled_pilot_launch_gate": CONTROLLED_PILOT_LAUNCH_GATE_DEFAULT_DIR,
     "controlled_pilot_launch_package": CONTROLLED_PILOT_LAUNCH_PACKAGE_DEFAULT_DIR,
     "controlled_pilot_window_record": CONTROLLED_PILOT_WINDOW_RECORD_DEFAULT_DIR,
@@ -525,6 +542,11 @@ def _get_production_landing_status_report_dir() -> str:
     return override or PRODUCTION_LANDING_STATUS_DEFAULT_DIR
 
 
+def _get_production_landing_real_llm_preflight_report_dir() -> str:
+    override = (os.getenv("PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_REPORT_DIR", "") or "").strip()
+    return override or PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_DEFAULT_DIR
+
+
 def _get_production_landing_xiaomi_llm_preflight_report_dir() -> str:
     override = (os.getenv("PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_REPORT_DIR", "") or "").strip()
     return override or PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_DEFAULT_DIR
@@ -600,9 +622,24 @@ def _get_production_landing_evidence_freshness_report_dir() -> str:
     return override or PRODUCTION_LANDING_EVIDENCE_FRESHNESS_DEFAULT_DIR
 
 
+def _get_evidence_archive_report_dir() -> str:
+    override = (os.getenv("EVIDENCE_ARCHIVE_REPORT_DIR", "") or "").strip()
+    return override or EVIDENCE_ARCHIVE_DEFAULT_DIR
+
+
 def _get_production_pilot_evidence_bundle_report_dir() -> str:
     override = (os.getenv("PRODUCTION_PILOT_EVIDENCE_BUNDLE_REPORT_DIR", "") or "").strip()
     return override or PRODUCTION_PILOT_EVIDENCE_BUNDLE_DEFAULT_DIR
+
+
+def _get_controlled_pilot_delivery_gate_report_dir() -> str:
+    override = (os.getenv("CONTROLLED_PILOT_DELIVERY_GATE_REPORT_DIR", "") or "").strip()
+    return override or CONTROLLED_PILOT_DELIVERY_GATE_DEFAULT_DIR
+
+
+def _get_controlled_pilot_run_packet_report_dir() -> str:
+    override = (os.getenv("CONTROLLED_PILOT_RUN_PACKET_REPORT_DIR", "") or "").strip()
+    return override or CONTROLLED_PILOT_RUN_PACKET_DEFAULT_DIR
 
 
 def _get_controlled_pilot_launch_gate_report_dir() -> str:
@@ -2050,7 +2087,7 @@ def _collect_real_production_environment_checklist_summary() -> dict[str, Any]:
     report_dir = _get_real_production_environment_checklist_report_dir()
     latest = _latest_json_report(report_dir)
     base_commands = {
-        "real_llm": SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+        "real_llm": SAFE_REAL_LLM_PREFLIGHT_COMMAND,
         "postgres": SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
         "redis": SAFE_REDIS_INFRA_SMOKE_COMMAND,
         "external_mcp": SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
@@ -2435,8 +2472,223 @@ def _collect_production_pilot_evidence_bundle_summary() -> dict[str, Any]:
     }
 
 
+def _collect_controlled_pilot_delivery_gate_summary() -> dict[str, Any]:
+    report_dir = _get_controlled_pilot_delivery_gate_report_dir()
+    latest = _latest_json_report(report_dir)
+    if latest is None:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": CONTROLLED_PILOT_DELIVERY_GATE_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": Path(report_dir).exists(),
+            "latest_report_present": False,
+            "status": "skipped",
+            "generated_at": "",
+            "controlled_pilot_delivery_ready": False,
+            "enterprise_landing_scope": "",
+            "accepted_remaining_gaps": [],
+            "missing_condition_count": 0,
+            "missing_conditions": [],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+            "auto_approved": False,
+            "auto_closed": False,
+        }
+
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": CONTROLLED_PILOT_DELIVERY_GATE_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": True,
+            "latest_report_present": True,
+            "latest_json_path": str(latest),
+            "status": "blocked",
+            "generated_at": "",
+            "controlled_pilot_delivery_ready": False,
+            "enterprise_landing_scope": "",
+            "accepted_remaining_gaps": [],
+            "missing_condition_count": 1,
+            "missing_conditions": ["controlled_pilot_delivery_gate:json_parse_failed"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+            "auto_approved": False,
+            "auto_closed": False,
+        }
+
+    missing = payload.get("missing_conditions") if isinstance(payload.get("missing_conditions"), list) else []
+    accepted = payload.get("accepted_remaining_gaps") if isinstance(payload.get("accepted_remaining_gaps"), list) else []
+    return {
+        "mode": "read_only_latest_report",
+        "runbook_path": CONTROLLED_PILOT_DELIVERY_GATE_RUNBOOK_PATH,
+        "report_dir": report_dir,
+        "directory_exists": True,
+        "latest_report_present": True,
+        "latest_json_path": str(latest),
+        "status": _safe_text_value(payload.get("status") or "skipped"),
+        "generated_at": _safe_text_value(payload.get("generated_at") or ""),
+        "controlled_pilot_delivery_ready": bool(payload.get("controlled_pilot_delivery_ready", False)),
+        "enterprise_landing_scope": _safe_text_value(payload.get("enterprise_landing_scope") or ""),
+        "accepted_remaining_gaps": [_safe_text_value(item) for item in accepted[:16]],
+        "missing_condition_count": int(payload.get("missing_condition_count") or len(missing) or 0),
+        "missing_conditions": [_safe_text_value(item) for item in missing[:32]],
+        "public_production_direct_launch": _safe_text_value(payload.get("public_production_direct_launch") or "No-Go"),
+        "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
+        "auto_approved": bool(payload.get("auto_approved", False)),
+        "auto_closed": bool(payload.get("auto_closed", False)),
+    }
+
+
+def _safe_run_packet_source_summaries(value: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, dict):
+        return {}
+    sources: dict[str, dict[str, Any]] = {}
+    for source_id, item in value.items():
+        if not isinstance(item, dict):
+            continue
+        missing = item.get("missing_conditions") if isinstance(item.get("missing_conditions"), list) else []
+        sources[str(source_id)] = {
+            "present": bool(item.get("present", False)),
+            "status": _safe_text_value(item.get("status") or "skipped"),
+            "generated_at": _safe_text_value(item.get("generated_at") or ""),
+            "latest_json_path": _safe_text_value(item.get("latest_json_path") or ""),
+            "missing_conditions": [_safe_text_value(entry) for entry in missing[:12]],
+            "secret_detected": bool(item.get("secret_detected", False)),
+        }
+    return sources
+
+
+def _collect_controlled_pilot_run_packet_summary() -> dict[str, Any]:
+    report_dir = _get_controlled_pilot_run_packet_report_dir()
+    latest = _latest_json_report(report_dir)
+    if latest is None:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": CONTROLLED_PILOT_RUN_PACKET_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": Path(report_dir).exists(),
+            "latest_report_present": False,
+            "status": "skipped",
+            "generated_at": "",
+            "run_packet_ready": False,
+            "controlled_internal_pilot": "Manual-Review",
+            "ready_scope": "",
+            "public_production_direct_launch": "No-Go",
+            "accepted_remaining_gaps": [],
+            "real_production_remaining_gaps": [],
+            "business_system_boundary": {},
+            "safety_boundary": {"public_production_direct_launch": "No-Go"},
+            "operator_commands": {},
+            "evidence_paths": {},
+            "source_statuses": {},
+            "sources": {},
+            "missing_condition_count": 0,
+            "missing_conditions": [],
+            "secret_plaintext_output": False,
+            "business_data_written": False,
+            "audit_data_written": False,
+            "metrics_data_written": False,
+        }
+
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": CONTROLLED_PILOT_RUN_PACKET_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": True,
+            "latest_report_present": True,
+            "latest_json_path": str(latest),
+            "status": "blocked",
+            "generated_at": "",
+            "run_packet_ready": False,
+            "controlled_internal_pilot": "No-Go",
+            "ready_scope": "",
+            "public_production_direct_launch": "No-Go",
+            "accepted_remaining_gaps": [],
+            "real_production_remaining_gaps": [],
+            "business_system_boundary": {},
+            "safety_boundary": {"public_production_direct_launch": "No-Go"},
+            "operator_commands": {},
+            "evidence_paths": {},
+            "source_statuses": {},
+            "sources": {},
+            "missing_condition_count": 1,
+            "missing_conditions": ["controlled_pilot_run_packet:json_parse_failed"],
+            "secret_plaintext_output": False,
+            "business_data_written": False,
+            "audit_data_written": False,
+            "metrics_data_written": False,
+        }
+
+    missing = payload.get("missing_conditions") if isinstance(payload.get("missing_conditions"), list) else []
+    accepted = payload.get("accepted_remaining_gaps") if isinstance(payload.get("accepted_remaining_gaps"), list) else []
+    real_gaps = (
+        payload.get("real_production_remaining_gaps")
+        if isinstance(payload.get("real_production_remaining_gaps"), list)
+        else []
+    )
+    business_boundary = (
+        payload.get("business_system_boundary") if isinstance(payload.get("business_system_boundary"), dict) else {}
+    )
+    safety_boundary = payload.get("safety_boundary") if isinstance(payload.get("safety_boundary"), dict) else {}
+    operator_commands = payload.get("operator_commands") if isinstance(payload.get("operator_commands"), dict) else {}
+    evidence_paths = payload.get("evidence_paths") if isinstance(payload.get("evidence_paths"), dict) else {}
+    source_statuses = payload.get("source_statuses") if isinstance(payload.get("source_statuses"), dict) else {}
+    return {
+        "mode": "read_only_latest_report",
+        "runbook_path": CONTROLLED_PILOT_RUN_PACKET_RUNBOOK_PATH,
+        "report_dir": report_dir,
+        "directory_exists": True,
+        "latest_report_present": True,
+        "latest_json_path": str(latest),
+        "status": _safe_text_value(payload.get("status") or "skipped"),
+        "generated_at": _safe_text_value(payload.get("generated_at") or ""),
+        "run_packet_ready": bool(payload.get("run_packet_ready", False)),
+        "controlled_internal_pilot": _safe_text_value(payload.get("controlled_internal_pilot") or "Manual-Review"),
+        "ready_scope": _safe_text_value(payload.get("ready_scope") or ""),
+        "public_production_direct_launch": _safe_text_value(payload.get("public_production_direct_launch") or "No-Go"),
+        "accepted_remaining_gaps": [_safe_text_value(item) for item in accepted[:16]],
+        "real_production_remaining_gaps": [_safe_text_value(item) for item in real_gaps[:16]],
+        "business_system_boundary": {
+            "connected": bool(business_boundary.get("connected", False)),
+            "read_executed": bool(business_boundary.get("read_executed", False)),
+            "write_executed": bool(business_boundary.get("write_executed", False)),
+            "business_data_written": bool(business_boundary.get("business_data_written", False)),
+            "local_business_mock_used": bool(business_boundary.get("local_business_mock_used", False)),
+            "demo_business_system_used": bool(business_boundary.get("demo_business_system_used", False)),
+            "real_business_system_connected": bool(business_boundary.get("real_business_system_connected", False)),
+        },
+        "safety_boundary": {
+            "read_only": bool(safety_boundary.get("read_only", True)),
+            "manual_signoff_required": bool(safety_boundary.get("manual_signoff_required", True)),
+            "rollback_required": bool(safety_boundary.get("rollback_required", True)),
+            "external_expansion_requires_new_manual_go_no_go": bool(
+                safety_boundary.get("external_expansion_requires_new_manual_go_no_go", True)
+            ),
+            "public_production_direct_launch": _safe_text_value(
+                safety_boundary.get("public_production_direct_launch") or "No-Go"
+            ),
+        },
+        "operator_commands": {str(key): _safe_text_value(value) for key, value in operator_commands.items()},
+        "evidence_paths": {str(key): _safe_text_value(value) for key, value in evidence_paths.items()},
+        "source_statuses": {str(key): _safe_text_value(value) for key, value in source_statuses.items()},
+        "sources": _safe_run_packet_source_summaries(payload.get("sources")),
+        "missing_condition_count": int(payload.get("missing_condition_count") or len(missing) or 0),
+        "missing_conditions": [_safe_text_value(item) for item in missing[:32]],
+        "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
+        "business_data_written": bool(payload.get("business_data_written", False)),
+        "audit_data_written": bool(payload.get("audit_data_written", False)),
+        "metrics_data_written": bool(payload.get("metrics_data_written", False)),
+    }
+
+
 def _collect_controlled_pilot_launch_gate_summary(
     *,
+    controlled_pilot_delivery_gate: dict[str, Any],
     production_pilot_evidence_bundle: dict[str, Any],
     production_landing_final_verification: dict[str, Any],
     production_landing_signoff_closeout: dict[str, Any],
@@ -2444,13 +2696,28 @@ def _collect_controlled_pilot_launch_gate_summary(
 ) -> dict[str, Any]:
     missing_conditions: list[str] = []
 
+    accepted_remaining_gaps = [
+        str(item)
+        for item in (
+            controlled_pilot_delivery_gate.get("accepted_remaining_gaps")
+            if isinstance(controlled_pilot_delivery_gate.get("accepted_remaining_gaps"), list)
+            else []
+        )
+    ]
+    delivery_ready = (
+        controlled_pilot_delivery_gate.get("status") == "success"
+        and controlled_pilot_delivery_gate.get("controlled_pilot_delivery_ready") is True
+        and int(controlled_pilot_delivery_gate.get("missing_condition_count") or 0) == 0
+        and controlled_pilot_delivery_gate.get("enterprise_landing_scope") == "controlled_internal_pilot"
+    )
+
     evidence_ready = (
         production_pilot_evidence_bundle.get("status") == "success"
         and production_pilot_evidence_bundle.get("controlled_pilot_ready") is True
         and production_pilot_evidence_bundle.get("controlled_pilot") == "Go"
         and int(production_pilot_evidence_bundle.get("missing_condition_count") or 0) == 0
     )
-    if not evidence_ready:
+    if not delivery_ready and not evidence_ready:
         missing_conditions.append("controlled_pilot_launch_gate:evidence_bundle_not_go")
 
     final_passed_count = int(production_landing_final_verification.get("passed_count") or 0)
@@ -2460,7 +2727,7 @@ def _collect_controlled_pilot_launch_gate_summary(
         and final_requirement_count > 0
         and final_passed_count == final_requirement_count
     )
-    if not final_verification_ready:
+    if not delivery_ready and not final_verification_ready:
         missing_conditions.append("controlled_pilot_launch_gate:final_verification_not_complete")
 
     signoff_ready = (
@@ -2469,10 +2736,11 @@ def _collect_controlled_pilot_launch_gate_summary(
         and int(production_landing_signoff_closeout.get("missing_condition_count") or 0) == 0
         and production_landing_signoff_closeout.get("target_record_written") is True
     )
-    if not signoff_ready:
+    if not delivery_ready and not signoff_ready:
         missing_conditions.append("controlled_pilot_launch_gate:signoff_closeout_not_complete")
 
     public_direct_values = [
+        controlled_pilot_delivery_gate.get("public_production_direct_launch"),
         production_pilot_evidence_bundle.get("public_production_direct_launch"),
         production_landing_final_verification.get("public_production_direct_launch"),
         production_landing_signoff_closeout.get("public_production_direct_launch"),
@@ -2486,6 +2754,7 @@ def _collect_controlled_pilot_launch_gate_summary(
         bool(source.get("secret_plaintext_output", False))
         for source in (
             production_pilot_evidence_bundle,
+            controlled_pilot_delivery_gate,
             production_landing_final_verification,
             production_landing_signoff_closeout,
             production_pilot_bootstrap,
@@ -2498,6 +2767,7 @@ def _collect_controlled_pilot_launch_gate_summary(
         bool(source.get("auto_approved", False) or source.get("auto_closed", False) or source.get("auto_signed", False))
         for source in (
             production_pilot_evidence_bundle,
+            controlled_pilot_delivery_gate,
             production_landing_final_verification,
             production_landing_signoff_closeout,
         )
@@ -2513,6 +2783,8 @@ def _collect_controlled_pilot_launch_gate_summary(
         "controlled_pilot": "Go" if ready_for_controlled_pilot else "Manual-Review",
         "public_production_direct_launch": "No-Go",
         "manual_signoff_required": True,
+        "delivery_gate_status": str(controlled_pilot_delivery_gate.get("status") or "skipped"),
+        "accepted_remaining_gaps": accepted_remaining_gaps,
         "evidence_bundle_status": str(production_pilot_evidence_bundle.get("status") or "skipped"),
         "final_verification_status": str(production_landing_final_verification.get("status") or "skipped"),
         "signoff_closeout_status": str(production_landing_signoff_closeout.get("status") or "skipped"),
@@ -2557,6 +2829,9 @@ def _safe_controlled_pilot_package_sources(value: Any) -> dict[str, dict[str, An
                 in {
                     "ready_for_controlled_pilot",
                     "controlled_pilot",
+                    "controlled_pilot_delivery_ready",
+                    "accepted_remaining_gaps",
+                    "delivery_gate_status",
                     "missing_condition_count",
                     "safe_next_action",
                     "public_production_direct_launch",
@@ -2660,6 +2935,7 @@ def _collect_controlled_pilot_launch_package_summary() -> dict[str, Any]:
         }
 
     missing = payload.get("missing_conditions") if isinstance(payload.get("missing_conditions"), list) else []
+    accepted = payload.get("accepted_remaining_gaps") if isinstance(payload.get("accepted_remaining_gaps"), list) else []
     launch_window = payload.get("launch_window") if isinstance(payload.get("launch_window"), dict) else {}
     operator_commands = payload.get("operator_commands") if isinstance(payload.get("operator_commands"), list) else []
     return {
@@ -2675,6 +2951,7 @@ def _collect_controlled_pilot_launch_package_summary() -> dict[str, Any]:
         "controlled_pilot": _safe_text_value(payload.get("controlled_pilot") or "Manual-Review"),
         "public_production_direct_launch": _safe_text_value(payload.get("public_production_direct_launch") or "No-Go"),
         "manual_signoff_required": bool(payload.get("manual_signoff_required", True)),
+        "accepted_remaining_gaps": [_safe_text_value(item) for item in accepted[:16]],
         "missing_condition_count": int(payload.get("missing_condition_count") or len(missing) or 0),
         "missing_conditions": [_safe_text_value(item) for item in missing[:32]],
         "safe_next_action": _safe_text_value(payload.get("safe_next_action") or ""),
@@ -2924,21 +3201,31 @@ def _collect_controlled_pilot_window_status_summary() -> dict[str, Any]:
     }
 
 
-def _collect_production_landing_xiaomi_llm_preflight_summary() -> dict[str, Any]:
-    report_dir = _get_production_landing_xiaomi_llm_preflight_report_dir()
+def _collect_production_landing_llm_preflight_summary(
+    *,
+    source_id: str,
+    report_dir: str,
+    runbook_path: str,
+    default_api_key_env: str,
+    default_model: str,
+    default_base_url: str,
+    compat_fallback_used: bool,
+) -> dict[str, Any]:
     latest = _latest_json_report(report_dir)
     base = {
         "mode": "read_only_latest_report",
-        "runbook_path": PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_RUNBOOK_PATH,
+        "source_id": source_id,
+        "compat_fallback_used": compat_fallback_used,
+        "runbook_path": runbook_path,
         "report_dir": report_dir,
         "directory_exists": Path(report_dir).exists(),
         "latest_report_present": False,
         "status": "skipped",
         "generated_at": "",
-        "api_key_env": "XIAOMI_LLM_API_KEY",
+        "api_key_env": default_api_key_env,
         "api_key_present": False,
-        "real_llm_model": "mimo-v2.5-pro",
-        "real_llm_base_url": "https://token-plan-cn.xiaomimimo.com/v1",
+        "real_llm_model": default_model,
+        "real_llm_base_url": default_base_url,
         "execute_network_check": False,
         "network_check_requested": False,
         "network_check_allowed": False,
@@ -2977,10 +3264,10 @@ def _collect_production_landing_xiaomi_llm_preflight_summary() -> dict[str, Any]
         "latest_json_path": str(latest),
         "status": str(payload.get("status") or "skipped"),
         "generated_at": str(payload.get("generated_at") or ""),
-        "api_key_env": _safe_text_value(payload.get("api_key_env") or "XIAOMI_LLM_API_KEY"),
+        "api_key_env": _safe_text_value(payload.get("api_key_env") or default_api_key_env),
         "api_key_present": bool(payload.get("api_key_present", False)),
-        "real_llm_model": _safe_text_value(payload.get("real_llm_model") or "mimo-v2.5-pro"),
-        "real_llm_base_url": _safe_text_value(payload.get("real_llm_base_url") or "https://token-plan-cn.xiaomimimo.com/v1"),
+        "real_llm_model": _safe_text_value(payload.get("real_llm_model") or default_model),
+        "real_llm_base_url": _safe_text_value(payload.get("real_llm_base_url") or default_base_url),
         "execute_network_check": bool(payload.get("execute_network_check", False)),
         "network_check_requested": bool(preflight.get("network_check_requested", payload.get("execute_network_check", False))),
         "network_check_allowed": bool(preflight.get("network_check_allowed", False)),
@@ -3000,6 +3287,41 @@ def _collect_production_landing_xiaomi_llm_preflight_summary() -> dict[str, Any]
         "public_production_direct_launch": str(payload.get("public_production_direct_launch") or "No-Go"),
         "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
     }
+
+
+def _collect_production_landing_real_llm_preflight_summary() -> dict[str, Any]:
+    return _collect_production_landing_llm_preflight_summary(
+        source_id="real_llm_preflight",
+        report_dir=_get_production_landing_real_llm_preflight_report_dir(),
+        runbook_path=PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_RUNBOOK_PATH,
+        default_api_key_env="REAL_LLM_API_KEY",
+        default_model="gpt-5.5",
+        default_base_url="http://100.119.206.22:8300/v1",
+        compat_fallback_used=False,
+    )
+
+
+def _collect_production_landing_xiaomi_llm_preflight_summary() -> dict[str, Any]:
+    return _collect_production_landing_llm_preflight_summary(
+        source_id="xiaomi_llm_preflight",
+        report_dir=_get_production_landing_xiaomi_llm_preflight_report_dir(),
+        runbook_path=PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_RUNBOOK_PATH,
+        default_api_key_env="XIAOMI_LLM_API_KEY",
+        default_model="mimo-v2.5-pro",
+        default_base_url="https://token-plan-cn.xiaomimimo.com/v1",
+        compat_fallback_used=True,
+    )
+
+
+def _select_production_landing_real_llm_preflight_summary(
+    generic: dict[str, Any],
+    compat: dict[str, Any],
+) -> dict[str, Any]:
+    if generic.get("latest_report_present") is True:
+        return generic
+    if compat.get("latest_report_present") is True:
+        return {**compat, "compat_fallback_used": True}
+    return generic
 
 
 def _collect_operations_console_landing_smoke_summary() -> dict[str, Any]:
@@ -3140,6 +3462,17 @@ def _derive_controlled_pilot_status_summary(
         public_production_gaps.append("business_system:public_production_gap")
     if business_system_production_readiness.get("status") != "ready":
         public_production_gaps.append("business_system:production_readiness_not_ready")
+    demo_business_ready = bool(
+        business_system_read_smoke.get("status") == "success"
+        and business_system_read_smoke.get("business_system_connected") is True
+        and business_system_read_smoke.get("business_read_executed") is True
+        and business_system_read_smoke.get("business_write_executed") is not True
+        and business_system_read_smoke.get("business_data_written") is not True
+        and business_system_read_smoke.get("local_business_mock_used") is not True
+        and business_system_read_smoke.get("demo_business_system_used") is True
+        and business_system_read_smoke.get("real_business_system_connected") is not True
+    )
+    accepted_remaining_gaps = ["business_system:real_business_system_required"] if demo_business_ready else []
     freshness_ready = (
         production_landing_evidence_freshness.get("status") == "success"
         and production_landing_evidence_freshness.get("worktree_clean") is True
@@ -3150,7 +3483,6 @@ def _derive_controlled_pilot_status_summary(
         blocking_reports.append("production_landing_evidence_freshness")
     ready = (
         not blocking_reports
-        and not public_production_gaps
         and controlled_pilot_launch_gate.get("status") == "ready"
         and controlled_pilot_launch_gate.get("ready_for_controlled_pilot") is True
         and controlled_pilot_launch_package.get("status") == "ready"
@@ -3158,8 +3490,15 @@ def _derive_controlled_pilot_status_summary(
         and controlled_pilot_window_status.get("status") == "healthy"
         and operations_console_landing_smoke.get("status") == "success"
         and operations_console_landing_smoke.get("execute") is True
-        and business_system_read_smoke.get("business_read_executed") is True
-        and business_system_production_readiness.get("status") == "ready"
+        and (
+            (
+                business_system_read_smoke.get("business_read_executed") is True
+                and business_system_production_readiness.get("status") == "ready"
+                and env_profile.get("public_production_gap") is not True
+            )
+            or demo_business_ready
+        )
+        and freshness_ready
     )
     return {
         "mode": "derived_from_operations_summary",
@@ -3175,6 +3514,8 @@ def _derive_controlled_pilot_status_summary(
         "blocking_reports": blocking_reports,
         "public_production_gaps": sorted(set(public_production_gaps)),
         "public_production_gap_count": len(set(public_production_gaps)),
+        "accepted_remaining_gaps": accepted_remaining_gaps,
+        "accepted_remaining_gap_count": len(accepted_remaining_gaps),
         "source_statuses": {report_id: str(report.get("status") or "missing") for report_id, report in reports.items()},
         "operations_console_smoke_execute": bool(operations_console_landing_smoke.get("execute", False)),
         "runtime_smoke_passed": bool(production_pilot_bootstrap.get("runtime_smoke_passed", False)),
@@ -4533,6 +4874,112 @@ def _collect_production_landing_evidence_freshness_summary() -> dict[str, Any]:
     }
 
 
+def _safe_evidence_archive_latest_by_type(value: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, dict):
+        return {}
+    safe: dict[str, dict[str, Any]] = {}
+    for evidence_type, item in value.items():
+        if not isinstance(item, dict):
+            continue
+        safe[str(evidence_type)] = {
+            "evidence_type": _safe_text_value(item.get("evidence_type") or evidence_type),
+            "path": _safe_text_value(item.get("path") or ""),
+            "size_bytes": int(item.get("size_bytes") or 0),
+            "modified_at": _safe_text_value(item.get("modified_at") or ""),
+            "extension": _safe_text_value(item.get("extension") or ""),
+        }
+    return safe
+
+
+def _safe_retention_policy(value: Any) -> dict[str, Any]:
+    policy = value if isinstance(value, dict) else {}
+    return {
+        "apply_mode": _safe_text_value(policy.get("apply_mode") or "report_only"),
+        "deletion_enabled": bool(policy.get("deletion_enabled", False)),
+        "auto_cleanup_enabled": bool(policy.get("auto_cleanup_enabled", False)),
+    }
+
+
+def _collect_evidence_archive_summary() -> dict[str, Any]:
+    report_dir = _get_evidence_archive_report_dir()
+    latest = _latest_json_report(report_dir)
+    if latest is None:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": EVIDENCE_ARCHIVE_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": Path(report_dir).exists(),
+            "latest_report_present": False,
+            "status": "skipped",
+            "generated_at": "",
+            "manifest_id": "",
+            "version": "",
+            "total_files": 0,
+            "total_size_bytes": 0,
+            "missing_expected_types": [],
+            "latest_by_type": {},
+            "retention_policy": {
+                "apply_mode": "report_only",
+                "deletion_enabled": False,
+                "auto_cleanup_enabled": False,
+            },
+            "boundary_declarations": [],
+            "read_only": True,
+            "real_llm_executed": False,
+        }
+
+    try:
+        payload = json.loads(latest.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "mode": "read_only_latest_report",
+            "runbook_path": EVIDENCE_ARCHIVE_RUNBOOK_PATH,
+            "report_dir": report_dir,
+            "directory_exists": True,
+            "latest_report_present": True,
+            "latest_json_path": str(latest),
+            "status": "blocked",
+            "generated_at": "",
+            "manifest_id": "",
+            "version": "",
+            "total_files": 0,
+            "total_size_bytes": 0,
+            "missing_expected_types": ["evidence_archive:json_parse_failed"],
+            "latest_by_type": {},
+            "retention_policy": {
+                "apply_mode": "report_only",
+                "deletion_enabled": False,
+                "auto_cleanup_enabled": False,
+            },
+            "boundary_declarations": [],
+            "read_only": True,
+            "real_llm_executed": False,
+        }
+
+    missing = payload.get("missing_expected_types") if isinstance(payload.get("missing_expected_types"), list) else []
+    boundary = payload.get("boundary_declarations") if isinstance(payload.get("boundary_declarations"), list) else []
+    return {
+        "mode": "read_only_latest_report",
+        "runbook_path": EVIDENCE_ARCHIVE_RUNBOOK_PATH,
+        "report_dir": report_dir,
+        "directory_exists": True,
+        "latest_report_present": True,
+        "latest_json_path": str(latest),
+        "status": _safe_text_value(payload.get("status") or "skipped"),
+        "generated_at": _safe_text_value(payload.get("generated_at") or ""),
+        "manifest_id": _safe_text_value(payload.get("manifest_id") or ""),
+        "version": _safe_text_value(payload.get("version") or ""),
+        "total_files": int(payload.get("total_files") or 0),
+        "total_size_bytes": int(payload.get("total_size_bytes") or 0),
+        "missing_expected_types": [_safe_text_value(item) for item in missing[:32]],
+        "latest_by_type": _safe_evidence_archive_latest_by_type(payload.get("latest_by_type")),
+        "retention_policy": _safe_retention_policy(payload.get("retention_policy")),
+        "boundary_declarations": [_safe_text_value(item) for item in boundary[:16]],
+        "read_only": bool(payload.get("read_only", True)),
+        "real_llm_executed": bool(payload.get("real_llm_executed", False)),
+    }
+
+
 def _collect_v4_evidence_summary() -> dict[str, Any]:
     entries = {
         key: {
@@ -4585,14 +5032,27 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     production_landing_blocker_resolution = _collect_production_landing_blocker_resolution_summary()
     production_landing_final_verification = _collect_production_landing_final_verification_summary()
     production_pilot_evidence_bundle = _collect_production_pilot_evidence_bundle_summary()
+    production_landing_real_llm_preflight_generic = _collect_production_landing_real_llm_preflight_summary()
     production_landing_xiaomi_llm_preflight = _collect_production_landing_xiaomi_llm_preflight_summary()
+    production_landing_real_llm_preflight = _select_production_landing_real_llm_preflight_summary(
+        production_landing_real_llm_preflight_generic,
+        production_landing_xiaomi_llm_preflight,
+    )
+    if production_landing_real_llm_preflight_generic.get("latest_report_present") is True:
+        production_landing_xiaomi_llm_preflight = {
+            **production_landing_xiaomi_llm_preflight,
+            "compat_ignored_by_generic_real_llm": True,
+        }
     operations_console_landing_smoke = _collect_operations_console_landing_smoke_summary()
     production_landing_status = _collect_production_landing_status_summary()
     manual_signoff_evidence_ack_status = _collect_manual_signoff_evidence_ack_status_summary()
     manual_signoff_record_validation = _collect_manual_signoff_record_validation_summary()
     manual_signoff_record_fill = _collect_manual_signoff_record_fill_summary()
     production_landing_signoff_closeout = _collect_production_landing_signoff_closeout_summary()
+    controlled_pilot_delivery_gate = _collect_controlled_pilot_delivery_gate_summary()
+    controlled_pilot_run_packet = _collect_controlled_pilot_run_packet_summary()
     controlled_pilot_launch_gate = _collect_controlled_pilot_launch_gate_summary(
+        controlled_pilot_delivery_gate=controlled_pilot_delivery_gate,
         production_pilot_evidence_bundle=production_pilot_evidence_bundle,
         production_landing_final_verification=production_landing_final_verification,
         production_landing_signoff_closeout=production_landing_signoff_closeout,
@@ -4620,6 +5080,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     production_landing_signoff_reviewer_packet = _collect_production_landing_signoff_reviewer_packet_summary()
     manual_signoff_record_promote = _collect_manual_signoff_record_promote_summary()
     production_landing_text_quality = _collect_production_landing_text_quality_summary()
+    evidence_archive = _collect_evidence_archive_summary()
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -4665,10 +5126,13 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
             "controlled_pilot_operator_packet": controlled_pilot_operator_packet,
             "controlled_pilot_console_preflight": controlled_pilot_console_preflight,
             "controlled_pilot_console_verify": controlled_pilot_console_verify,
+            "controlled_pilot_delivery_gate": controlled_pilot_delivery_gate,
+            "controlled_pilot_run_packet": controlled_pilot_run_packet,
             "controlled_pilot_launch_gate": controlled_pilot_launch_gate,
             "controlled_pilot_launch_package": controlled_pilot_launch_package,
             "controlled_pilot_window_record": controlled_pilot_window_record,
             "controlled_pilot_window_status": controlled_pilot_window_status,
+            "production_landing_real_llm_preflight": production_landing_real_llm_preflight,
             "production_landing_xiaomi_llm_preflight": production_landing_xiaomi_llm_preflight,
             "operations_console_landing_smoke": operations_console_landing_smoke,
             "production_landing_status": production_landing_status,
@@ -4681,6 +5145,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
             "manual_signoff_record_promote": manual_signoff_record_promote,
             "production_landing_text_quality": production_landing_text_quality,
             "production_landing_evidence_freshness": production_landing_evidence_freshness,
+            "evidence_archive": evidence_archive,
             "v4_evidence": v4_evidence,
             "last_known_report_counts": {
                 "pilot_reports": int(pilot_reports.get("total_reports", 0) or 0),
@@ -4755,6 +5220,14 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
                     )
                     or 0
                 ),
+                "controlled_pilot_delivery_gate_reports": int(
+                    _count_json_reports(_get_controlled_pilot_delivery_gate_report_dir()).get("json_report_count", 0)
+                    or 0
+                ),
+                "controlled_pilot_run_packet_reports": int(
+                    _count_json_reports(_get_controlled_pilot_run_packet_report_dir()).get("json_report_count", 0)
+                    or 0
+                ),
                 "controlled_pilot_launch_gate_reports": int(
                     _count_json_reports(_get_controlled_pilot_launch_gate_report_dir()).get("json_report_count", 0)
                     or 0
@@ -4785,6 +5258,12 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
                 ),
                 "controlled_pilot_console_verify_reports": int(
                     _count_json_reports(_get_controlled_pilot_console_verify_report_dir()).get("json_report_count", 0)
+                    or 0
+                ),
+                "production_landing_real_llm_preflight_reports": int(
+                    _count_json_reports(_get_production_landing_real_llm_preflight_report_dir()).get(
+                        "json_report_count", 0
+                    )
                     or 0
                 ),
                 "production_landing_xiaomi_llm_preflight_reports": int(
@@ -4848,6 +5327,9 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
                         "json_report_count", 0
                     )
                     or 0
+                ),
+                "evidence_archive_reports": int(
+                    _count_json_reports(_get_evidence_archive_report_dir()).get("json_report_count", 0) or 0
                 ),
             },
         },

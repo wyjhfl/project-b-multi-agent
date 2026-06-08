@@ -132,6 +132,9 @@ if (-not $SkipBusinessPreparation) {
   if (-not [string]::IsNullOrWhiteSpace($businessReadSmokeJsonPath)) {
     $readinessArguments += @("--business-smoke-json-path", $businessReadSmokeJsonPath)
   }
+  if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+    $readinessArguments += @("--env-path", $EnvPath)
+  }
   $readinessOutput = Invoke-CheckedPythonCapture $readinessArguments
   $businessReadinessJsonPath = Get-JsonPathFromOutput -OutputLines $readinessOutput -ToolName "business_system_production_readiness_brief.py"
 
@@ -189,5 +192,20 @@ Invoke-CheckedPython @((Join-Path $repoRoot "scripts/controlled_pilot_operator_p
 
 Write-Host "[business_system_landing_resume] step=evidence-freshness-final" -ForegroundColor Yellow
 Invoke-CheckedPython @((Join-Path $repoRoot "scripts/production_landing_evidence_freshness.py"))
+
+Write-Host "[business_system_landing_resume] step=controlled-pilot-delivery-gate" -ForegroundColor Yellow
+Invoke-CheckedPython @((Join-Path $repoRoot "scripts/controlled_pilot_delivery_gate.py"))
+
+Write-Host "[business_system_landing_resume] step=controlled-pilot-launch-gate" -ForegroundColor Yellow
+Invoke-CheckedPython @((Join-Path $repoRoot "scripts/controlled_pilot_launch_gate.py"))
+
+Write-Host "[business_system_landing_resume] step=controlled-pilot-launch-package" -ForegroundColor Yellow
+Invoke-CheckedPython @((Join-Path $repoRoot "scripts/controlled_pilot_launch_package.py"))
+
+Write-Host "[business_system_landing_resume] step=controlled-pilot-run-packet" -ForegroundColor Yellow
+Invoke-CheckedPython @((Join-Path $repoRoot "scripts/controlled_pilot_run_packet.py"))
+
+Write-Host "[business_system_landing_resume] step=evidence-archive-manifest" -ForegroundColor Yellow
+Invoke-CheckedPython @((Join-Path $repoRoot "scripts/evidence_archive_manifest.py"))
 
 Write-Host "[business_system_landing_resume] status=done" -ForegroundColor Green

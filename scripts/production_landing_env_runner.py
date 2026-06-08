@@ -16,6 +16,10 @@ DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "production_landing_env_run
 
 ALLOWED_ACTIONS = {
     "env-check": ["scripts/production_landing_env_check.py"],
+    "real-llm-preflight": [
+        "scripts/production_landing_real_llm_preflight_runner.py",
+        "--execute-network-check",
+    ],
     "xiaomi-llm-preflight": [
         "scripts/production_landing_xiaomi_llm_preflight_runner.py",
         "--execute-network-check",
@@ -25,6 +29,7 @@ ALLOWED_ACTIONS = {
     "local-infra-mcp-smoke": ["scripts/real_integration_staging_smoke.py", "--execute", "--domains", "postgres,redis,external_mcp"],
     "business-smoke": ["scripts/business_system_read_smoke.py", "--execute"],
     "local-business-smoke": ["scripts/production_landing_local_business_smoke.py"],
+    "demo-business-smoke": ["scripts/production_landing_demo_business_smoke.py"],
 }
 BUSINESS_OWNER_ENV = {
     "business_owner": "BUSINESS_SYSTEM_BUSINESS_OWNER",
@@ -36,6 +41,8 @@ BUSINESS_OWNER_ENV = {
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
     re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
+    re.compile(r"\bk-[A-Za-z0-9_\-]{24,}"),
+    re.compile(r"https?://[^\s/@:]+:[^\s/@]+@[^\s]+"),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
     re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^,\s]+"),
     re.compile(r"(?i)(token|api[_-]?key|password|client[_-]?secret|jwt[_-]?secret)\s*[:=]\s*([^\s,]+)"),
@@ -75,6 +82,30 @@ def _redact_text(text: str) -> str:
 
 def _safe_lines(text: str, limit: int = 80) -> list[str]:
     return [_redact_text(line) for line in text.splitlines()[:limit]]
+
+
+def _safe_display_args(args: list[str]) -> list[str]:
+    safe_args: list[str] = []
+    redact_next = False
+    for item in args:
+        if redact_next:
+            safe_args.append("<base-url>")
+            redact_next = False
+            continue
+        safe_args.append(item)
+        if item == "--base-url":
+            redact_next = True
+    return [_redact_text(item) for item in safe_args]
+
+
+def _infra_domains_for_action(action: str) -> list[str]:
+    if action == "local-infra-smoke":
+        return ["postgres", "redis"]
+    if action == "local-infra-mcp-smoke":
+        return ["postgres", "redis", "external_mcp"]
+    if action == "staging-smoke":
+        return ["real_llm", "postgres", "redis", "external_mcp"]
+    return []
 
 
 def _business_owner_values(
@@ -202,10 +233,23 @@ def build_production_landing_env_runner(
                 str(path),
                 "--output-dir",
                 str(output_root / "child_env_check"),
+                "--real-llm-preflight-report-dir",
+                str(output_root / "child_real_llm_preflight"),
                 "--xiaomi-preflight-report-dir",
                 str(output_root / "child_xiaomi_llm_preflight"),
             ]
         )
+    elif action == "real-llm-preflight":
+        action_args.extend(["--output-dir", "docs/reports/production_landing_real_llm_preflight"])
+        env_api_key = (env_values.get("REAL_LLM_API_KEY_ENV") or os.getenv("REAL_LLM_API_KEY_ENV", "REAL_LLM_API_KEY")).strip()
+        env_model = (env_values.get("REAL_LLM_MODEL") or os.getenv("REAL_LLM_MODEL", "gpt-5.5")).strip()
+        env_base_url = (
+            env_values.get("REAL_LLM_BASE_URL")
+            or os.getenv("REAL_LLM_BASE_URL", "http://100.119.206.22:8300/v1")
+        ).strip()
+        action_args.extend(["--api-key-env", env_api_key or "REAL_LLM_API_KEY"])
+        action_args.extend(["--model", env_model or "gpt-5.5"])
+        action_args.extend(["--base-url", env_base_url or "http://100.119.206.22:8300/v1"])
     elif action == "xiaomi-llm-preflight":
         action_args.extend(["--output-dir", "docs/reports/production_landing_xiaomi_llm_preflight"])
     env = {**os.environ, **env_values}
@@ -218,6 +262,7 @@ def build_production_landing_env_runner(
             data_owner=data_owner,
         ),
     )
+    infra_domains = _infra_domains_for_action(action)
     if action == "business-smoke":
         command = [
             "powershell.exe",
@@ -234,9 +279,27 @@ def build_production_landing_env_runner(
             "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 "
             "-UseExistingEnv -EnvPath <local-env-path>"
         )
+    elif infra_domains:
+        command = [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "scripts\\real_integration_infra_smoke.ps1",
+            "-Domains",
+            ",".join(infra_domains),
+            "-UseExistingEnv",
+            "-EnvPath",
+            str(path),
+        ]
+        display_command = (
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+            f"-Domains {','.join(infra_domains)} -UseExistingEnv -EnvPath <local-env-path>"
+        )
     else:
         command = [sys.executable, *action_args]
-        display_command = "python " + " ".join(action_args)
+        display_command = "python " + " ".join(_safe_display_args(action_args))
     result = subprocess.run(
         command,
         cwd=str(ROOT_DIR),
@@ -249,7 +312,7 @@ def build_production_landing_env_runner(
     stdout_lines = _safe_lines(result.stdout)
     stderr_lines = _safe_lines(result.stderr)
     child_status, child_summary = _extract_child_status(result.stdout, result.returncode)
-    child_detail = _load_child_json_payload(child_summary) if action == "xiaomi-llm-preflight" else child_summary
+    child_detail = _load_child_json_payload(child_summary) if action in {"real-llm-preflight", "xiaomi-llm-preflight"} else child_summary
     child_ready_count, child_domain_count = _child_domain_counts(child_summary)
     payload = {
         "generated_at": generated_at,
@@ -272,6 +335,7 @@ def build_production_landing_env_runner(
             "secret_plaintext_output": bool(child_summary.get("secret_plaintext_output", False)),
         },
         "child_xiaomi_preflight": _child_xiaomi_preflight_summary(child_detail) if action == "xiaomi-llm-preflight" else {},
+        "child_real_llm_preflight": _child_xiaomi_preflight_summary(child_detail) if action == "real-llm-preflight" else {},
         "business_owner_env_present": owner_env_present if action == "business-smoke" else {},
         "stdout": stdout_lines,
         "stderr": stderr_lines,

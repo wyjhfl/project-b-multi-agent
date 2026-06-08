@@ -24,6 +24,18 @@ BUSINESS_DOMAIN = "business_system"
 DOMAIN_IDS = [*STAGING_DOMAINS, BUSINESS_DOMAIN]
 
 
+def _codex_python(command: str) -> str:
+    if command.startswith("python scripts/"):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        ).replace("/", "\\")
+    if command.startswith("python -m "):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        )
+    return command
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -81,22 +93,24 @@ def _safe_domain_summary(domain: dict[str, Any]) -> dict[str, Any]:
 
 
 def _runner_commands(*, requested_domains: list[str], ready_domains: list[str]) -> list[str]:
-    commands = ["python scripts/production_landing_env_runner.py --action env-check"]
+    commands = [_codex_python("python scripts/production_landing_env_runner.py --action env-check")]
     if "real_llm" in requested_domains and "real_llm" not in ready_domains:
-        commands.append("python scripts/production_landing_env_runner.py --action xiaomi-llm-preflight")
-        commands.append("python scripts/production_landing_xiaomi_llm_preflight_runner.py --execute-network-check")
-        commands.append("powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_preflight.ps1")
+        commands.append(_codex_python("python scripts/production_landing_env_runner.py --action real-llm-preflight"))
+        commands.append(
+            _codex_python("python scripts/production_landing_real_llm_preflight_runner.py --execute-network-check")
+        )
+        commands.append("powershell -ExecutionPolicy Bypass -File scripts/real_llm_preflight.ps1")
     if all(item in ready_domains for item in ["postgres", "redis", "external_mcp"]):
-        commands.append("python scripts/production_landing_env_runner.py --action local-infra-mcp-smoke")
+        commands.append(_codex_python("python scripts/production_landing_env_runner.py --action local-infra-mcp-smoke"))
     elif "postgres" in ready_domains and "redis" in ready_domains:
-        commands.append("python scripts/production_landing_env_runner.py --action local-infra-smoke")
+        commands.append(_codex_python("python scripts/production_landing_env_runner.py --action local-infra-smoke"))
     if "business_system" in ready_domains:
-        commands.append("python scripts/production_landing_env_runner.py --action local-business-smoke")
+        commands.append(_codex_python("python scripts/production_landing_env_runner.py --action local-business-smoke"))
     requested_staging = [item for item in requested_domains if item in STAGING_DOMAINS]
     if requested_staging and all(item in ready_domains for item in requested_staging):
-        commands.append("python scripts/production_landing_env_runner.py --action staging-smoke")
+        commands.append(_codex_python("python scripts/production_landing_env_runner.py --action staging-smoke"))
     if BUSINESS_DOMAIN in requested_domains and BUSINESS_DOMAIN in ready_domains:
-        commands.append("python scripts/production_landing_env_runner.py --action business-smoke")
+        commands.append(_codex_python("python scripts/production_landing_env_runner.py --action business-smoke"))
     return commands
 
 

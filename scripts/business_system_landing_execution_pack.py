@@ -15,7 +15,7 @@ READINESS_DIR = ROOT_DIR / "docs" / "reports" / "business_system_production_read
 READ_SMOKE_DIR = ROOT_DIR / "docs" / "reports" / "business_system_read_smoke"
 BUSINESS_READ_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 "
-    "-UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
+    "-UseExistingEnv"
 )
 BUSINESS_LANDING_RESUME_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 "
@@ -221,6 +221,20 @@ def _group_missing(conditions: list[str]) -> dict[str, list[str]]:
     return buckets
 
 
+def _smoke_boundary_missing_conditions(smoke_payload: dict[str, Any]) -> list[str]:
+    raw = _safe_list(smoke_payload.get("missing_conditions"))
+    conditions = [
+        condition
+        for condition in raw
+        if condition.startswith("boundary:")
+        or condition.startswith("business_system_read_smoke:")
+        or "secret" in condition
+    ]
+    if smoke_payload.get("demo_business_system_used") is True:
+        conditions.append("evidence:demo_business_system_not_valid_for_real_production")
+    return sorted(set(conditions))
+
+
 def _manual_inputs(input_payload: dict[str, Any], readiness_payload: dict[str, Any]) -> list[dict[str, Any]]:
     manual = input_payload.get("manual_input_checklist")
     if isinstance(manual, list) and manual:
@@ -301,7 +315,7 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
 
     input_missing = _safe_list(input_payload.get("missing_conditions"))
     readiness_missing = _safe_list(readiness_payload.get("missing_conditions"))
-    smoke_missing = _safe_list(smoke_payload.get("missing_conditions"))
+    smoke_missing = _smoke_boundary_missing_conditions(smoke_payload)
     missing_conditions = sorted(set(source_missing + input_missing + readiness_missing + smoke_missing))
 
     ready_for_real_read_smoke = (
@@ -314,6 +328,7 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         and smoke_payload.get("business_write_executed") is not True
         and smoke_payload.get("business_data_written") is not True
         and smoke_payload.get("local_business_mock_used") is not True
+        and smoke_payload.get("demo_business_system_used") is not True
         and smoke_payload.get("secret_plaintext_output") is not True
     )
     source_secret_detected = any(source.get("secret_detected") for source in sources.values())
@@ -370,6 +385,7 @@ def _derive_pack(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
             "business_write_executed": bool(smoke_payload.get("business_write_executed", False)),
             "business_data_written": bool(smoke_payload.get("business_data_written", False)),
             "local_business_mock_used": bool(smoke_payload.get("local_business_mock_used", False)),
+            "demo_business_system_used": bool(smoke_payload.get("demo_business_system_used", False)),
             "secret_plaintext_output": bool(smoke_payload.get("secret_plaintext_output", False)),
         },
         "manual_signoff_required": True,

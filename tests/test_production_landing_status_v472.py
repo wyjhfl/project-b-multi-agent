@@ -16,10 +16,17 @@ def _payload(summary: dict) -> dict:
     return json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
 
 
+def _codex_python(script_command: str) -> str:
+    return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + script_command.replace(
+        "/", "\\"
+    )
+
+
 def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
     dirs = {
         "env_check": root / "env_check",
         "execution_gate": root / "execution_gate",
+        "real_llm_preflight": root / "real_llm_preflight",
         "xiaomi_llm_preflight": root / "xiaomi_llm_preflight",
         "business_read_smoke": root / "business_read_smoke",
         "business_real_readiness_gate": root / "business_real_readiness_gate",
@@ -35,6 +42,10 @@ def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
         {
             "env_check": {"dir": dirs["env_check"], "pattern": "*_production_landing_env_check.json"},
             "execution_gate": {"dir": dirs["execution_gate"], "pattern": "*_production_landing_execution_gate.json"},
+            "real_llm_preflight": {
+                "dir": dirs["real_llm_preflight"],
+                "pattern": "*_production_landing_real_llm_preflight.json",
+            },
             "xiaomi_llm_preflight": {
                 "dir": dirs["xiaomi_llm_preflight"],
                 "pattern": "*_production_landing_xiaomi_llm_preflight.json",
@@ -77,7 +88,7 @@ def _write_ready_reports(dirs: dict[str, Path]) -> None:
             "ready_domain_count": 5,
             "requested_domain_count": 5,
             "execution_allowed": True,
-            "safe_runner_commands": ["python scripts/production_landing_env_runner.py --action staging-smoke"],
+            "safe_runner_commands": [_codex_python("scripts/production_landing_env_runner.py --action staging-smoke")],
         },
     )
     _write_json(
@@ -194,7 +205,7 @@ def test_production_landing_status_reports_partial_with_current_blockers(tmp_pat
             "requested_domain_count": 5,
             "execution_allowed": False,
             "safe_runner_commands": [
-                "python scripts/production_landing_env_runner.py --action env-check",
+                _codex_python("scripts/production_landing_env_runner.py --action env-check"),
                 "powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_preflight.ps1",
             ],
         },
@@ -224,6 +235,9 @@ def test_production_landing_status_reports_partial_with_current_blockers(tmp_pat
     assert "env_check:not_all_domains_ready" in payload["blockers"]
     assert "action_pack:required_inputs_remaining" in payload["blockers"]
     assert payload["next_commands"][1] == "powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_preflight.ps1"
+    assert payload["next_commands"][0].startswith(
+        "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 scripts\\production_landing_env_runner.py"
+    )
     assert payload["controlled_pilot_ready"] is False
     assert payload["public_production_direct_launch"] == "No-Go"
     assert payload["secret_plaintext_output"] is False
@@ -355,6 +369,91 @@ def test_production_landing_status_does_not_block_on_local_llm_placeholder_when_
     assert payload["xiaomi_llm"]["real_llm_executed"] is True
 
 
+def test_production_landing_status_prefers_generic_real_llm_preflight_over_xiaomi_fallback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    dirs = _patch_sources(monkeypatch, tmp_path / "reports")
+    _write_ready_reports(dirs)
+    blocked_domain = {
+        "domain_id": "real_llm",
+        "ready_for_execute": False,
+        "blocker_reason": "placeholder_env",
+        "placeholder_keys": ["REAL_LLM_API_KEY"],
+        "missing_keys": [],
+    }
+    _write_json(
+        dirs["env_check"] / "002_production_landing_env_check.json",
+        {
+            "generated_at": "2026-06-05T07:10:00+00:00",
+            "status": "partial",
+            "ready_domain_count": 4,
+            "domain_count": 5,
+            "domains": [
+                blocked_domain,
+                {"domain_id": "postgres", "ready_for_execute": True},
+                {"domain_id": "redis", "ready_for_execute": True},
+                {"domain_id": "external_mcp", "ready_for_execute": True},
+                {"domain_id": "business_system", "ready_for_execute": True},
+            ],
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["execution_gate"] / "002_production_landing_execution_gate.json",
+        {
+            "generated_at": "2026-06-05T07:10:01+00:00",
+            "status": "partial",
+            "ready_domains": ["postgres", "redis", "external_mcp", "business_system"],
+            "blocked_domains": ["real_llm"],
+            "ready_domain_count": 4,
+            "requested_domain_count": 5,
+            "execution_allowed": False,
+            "domains": [
+                blocked_domain,
+                {"domain_id": "postgres", "ready_for_execute": True},
+                {"domain_id": "redis", "ready_for_execute": True},
+                {"domain_id": "external_mcp", "ready_for_execute": True},
+                {"domain_id": "business_system", "ready_for_execute": True},
+            ],
+            "safe_runner_commands": [],
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["real_llm_preflight"] / "001_production_landing_real_llm_preflight.json",
+        {
+            "generated_at": "2026-06-05T07:10:02+00:00",
+            "status": "success",
+            "provider": "litellm",
+            "api_key_env": "REAL_LLM_API_KEY",
+            "api_key_present": True,
+            "real_llm_model": "gpt-5.5",
+            "real_llm_executed": True,
+            "acceptance_blockers": [],
+            "preflight": {
+                "network_check_requested": True,
+                "network_check_allowed": True,
+                "network_check_executed": True,
+            },
+            "secret_plaintext_output": False,
+        },
+    )
+
+    summary = build_production_landing_status(output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "success"
+    assert payload["controlled_pilot_ready"] is True
+    assert payload["real_llm"]["source_id"] == "real_llm_preflight"
+    assert payload["real_llm"]["api_key_env"] == "REAL_LLM_API_KEY"
+    assert payload["real_llm"]["model"] == "gpt-5.5"
+    assert payload["real_llm"]["safe_preflight_command"].endswith("scripts\\real_llm_preflight.ps1")
+    assert payload["xiaomi_llm"] == payload["real_llm"]
+    assert "env_check:not_all_domains_ready" not in payload["blockers"]
+    assert "execution_gate:not_allowed" not in payload["blockers"]
+
+
 def test_production_landing_status_allows_env_check_evidence_override_with_strict_gate_llm_placeholder(
     tmp_path: Path,
     monkeypatch,
@@ -484,6 +583,9 @@ def test_production_landing_status_tracks_business_read_gap_as_public_production
     assert payload["business_system"]["landing_execution_missing_conditions"] == [
         "evidence:business_system_real_read_smoke_not_executed"
     ]
+    assert payload["next_commands"][0].endswith("scripts\\business_system_read_smoke.ps1 -UseExistingEnv")
+    assert "BusinessOwner WYJ" not in payload["next_commands"][0]
+    assert not any(command.startswith("python scripts/") for command in payload["next_commands"])
     assert payload["public_production_direct_launch"] == "No-Go"
 
 
@@ -543,6 +645,77 @@ def test_production_landing_status_reports_local_mock_as_real_read_smoke_gap(
     assert payload["business_system"]["real_read_smoke_next_command"].endswith(
         "scripts\\business_system_read_smoke.ps1 -UseExistingEnv"
     )
+    assert payload["next_commands"][0].endswith(
+        "scripts\\business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env"
+    )
+    assert "BusinessOwner WYJ" not in payload["next_commands"][0]
+    assert payload["public_production_direct_launch"] == "No-Go"
+
+
+def test_production_landing_status_reports_demo_business_as_replacement_gap(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    dirs = _patch_sources(monkeypatch, tmp_path / "reports")
+    _write_ready_reports(dirs)
+    _write_json(
+        dirs["business_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T06:40:00+00:00",
+            "status": "success",
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": True,
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_real_readiness_gate"] / "002_business_system_real_readiness_gate.json",
+        {
+            "generated_at": "2026-06-05T06:40:01+00:00",
+            "status": "needs_input",
+            "ready_for_real_read_smoke": False,
+            "local_mock_configured": False,
+            "demo_business_system_configured": True,
+            "missing_condition_count": 1,
+            "missing_conditions": ["business_system:demo_business_system_configured"],
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+    _write_json(
+        dirs["business_landing_execution_pack"] / "002_business_system_landing_execution_pack.json",
+        {
+            "generated_at": "2026-06-05T06:40:02+00:00",
+            "status": "needs_input",
+            "ready_for_real_read_smoke": True,
+            "real_read_smoke_complete": False,
+            "safe_next_action": "complete_business_system_inputs",
+            "recommended_next_command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv",
+            "missing_condition_count": 1,
+            "missing_conditions": ["evidence:demo_business_system_not_valid_for_real_production"],
+            "business_system_read_smoke": {"demo_business_system_used": True},
+            "business_write_executed": False,
+            "business_data_written": False,
+            "secret_plaintext_output": False,
+            "public_production_direct_launch": "No-Go",
+        },
+    )
+
+    summary = build_production_landing_status(output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "partial"
+    assert "business_system:real_business_system_required" in payload["blockers"]
+    assert "business_landing_execution_pack:not_ready" not in payload["blockers"]
+    assert payload["business_system"]["demo_system_used"] is True
+    assert payload["business_system"]["real_system_connected"] is False
+    assert payload["business_system"]["landing_execution_missing_conditions"] == [
+        "evidence:demo_business_system_not_valid_for_real_production"
+    ]
     assert payload["public_production_direct_launch"] == "No-Go"
 
 
@@ -673,7 +846,7 @@ def test_production_landing_status_prefers_latest_generated_at_over_mtime(tmp_pa
             "status": "partial",
             "required_input_count": 3,
             "required_inputs": [{"input_id": "manual_signoff_record", "status": "required"}],
-            "recommended_commands": ["python scripts/production_landing_status.py"],
+            "recommended_commands": [_codex_python("scripts/production_landing_status.py")],
             "secret_plaintext_output": False,
         },
     )

@@ -16,6 +16,7 @@ ENV/
 *.swp
 *.swo
 *~
+*.log
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -25,6 +26,7 @@ data/db/*.db
 data/db/*.sqlite
 .git-xdg/
 .codex-env/
+.docker-tmp/
 frontend/node_modules/
 frontend/.next/
 frontend/.turbo/

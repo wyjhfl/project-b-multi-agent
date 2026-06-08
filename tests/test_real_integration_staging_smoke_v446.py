@@ -63,10 +63,10 @@ def test_real_integration_staging_smoke_default_dry_run_does_not_execute(tmp_pat
     assert payload["preflight_summary"]["all_requested_domains_ready_for_execute"] is False
     assert payload["domains"][0]["preflight"]["required_env"]
     real_llm = next(item for item in payload["domains"] if item["domain_id"] == "real_llm")
-    assert "REAL_LLM_MODEL=mimo-v2.5-pro" in real_llm["preflight"]["required_env"]
-    assert "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1" in real_llm["preflight"]["required_env"]
-    assert "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY" in real_llm["preflight"]["required_env"]
-    assert "XIAOMI_LLM_API_KEY=<secret-managed-token>" in real_llm["preflight"]["required_env"]
+    assert "REAL_LLM_MODEL=gpt-5.5" in real_llm["preflight"]["required_env"]
+    assert "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1" in real_llm["preflight"]["required_env"]
+    assert "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY" in real_llm["preflight"]["required_env"]
+    assert "REAL_LLM_API_KEY=<secret-managed-token>" in real_llm["preflight"]["required_env"]
     assert payload["real_llm_executed"] is False
     assert payload["database_connected"] is False
     assert payload["redis_connected"] is False

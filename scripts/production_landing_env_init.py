@@ -15,6 +15,7 @@ if str(ROOT_DIR) not in sys.path:
 from scripts.production_landing_env_template import DEFAULT_OUTPUT_PATH, build_production_landing_env_template
 
 DEFAULT_ENV_PATH = ROOT_DIR / "local" / "production_landing.staging.env"
+CODEX_PYTHON_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1"
 
 
 def _utc_now_iso() -> str:
@@ -83,7 +84,7 @@ def build_production_landing_env_init(
         "template_gitignored": bool(template_summary.get("gitignored", False)),
         "contains_real_secret": False,
         "secret_plaintext_output": False,
-        "next_command": f"python scripts/production_landing_env_check.py --env-path {target}",
+        "next_command": f"{CODEX_PYTHON_COMMAND} scripts\\production_landing_env_check.py --env-path {target}",
         "public_production_direct_launch": "No-Go",
     }
 

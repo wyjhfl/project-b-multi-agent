@@ -21,6 +21,7 @@ def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
         "production_landing_status": root / "production_landing_status",
         "production_landing_action_pack": root / "production_landing_action_pack",
         "production_landing_final_verification": root / "production_landing_final_verification",
+        "production_landing_real_llm_preflight": root / "production_landing_real_llm_preflight",
         "production_landing_xiaomi_llm_preflight": root / "production_landing_xiaomi_llm_preflight",
         "manual_signoff_evidence_ack_status": root / "manual_signoff_evidence_ack_status",
         "manual_signoff_record_validation": root / "manual_signoff_record_validation",
@@ -41,6 +42,10 @@ def _patch_sources(monkeypatch, root: Path) -> dict[str, Path]:
             "production_landing_final_verification": {
                 "dir": dirs["production_landing_final_verification"],
                 "pattern": "*_production_landing_final_verification.json",
+            },
+            "production_landing_real_llm_preflight": {
+                "dir": dirs["production_landing_real_llm_preflight"],
+                "pattern": "*_production_landing_real_llm_preflight.json",
             },
             "production_landing_xiaomi_llm_preflight": {
                 "dir": dirs["production_landing_xiaomi_llm_preflight"],
@@ -105,6 +110,16 @@ def _write_ready_reports(dirs: dict[str, Path]) -> None:
         },
     )
     _write_json(
+        dirs["production_landing_real_llm_preflight"] / "001_production_landing_real_llm_preflight.json",
+        {
+            "status": "success",
+            "api_key_present": True,
+            "network_check_executed": True,
+            "real_llm_executed": True,
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
         dirs["manual_signoff_evidence_ack_status"] / "001_manual_signoff_evidence_ack_status.json",
         {"status": "success", "recommended_accept_count": 4, "secret_plaintext_output": False},
     )
@@ -121,6 +136,8 @@ def _write_ready_reports(dirs: dict[str, Path]) -> None:
 def test_blocker_resolution_reports_required_actions_for_llm_and_signoff(tmp_path: Path, monkeypatch) -> None:
     dirs = _patch_sources(monkeypatch, tmp_path / "reports")
     _write_ready_reports(dirs)
+    for path in dirs["production_landing_real_llm_preflight"].glob("*.json"):
+        path.unlink()
     _write_json(
         dirs["production_landing_status"] / "002_production_landing_status.json",
         {
@@ -160,7 +177,7 @@ def test_blocker_resolution_reports_required_actions_for_llm_and_signoff(tmp_pat
     assert summary["status"] == "partial"
     assert payload["required_action_count"] == 2
     assert payload["required_actions"] == ["real_llm_preflight", "manual_signoff_record"]
-    assert payload["actions"][0]["safe_commands"][0] == "powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_landing_resume.ps1"
+    assert payload["actions"][0]["safe_commands"][0] == "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1"
     assert payload["actions"][0]["evidence"]["network_check_requested"] is True
     assert payload["actions"][0]["evidence"]["network_check_allowed"] is False
     assert (
@@ -193,6 +210,58 @@ def test_blocker_resolution_success_when_all_actions_resolved(tmp_path: Path, mo
     assert payload["required_action_count"] == 0
     assert payload["required_actions"] == []
     assert {item["status"] for item in payload["actions"]} == {"resolved"}
+    assert payload["actions"][0]["evidence"]["source_id"] == "production_landing_real_llm_preflight"
+    assert payload["actions"][0]["evidence"]["compat_fallback_used"] is False
+
+
+def test_blocker_resolution_prefers_generic_real_llm_report_over_stale_xiaomi_status(
+    tmp_path: Path, monkeypatch
+) -> None:
+    dirs = _patch_sources(monkeypatch, tmp_path / "reports")
+    _write_ready_reports(dirs)
+    _write_json(
+        dirs["production_landing_status"] / "002_production_landing_status.json",
+        {
+            "generated_at": "2026-06-05T00:02:00+00:00",
+            "status": "success",
+            "xiaomi_llm": {
+                "status": "skipped",
+                "api_key_present": False,
+                "network_check_executed": False,
+                "real_llm_executed": False,
+                "safe_next_action": "run_scripts_xiaomi_llm_preflight_ps1_and_enter_key_securely",
+            },
+            "manual_signoff": {"completed": True, "decision": "Go", "record_present": True},
+            "secret_plaintext_output": False,
+        },
+    )
+
+    summary = build_production_landing_blocker_resolution(output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "success"
+    real_llm_action = payload["actions"][0]
+    assert real_llm_action["status"] == "resolved"
+    assert real_llm_action["evidence"]["source_id"] == "production_landing_real_llm_preflight"
+    assert real_llm_action["evidence"]["compat_fallback_used"] is False
+    assert real_llm_action["evidence"]["safe_next_action"] != "run_scripts_xiaomi_llm_preflight_ps1_and_enter_key_securely"
+
+
+def test_blocker_resolution_falls_back_to_xiaomi_when_generic_report_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    dirs = _patch_sources(monkeypatch, tmp_path / "reports")
+    _write_ready_reports(dirs)
+    for path in dirs["production_landing_real_llm_preflight"].glob("*.json"):
+        path.unlink()
+
+    summary = build_production_landing_blocker_resolution(output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "success"
+    assert payload["actions"][0]["evidence"]["source_id"] == "production_landing_xiaomi_llm_preflight"
+    assert payload["actions"][0]["evidence"]["compat_fallback_used"] is True
+    assert "production_landing_real_llm_preflight" in payload["sources"]
 
 
 def test_blocker_resolution_treats_final_verification_blocked_as_soft_source(

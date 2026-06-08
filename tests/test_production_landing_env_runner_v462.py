@@ -25,10 +25,10 @@ def test_production_landing_env_runner_runs_env_check_with_local_env_without_lea
                 "REAL_LLM_SMOKE_ENABLED=true",
                 "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
                 "REAL_LLM_PROVIDER=litellm",
-                "REAL_LLM_MODEL=mimo-v2.5-pro",
-                "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-                "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-                f"XIAOMI_LLM_API_KEY={fake_llm_secret}",
+                "REAL_LLM_MODEL=gpt-5.5",
+                "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+                "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+                f"REAL_LLM_API_KEY={fake_llm_secret}",
                 "POSTGRES_STAGING_SMOKE_EXECUTE=true",
                 "STORAGE_BACKEND=postgres",
                 "DATABASE_URL=postgresql://user:pass@localhost/db",
@@ -49,10 +49,10 @@ def test_production_landing_env_runner_runs_env_check_with_local_env_without_lea
                 "BUSINESS_SYSTEM_BASE_URL=https://business.example.test",
                 "BUSINESS_SYSTEM_TOKEN=business-local-token-not-output",
                 "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
-                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
-                "BUSINESS_SYSTEM_SECURITY_REVIEWER=wyj",
-                "BUSINESS_SYSTEM_OPERATIONS_OWNER=wyj",
-                "BUSINESS_SYSTEM_DATA_OWNER=wyj",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=operator-staff-id",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_DATA_OWNER=operator-staff-id",
             ]
         )
         + "\n",
@@ -76,6 +76,8 @@ def test_production_landing_env_runner_runs_env_check_with_local_env_without_lea
     assert str(env_path) in payload["command"]
     assert "--output-dir" in payload["command"]
     assert "child_env_check" in payload["command"]
+    assert "--real-llm-preflight-report-dir" in payload["command"]
+    assert "child_real_llm_preflight" in payload["command"]
     assert "--xiaomi-preflight-report-dir" in payload["command"]
     assert "child_xiaomi_llm_preflight" in payload["command"]
     assert payload["return_code"] == 0
@@ -180,8 +182,12 @@ def test_production_landing_env_runner_supports_local_infra_smoke_action(tmp_pat
     payload = _payload(summary)
 
     assert summary["status"] == "success"
-    assert "--domains" in captured["command"]
+    assert "powershell.exe" in captured["command"]
+    assert "scripts\\real_integration_infra_smoke.ps1" in captured["command"]
+    assert "-Domains" in captured["command"]
     assert "postgres,redis" in captured["command"]
+    assert "-UseExistingEnv" in captured["command"]
+    assert "-EnvPath" in captured["command"]
     assert payload["child_summary"]["ready_domain_count"] == 2
 
 
@@ -279,6 +285,120 @@ def test_production_landing_env_runner_supports_xiaomi_llm_preflight_action(tmp_
     assert "secret-managed-token" not in merged
 
 
+def test_production_landing_env_runner_supports_real_llm_preflight_action(tmp_path: Path, monkeypatch) -> None:
+    import scripts.production_landing_env_runner as runner
+
+    env_path = tmp_path / "landing.env"
+    env_path.write_text(
+        "\n".join(
+            [
+                "REAL_LLM_MODEL=gpt-5.5",
+                "REAL_LLM_BASE_URL=https://user:pass@example.test:8300/v1?token=bad",
+                "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+                "REAL_LLM_API_KEY=<secret-managed-token>",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    child_payload_path = tmp_path / "child-real.json"
+    child_payload_path.write_text(
+        json.dumps(
+            {
+                "status": "skipped",
+                "api_key_env": "REAL_LLM_API_KEY",
+                "api_key_present": False,
+                "execute_network_check": True,
+                "real_llm_executed": False,
+                "safe_next_action": "run_scripts_real_llm_preflight_ps1_and_enter_key_securely",
+                "acceptance_blockers": [
+                    "missing_process_env:REAL_LLM_API_KEY",
+                    "network_check_not_allowed_without_process_key",
+                ],
+                "preflight": {
+                    "api_key_present": False,
+                    "network_check_requested": True,
+                    "network_check_allowed": False,
+                    "network_check_executed": False,
+                },
+                "secret_plaintext_output": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeCompleted:
+        returncode = 0
+        stdout = json.dumps(
+            {
+                "status": "skipped",
+                "api_key_env": "REAL_LLM_API_KEY",
+                "api_key_present": False,
+                "json_path": str(child_payload_path),
+                "execute_network_check": True,
+                "real_llm_executed": False,
+                "safe_next_action": "run_scripts_real_llm_preflight_ps1_and_enter_key_securely",
+                "acceptance_blockers": [
+                    "missing_process_env:REAL_LLM_API_KEY",
+                    "network_check_not_allowed_without_process_key",
+                ],
+                "preflight": {
+                    "api_key_present": False,
+                    "network_check_requested": True,
+                    "network_check_allowed": False,
+                    "network_check_executed": False,
+                },
+                "secret_plaintext_output": False,
+            }
+        )
+        stderr = ""
+
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return FakeCompleted()
+
+    monkeypatch.setattr(runner, "_run_git", lambda args: "abc12345")
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+
+    summary = runner.build_production_landing_env_runner(
+        action="real-llm-preflight",
+        env_path=env_path,
+        output_dir=tmp_path / "out",
+    )
+    payload = _payload(summary)
+    merged = Path(summary["json_path"]).read_text(encoding="utf-8") + Path(summary["markdown_path"]).read_text(
+        encoding="utf-8"
+    )
+
+    assert summary["status"] == "skipped"
+    assert any("production_landing_real_llm_preflight_runner.py" in part for part in captured["command"])
+    assert "--execute-network-check" in captured["command"]
+    assert "--model" in captured["command"]
+    assert "gpt-5.5" in captured["command"]
+    assert "--base-url" in captured["command"]
+    assert "https://user:pass@example.test:8300/v1?token=bad" in captured["command"]
+    assert "--api-key-env" in captured["command"]
+    assert "REAL_LLM_API_KEY" in captured["command"]
+    assert "docs/reports/production_landing_real_llm_preflight" in payload["command"]
+    assert "--base-url <base-url>" in payload["command"]
+    assert "user:pass" not in payload["command"]
+    assert "token=bad" not in payload["command"]
+    assert payload["child_real_llm_preflight"]["api_key_present"] is False
+    assert payload["child_real_llm_preflight"]["network_check_requested"] is True
+    assert payload["child_real_llm_preflight"]["network_check_allowed"] is False
+    assert payload["child_real_llm_preflight"]["real_llm_executed"] is False
+    assert (
+        payload["child_real_llm_preflight"]["safe_next_action"]
+        == "run_scripts_real_llm_preflight_ps1_and_enter_key_securely"
+    )
+    assert "missing_process_env:REAL_LLM_API_KEY" in payload["child_real_llm_preflight"]["acceptance_blockers"]
+    assert "secret-managed-token" not in merged
+    assert "user:pass" not in merged
+    assert "token=bad" not in merged
+
+
 def test_production_landing_env_runner_supports_local_infra_mcp_smoke_action(tmp_path: Path, monkeypatch) -> None:
     import scripts.production_landing_env_runner as runner
 
@@ -307,8 +427,12 @@ def test_production_landing_env_runner_supports_local_infra_mcp_smoke_action(tmp
     payload = _payload(summary)
 
     assert summary["status"] == "success"
-    assert "--domains" in captured["command"]
+    assert "powershell.exe" in captured["command"]
+    assert "scripts\\real_integration_infra_smoke.ps1" in captured["command"]
+    assert "-Domains" in captured["command"]
     assert "postgres,redis,external_mcp" in captured["command"]
+    assert "-UseExistingEnv" in captured["command"]
+    assert "-EnvPath" in captured["command"]
     assert payload["child_summary"]["ready_domain_count"] == 3
 
 
@@ -341,6 +465,42 @@ def test_production_landing_env_runner_supports_local_business_smoke_action(tmp_
 
     assert summary["status"] == "success"
     assert any("production_landing_local_business_smoke.py" in part for part in captured["command"])
+    assert payload["child_status"] == "success"
+
+
+def test_production_landing_env_runner_supports_demo_business_smoke_action(tmp_path: Path, monkeypatch) -> None:
+    import scripts.production_landing_env_runner as runner
+
+    env_path = tmp_path / "landing.env"
+    env_path.write_text("", encoding="utf-8")
+
+    class FakeCompleted:
+        returncode = 0
+        stdout = (
+            '{"status":"success","business_system_connected":true,'
+            '"business_read_executed":true,"demo_business_system_used":true,'
+            '"secret_plaintext_output":false}'
+        )
+        stderr = ""
+
+    captured: dict[str, list[str]] = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return FakeCompleted()
+
+    monkeypatch.setattr(runner, "_run_git", lambda args: "abc12345")
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+
+    summary = runner.build_production_landing_env_runner(
+        action="demo-business-smoke",
+        env_path=env_path,
+        output_dir=tmp_path / "out",
+    )
+    payload = _payload(summary)
+
+    assert summary["status"] == "success"
+    assert any("production_landing_demo_business_smoke.py" in part for part in captured["command"])
     assert payload["child_status"] == "success"
 
 

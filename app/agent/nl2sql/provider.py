@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -290,7 +291,9 @@ class LiteLLMProvider(LLMProvider):
         if response.status_code == 429:
             raise ProviderRateLimitError("OpenAI-compatible endpoint rate limited")
         if response.status_code >= 400:
-            raise ProviderResponseError(f"OpenAI-compatible endpoint returned {response.status_code}")
+            safe_detail = self._safe_http_error_detail(response)
+            suffix = f": {safe_detail}" if safe_detail else ""
+            raise ProviderResponseError(f"OpenAI-compatible endpoint returned {response.status_code}{suffix}")
 
         try:
             payload = response.json()
@@ -324,6 +327,38 @@ class LiteLLMProvider(LLMProvider):
             latency_ms=(time.perf_counter() - started) * 1000.0,
             error_type=None,
         )
+
+    def _safe_http_error_detail(self, response: Any) -> str:
+        try:
+            payload = response.json()
+        except Exception:
+            return ""
+        if not isinstance(payload, dict):
+            return ""
+        error = payload.get("error")
+        if isinstance(error, dict):
+            code = str(error.get("code") or error.get("type") or "").strip()
+            message = str(error.get("message") or "").strip()
+        else:
+            code = str(payload.get("code") or "").strip()
+            message = str(payload.get("message") or "").strip()
+        parts = [item for item in [code, message] if item]
+        if not parts:
+            return ""
+        detail = " | ".join(parts)
+        return self._redact_provider_error_detail(detail)[:240]
+
+    def _redact_provider_error_detail(self, detail: str) -> str:
+        detail = re.sub(r"sk-[A-Za-z0-9_\-]{6,}", "[redacted]", detail)
+        detail = re.sub(r"tp-[A-Za-z0-9_\-]{16,}", "[redacted]", detail)
+        detail = re.sub(r"(?i)bearer\s+[A-Za-z0-9._\-]+", "Bearer [redacted]", detail)
+        detail = re.sub(
+            r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)=([^&\s]+)",
+            r"\1=[redacted]",
+            detail,
+        )
+        detail = re.sub(r"(?i)(https?://[^:/\s]+):[^@\s]+@", r"\1:[redacted]@", detail)
+        return detail
 
     def _import_litellm(self):
         try:

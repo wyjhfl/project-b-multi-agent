@@ -20,6 +20,34 @@ from app.integrations.business_system import load_business_system_config, safe_c
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "business_system_production_readiness"
 BUSINESS_SMOKE_REPORT_DIR = ROOT_DIR / "docs" / "reports" / "business_system_read_smoke"
 STATUS_VOCABULARY = ["ready", "needs_input", "blocked", "failed"]
+ENV_PATH_SAFE_KEYS = {
+    "BUSINESS_INTEGRATION_ENABLED",
+    "BUSINESS_INTEGRATION_READ_ONLY",
+    "BUSINESS_INTEGRATION_WRITE_ENABLED",
+    "BUSINESS_INTEGRATION_APPROVAL_REQUIRED",
+    "BUSINESS_INTEGRATION_AUDIT_REQUIRED",
+    "BUSINESS_SYSTEM_NAME",
+    "BUSINESS_SYSTEM_BASE_URL_ENV",
+    "BUSINESS_SYSTEM_TOKEN_ENV",
+    "BUSINESS_SYSTEM_TOOL_ALLOWLIST",
+    "BUSINESS_SYSTEM_WRITE_TOOL_ALLOWLIST",
+    "BUSINESS_SYSTEM_TIMEOUT_SECONDS",
+    "BUSINESS_SYSTEM_READ_PROBE_PATH",
+    "BUSINESS_SYSTEM_AUTH_HEADER_NAME",
+    "BUSINESS_SYSTEM_AUTH_SCHEME",
+    "BUSINESS_SYSTEM_BUSINESS_OWNER",
+    "BUSINESS_SYSTEM_SECURITY_REVIEWER",
+    "BUSINESS_SYSTEM_OPERATIONS_OWNER",
+    "BUSINESS_SYSTEM_DATA_OWNER",
+}
+ENV_PATH_SECRET_KEYS = {
+    "BUSINESS_SYSTEM_BASE_URL",
+    "BUSINESS_SYSTEM_TOKEN",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "XIAOMI_LLM_API_KEY",
+    "JWT_SECRET",
+}
 
 
 def _utc_now_iso() -> str:
@@ -49,6 +77,74 @@ def _latest_json(directory: Path, pattern: str = "*.json") -> Path | None:
         return (generated_at, item.stat().st_mtime, item.name)
 
     return max(files, key=sort_key)
+
+
+def _resolve_env_path(env_path: str | Path | None) -> Path | None:
+    if env_path is None or str(env_path).strip() == "":
+        return None
+    path = Path(env_path)
+    return path if path.is_absolute() else ROOT_DIR / path
+
+
+def _parse_env_path(env_path: str | Path | None) -> dict[str, Any]:
+    resolved = _resolve_env_path(env_path)
+    if resolved is None:
+        return {
+            "path": "",
+            "present": False,
+            "safe_values": {},
+            "loaded_keys": [],
+            "secret_keys_skipped": [],
+            "unknown_keys_ignored": [],
+        }
+    if not resolved.exists():
+        return {
+            "path": str(resolved),
+            "present": False,
+            "safe_values": {},
+            "loaded_keys": [],
+            "secret_keys_skipped": [],
+            "unknown_keys_ignored": [],
+        }
+    safe_values: dict[str, str] = {}
+    secret_keys_skipped: list[str] = []
+    unknown_keys_ignored: list[str] = []
+    for raw_line in resolved.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("\"'")
+        if key in ENV_PATH_SECRET_KEYS:
+            secret_keys_skipped.append(key)
+        elif key in ENV_PATH_SAFE_KEYS:
+            safe_values[key] = value
+        else:
+            unknown_keys_ignored.append(key)
+    return {
+        "path": str(resolved),
+        "present": True,
+        "safe_values": safe_values,
+        "loaded_keys": sorted(safe_values.keys()),
+        "secret_keys_skipped": sorted(set(secret_keys_skipped)),
+        "unknown_keys_ignored": sorted(set(unknown_keys_ignored)),
+    }
+
+
+def _apply_safe_env_values(env_values: dict[str, str]) -> dict[str, str | None]:
+    previous = {key: os.environ.get(key) for key in env_values}
+    for key, value in env_values.items():
+        os.environ[key] = value
+    return previous
+
+
+def _restore_env_values(previous: dict[str, str | None]) -> None:
+    for key, value in previous.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
 
 
 def _resolve_report_path(report_dir: Path, explicit_json_path: str | Path | None, expected_suffix: str) -> tuple[Path | None, bool, list[str]]:
@@ -94,6 +190,7 @@ def _read_latest_business_smoke(
             "business_write_executed": False,
             "business_data_written": False,
             "local_business_mock_used": False,
+            "demo_business_system_used": False,
             "secret_plaintext_output": False,
             "source_bound": source_bound,
             "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
@@ -111,6 +208,7 @@ def _read_latest_business_smoke(
             "business_write_executed": False,
             "business_data_written": False,
             "local_business_mock_used": False,
+            "demo_business_system_used": False,
             "secret_plaintext_output": False,
             "source_bound": source_bound,
             "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
@@ -126,6 +224,7 @@ def _read_latest_business_smoke(
         "business_write_executed": bool(payload.get("business_write_executed", False)),
         "business_data_written": bool(payload.get("business_data_written", False)),
         "local_business_mock_used": bool(payload.get("local_business_mock_used", False)),
+        "demo_business_system_used": bool(payload.get("demo_business_system_used", False)),
         "secret_plaintext_output": secret_detected or bool(payload.get("secret_plaintext_output", False)),
         "source_bound": source_bound,
         "source_selection": "explicit_json_path" if explicit_json_path is not None else "latest_report_lookup",
@@ -188,6 +287,8 @@ def _missing_conditions(smoke: dict[str, Any]) -> list[str]:
         missing.append("evidence:business_system_real_read_smoke_not_executed")
     if smoke.get("local_business_mock_used") is True:
         missing.append("evidence:local_business_mock_not_valid_for_real_production")
+    if smoke.get("demo_business_system_used") is True:
+        missing.append("evidence:demo_business_system_not_valid_for_real_production")
     if smoke.get("business_write_executed") is True or smoke.get("business_data_written") is True:
         missing.append("boundary:business_write_detected")
     if smoke.get("secret_plaintext_output") is True:
@@ -308,14 +409,21 @@ def build_business_system_production_readiness_brief(
     output_dir: str | Path | None = None,
     business_smoke_report_dir: str | Path | None = None,
     business_smoke_json_path: str | Path | None = None,
+    env_path: str | Path | None = None,
 ) -> dict[str, Any]:
     output_root = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
     smoke_dir = Path(business_smoke_report_dir) if business_smoke_report_dir else BUSINESS_SMOKE_REPORT_DIR
     generated_at = _utc_now_iso()
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
-    config = load_business_system_config()
-    latest_smoke = _read_latest_business_smoke(smoke_dir, explicit_json_path=business_smoke_json_path)
-    missing = _missing_conditions(latest_smoke)
+    env_path_summary = _parse_env_path(env_path)
+    previous_env = _apply_safe_env_values(env_path_summary["safe_values"])
+    try:
+        config = load_business_system_config()
+        latest_smoke = _read_latest_business_smoke(smoke_dir, explicit_json_path=business_smoke_json_path)
+        missing = _missing_conditions(latest_smoke)
+        owner_inputs_present = _owner_inputs()
+    finally:
+        _restore_env_values(previous_env)
     blocked_markers = [item for item in missing if item.startswith("boundary:")]
     status = "blocked" if blocked_markers else ("ready" if not missing else "needs_input")
     payload: dict[str, Any] = {
@@ -326,8 +434,16 @@ def build_business_system_production_readiness_brief(
         "status": status,
         "status_vocabulary": STATUS_VOCABULARY,
         "read_only": True,
+        "env_path": env_path_summary["path"],
+        "env_file_present": env_path_summary["present"],
+        "env_path_loaded_keys": env_path_summary["loaded_keys"],
+        "env_path_loaded_key_count": len(env_path_summary["loaded_keys"]),
+        "env_path_secret_keys_skipped": env_path_summary["secret_keys_skipped"],
+        "env_path_secret_key_skipped_count": len(env_path_summary["secret_keys_skipped"]),
+        "env_path_unknown_keys_ignored": env_path_summary["unknown_keys_ignored"],
+        "env_path_unknown_key_ignored_count": len(env_path_summary["unknown_keys_ignored"]),
         "config": safe_config_summary(config),
-        "owner_inputs_present": _owner_inputs(),
+        "owner_inputs_present": owner_inputs_present,
         "required_inputs": _required_inputs(),
         "source_bound": bool(latest_smoke.get("source_bound", False)),
         "latest_business_smoke": latest_smoke,
@@ -368,6 +484,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--business-smoke-report-dir", default=str(BUSINESS_SMOKE_REPORT_DIR))
     parser.add_argument("--business-smoke-json-path", default=None)
+    parser.add_argument("--env-path", default=None)
     return parser
 
 
@@ -377,6 +494,7 @@ def main() -> int:
         output_dir=args.output_dir,
         business_smoke_report_dir=args.business_smoke_report_dir,
         business_smoke_json_path=args.business_smoke_json_path,
+        env_path=args.env_path,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"json_path={summary['json_path']}")

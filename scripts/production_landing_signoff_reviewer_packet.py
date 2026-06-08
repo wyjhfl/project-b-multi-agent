@@ -27,6 +27,10 @@ REPORT_SOURCES = {
         ROOT_DIR / "docs" / "reports" / "manual_signoff_evidence_ack_status",
         "*_manual_signoff_evidence_ack_status.json",
     ),
+    "real_llm_preflight": (
+        ROOT_DIR / "docs" / "reports" / "production_landing_real_llm_preflight",
+        "*_production_landing_real_llm_preflight.json",
+    ),
     "xiaomi_llm_preflight": (
         ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight",
         "*_production_landing_xiaomi_llm_preflight.json",
@@ -130,6 +134,11 @@ def _safe_list(value: Any) -> list[str]:
     return [str(item) for item in value] if isinstance(value, list) else []
 
 
+def _llm_network_check_executed(payload: dict[str, Any]) -> bool:
+    preflight = payload.get("preflight") if isinstance(payload.get("preflight"), dict) else {}
+    return bool(payload.get("network_check_executed", False) or preflight.get("network_check_executed", False))
+
+
 def _evidence_summary(source_id: str, payload: dict[str, Any], missing: list[str], path: str) -> dict[str, Any]:
     return {
         "source_id": source_id,
@@ -140,6 +149,22 @@ def _evidence_summary(source_id: str, payload: dict[str, Any], missing: list[str
         "missing_conditions": missing,
         "secret_plaintext_output": bool(payload.get("secret_plaintext_output", False)),
     }
+
+
+def _select_real_llm_preflight(
+    payloads: dict[str, dict[str, Any]],
+    missing_by_source: dict[str, list[str]],
+    paths: dict[str, str],
+) -> tuple[str, dict[str, Any], bool, list[str]]:
+    real_payload = payloads.get("real_llm_preflight", {})
+    if paths.get("real_llm_preflight") and real_payload:
+        return "real_llm_preflight", real_payload, False, []
+
+    xiaomi_payload = payloads.get("xiaomi_llm_preflight", {})
+    if paths.get("xiaomi_llm_preflight") and xiaomi_payload:
+        return "xiaomi_llm_preflight", xiaomi_payload, True, []
+
+    return "real_llm_preflight", real_payload, False, missing_by_source.get("real_llm_preflight", [])
 
 
 def _build_markdown(payload: dict[str, Any]) -> str:
@@ -174,20 +199,30 @@ def build_production_landing_signoff_reviewer_packet(
     effective_sources = sources or REPORT_SOURCES
     evidence: list[dict[str, Any]] = []
     payloads: dict[str, dict[str, Any]] = {}
+    missing_by_source: dict[str, list[str]] = {}
+    paths: dict[str, str] = {}
     missing_conditions: list[str] = []
 
     for source_id, (directory, pattern) in effective_sources.items():
         path = _latest_json(Path(directory), pattern)
         payload, missing, path_text = _read_payload(path, source_id)
         payloads[source_id] = payload
-        missing_conditions.extend(missing)
+        missing_by_source[source_id] = missing
+        paths[source_id] = path_text
+        if source_id != "real_llm_preflight":
+            missing_conditions.extend(missing)
         evidence.append(_evidence_summary(source_id, payload, missing, path_text))
 
     pre_gate = payloads.get("pre_signoff_gate", {})
     action = payloads.get("action_pack", {})
     final = payloads.get("final_verification", {})
     ack = payloads.get("manual_signoff_evidence_ack_status", {})
-    xiaomi = payloads.get("xiaomi_llm_preflight", {})
+    llm_source_id, llm_payload, llm_fallback_used, llm_missing = _select_real_llm_preflight(
+        payloads,
+        missing_by_source,
+        paths,
+    )
+    missing_conditions.extend(llm_missing)
     staging = payloads.get("real_integration_staging_smoke", {})
     business = payloads.get("business_system_read_smoke", {})
     closeout = payloads.get("signoff_closeout", {})
@@ -219,10 +254,12 @@ def build_production_landing_signoff_reviewer_packet(
             "missing_conditions": _safe_list(final.get("missing_conditions"))[:16],
         },
         "real_llm_preflight": {
-            "status": xiaomi.get("status", ""),
-            "api_key_present": bool(xiaomi.get("api_key_present", False)),
-            "network_check_executed": bool(xiaomi.get("network_check_executed", False)),
-            "real_llm_executed": bool(xiaomi.get("real_llm_executed", False)),
+            "source_id": llm_source_id,
+            "compat_fallback_used": llm_fallback_used,
+            "status": llm_payload.get("status", ""),
+            "api_key_present": bool(llm_payload.get("api_key_present", False)),
+            "network_check_executed": _llm_network_check_executed(llm_payload),
+            "real_llm_executed": bool(llm_payload.get("real_llm_executed", False)),
         },
         "staging_smoke": {
             "status": staging.get("status", ""),

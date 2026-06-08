@@ -37,10 +37,10 @@ def _write_business_env(path: Path, *, token: str = "local-token-value") -> None
                 "BUSINESS_SYSTEM_READ_PROBE_PATH=/health",
                 "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization",
                 "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer",
-                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
-                "BUSINESS_SYSTEM_SECURITY_REVIEWER=wyj",
-                "BUSINESS_SYSTEM_OPERATIONS_OWNER=wyj",
-                "BUSINESS_SYSTEM_DATA_OWNER=wyj",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=operator-staff-id",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_DATA_OWNER=operator-staff-id",
             ]
         )
         + "\n",
@@ -204,13 +204,13 @@ def test_production_landing_input_readiness_default_templates_are_partial(tmp_pa
     assert "business_env:BUSINESS_SYSTEM_BUSINESS_OWNER_not_filled" in payload["inputs"][0]["missing_conditions"]
     assert payload["inputs"][1]["status"] == "partial"
     assert payload["inputs"][2]["status"] == "partial"
-    assert "scripts\\xiaomi_llm_preflight.ps1" in payload["inputs"][2]["command_after_fill"]
+    assert "scripts\\real_llm_preflight.ps1" in payload["inputs"][2]["command_after_fill"]
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains postgres" in payload["inputs"][2]["command_after_fill"]
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains redis" in payload["inputs"][2]["command_after_fill"]
     assert "scripts\\real_integration_infra_smoke.ps1 -Domains external_mcp" in payload["inputs"][2]["command_after_fill"]
-    assert "REAL_LLM_MODEL=mimo-v2.5-pro" in payload["inputs"][2]["required_env"]
-    assert "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1" in payload["inputs"][2]["required_env"]
-    assert "XIAOMI_LLM_API_KEY=<secret-managed-token>" in payload["inputs"][2]["required_env"]
+    assert "REAL_LLM_MODEL=gpt-5.5" in payload["inputs"][2]["required_env"]
+    assert "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1" in payload["inputs"][2]["required_env"]
+    assert "REAL_LLM_API_KEY=<secret-managed-token>" in payload["inputs"][2]["required_env"]
     assert "DATABASE_URL=<secret-managed-url>" in payload["inputs"][2]["required_env"]
     assert payload["inputs"][3]["status"] == "partial"
 

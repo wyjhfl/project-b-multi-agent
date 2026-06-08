@@ -6,6 +6,12 @@ from pathlib import Path
 from scripts.production_landing_xiaomi_llm_bootstrap import build_production_landing_xiaomi_llm_bootstrap
 
 
+def _codex_python(script_command: str) -> str:
+    return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + script_command.replace(
+        "/", "\\"
+    )
+
+
 def test_xiaomi_llm_bootstrap_writes_config_and_placeholder_without_key_leak(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("XIAOMI_LLM_API_KEY", raising=False)
     env_path = tmp_path / "local" / "production_landing.staging.env"
@@ -20,6 +26,8 @@ def test_xiaomi_llm_bootstrap_writes_config_and_placeholder_without_key_leak(tmp
     assert "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1" in env_text
     assert "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY" in env_text
     assert "XIAOMI_LLM_API_KEY=<secret-managed-token>" in env_text
+    assert _codex_python("scripts/production_landing_env_runner.py --action env-check") in summary["next_commands"]
+    assert not any(command.startswith("python scripts/") for command in summary["next_commands"])
     assert "<secret-managed-token>" not in summary_text
     assert summary["secret_plaintext_output"] is False
 

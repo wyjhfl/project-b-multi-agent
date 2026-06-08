@@ -6,6 +6,12 @@ from pathlib import Path
 from scripts.production_landing_local_business_bootstrap import build_production_landing_local_business_bootstrap
 
 
+def _codex_python(script_command: str) -> str:
+    return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + script_command.replace(
+        "/", "\\"
+    )
+
+
 def test_local_business_bootstrap_writes_read_only_mock_config_without_summary_leak(tmp_path: Path) -> None:
     env_path = tmp_path / "local" / "production_landing.staging.env"
 
@@ -29,8 +35,9 @@ def test_local_business_bootstrap_writes_read_only_mock_config_without_summary_l
     assert "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe" in env_text
     assert "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization" in env_text
     assert "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer" in env_text
-    assert "python scripts/production_landing_env_runner.py --action local-business-smoke" in summary["next_commands"]
-    assert "python scripts/production_landing_env_runner.py --action business-smoke" not in summary["next_commands"]
+    assert _codex_python("scripts/production_landing_env_runner.py --action local-business-smoke") in summary["next_commands"]
+    assert _codex_python("scripts/production_landing_env_runner.py --action business-smoke") not in summary["next_commands"]
+    assert not any(command.startswith("python scripts/") for command in summary["next_commands"])
     assert "http://127.0.0.1:8765" not in summary_text
     assert "local-business-read-token" not in summary_text
     assert summary["secret_plaintext_output"] is False

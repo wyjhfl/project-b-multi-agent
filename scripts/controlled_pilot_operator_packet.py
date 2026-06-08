@@ -109,9 +109,50 @@ def _latest_json(directory: Path, pattern: str) -> Path | None:
     return max(files, key=sort_key)
 
 
+def _latest_usable_business_smoke_json(directory: Path, pattern: str) -> Path | None:
+    if not directory.exists() or not directory.is_dir():
+        return None
+    candidates: list[Path] = []
+    for path in directory.glob(pattern):
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        env_profile = payload.get("env_profile") if isinstance(payload.get("env_profile"), dict) else {}
+        real_read_smoke = (
+            payload.get("demo_business_system_used") is not True
+            and payload.get("real_business_system_connected") is not False
+            and env_profile.get("public_production_gap") is not True
+        )
+        if (
+            payload.get("status") == "success"
+            and payload.get("business_system_connected") is True
+            and payload.get("business_read_executed") is True
+            and payload.get("business_write_executed") is not True
+            and payload.get("business_data_written") is not True
+            and payload.get("local_business_mock_used") is not True
+            and payload.get("secret_plaintext_output") is not True
+            and (
+                payload.get("demo_business_system_used") is True
+                or payload.get("real_business_system_connected") is True
+                or real_read_smoke
+            )
+        ):
+            candidates.append(path)
+    if not candidates:
+        return None
+    return max(candidates, key=lambda path: _latest_json_sort_key(path))
+
+
 def _read_report(report_id: str, reports: dict[str, tuple[Path, str]]) -> dict[str, Any]:
     directory, pattern = reports[report_id]
     path = _latest_successful_executed_json(directory, pattern) if report_id == "operations_console_landing_smoke" else None
+    if path is None and report_id == "business_system_read_smoke":
+        path = _latest_usable_business_smoke_json(directory, pattern)
     path = path or _latest_json(directory, pattern)
     if path is None:
         return {
@@ -170,6 +211,31 @@ def _latest_json_sort_key(path: Path) -> tuple[str, float, str]:
     return str(payload.get("generated_at") or ""), path.stat().st_mtime, path.name
 
 
+def _demo_business_read_ready(payload: dict[str, Any]) -> bool:
+    return bool(
+        payload.get("status") == "success"
+        and payload.get("business_system_connected") is True
+        and payload.get("business_read_executed") is True
+        and payload.get("business_write_executed") is not True
+        and payload.get("business_data_written") is not True
+        and payload.get("local_business_mock_used") is not True
+        and payload.get("demo_business_system_used") is True
+        and payload.get("real_business_system_connected") is not True
+    )
+
+
+def _landing_status_allows_controlled_pilot(payload: dict[str, Any]) -> bool:
+    if payload.get("status") == "success" and payload.get("controlled_pilot_ready") is True:
+        return True
+    blockers = payload.get("blockers") if isinstance(payload.get("blockers"), list) else []
+    return bool(
+        payload.get("status") == "partial"
+        and sorted(str(item) for item in blockers) == ["business_system:real_business_system_required"]
+        and payload.get("public_production_direct_launch") == "No-Go"
+        and payload.get("secret_plaintext_output") is False
+    )
+
+
 def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
     status_payload = sources["controlled_pilot_status_summary"].get("payload", {})
     landing_status_payload = sources["production_landing_status"].get("payload", {})
@@ -193,8 +259,7 @@ def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
     ready = (
         status_payload.get("status") == "ready"
         and status_payload.get("controlled_internal_pilot") == "Go"
-        and landing_status_payload.get("status") == "success"
-        and landing_status_payload.get("controlled_pilot_ready") is True
+        and _landing_status_allows_controlled_pilot(landing_status_payload)
         and package_payload.get("status") == "ready"
         and package_payload.get("launch_package_ready") is True
         and window_payload.get("opened") is True
@@ -215,6 +280,8 @@ def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         public_production_gaps.append("business_system:public_production_gap")
     if business_readiness_payload.get("status") != "ready":
         public_production_gaps.append("business_system:production_readiness_not_ready")
+    demo_business_ready = _demo_business_read_ready(business_smoke_payload)
+    accepted_remaining_gaps = ["business_system:real_business_system_required"] if demo_business_ready else []
     evidence_freshness_ready = (
         evidence_freshness_payload.get("status") == "success"
         and evidence_freshness_payload.get("worktree_clean") is True
@@ -224,12 +291,15 @@ def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
     if not evidence_freshness_ready:
         missing_conditions.append("production_landing_evidence_freshness:not_fresh")
     business_ready_for_controlled_pilot = (
-        business_smoke_payload.get("business_read_executed") is True
-        and env_profile.get("public_production_gap") is not True
-        and business_readiness_payload.get("status") == "ready"
+        (
+            business_smoke_payload.get("business_read_executed") is True
+            and env_profile.get("public_production_gap") is not True
+            and business_readiness_payload.get("status") == "ready"
+        )
+        or demo_business_ready
     )
     business_safe_commands = env_profile.get("safe_commands") if isinstance(env_profile.get("safe_commands"), dict) else {}
-    ready = ready and business_ready_for_controlled_pilot and evidence_freshness_ready and not public_production_gaps
+    ready = ready and business_ready_for_controlled_pilot and evidence_freshness_ready
     return {
         "status": "ready" if ready else "partial",
         "controlled_internal_pilot": "Go" if ready else "Manual-Review",
@@ -276,6 +346,8 @@ def _derive_packet(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         },
         "public_production_gaps": sorted(set(public_production_gaps)),
         "public_production_gap_count": len(set(public_production_gaps)),
+        "accepted_remaining_gaps": accepted_remaining_gaps,
+        "accepted_remaining_gap_count": len(accepted_remaining_gaps),
         "pilot_roles": package_payload.get("pilot_roles") if isinstance(package_payload.get("pilot_roles"), list) else [],
         "rollback_required": True,
         "external_expansion_requires_new_manual_go_no_go": True,

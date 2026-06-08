@@ -12,10 +12,16 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "manual_signoff_evidence_ack_status"
 
 REPORT_SPECS = {
-    "real_llm_preflight": (
-        ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight",
-        "*_production_landing_xiaomi_llm_preflight.json",
-    ),
+    "real_llm_preflight": [
+        (
+            ROOT_DIR / "docs" / "reports" / "production_landing_real_llm_preflight",
+            "*_production_landing_real_llm_preflight.json",
+        ),
+        (
+            ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight",
+            "*_production_landing_xiaomi_llm_preflight.json",
+        ),
+    ],
     "postgres_redis_mcp_smoke": (
         ROOT_DIR / "docs" / "reports" / "real_integration_staging_smoke",
         "*_real_integration_staging_smoke.json",
@@ -33,6 +39,7 @@ REPORT_SPECS = {
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
     re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
+    re.compile(r"\bk-[A-Za-z0-9_\-]{24,}"),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
     re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^,\s]+"),
     re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\s*[:=]\s*([^\s,]+)"),
@@ -86,9 +93,20 @@ def _latest_json(directory: Path, pattern: str) -> Path | None:
     return max(files, key=sort_key)
 
 
+def _report_candidates(spec: Any) -> list[tuple[Path, str]]:
+    if isinstance(spec, tuple) and len(spec) == 2:
+        return [(Path(spec[0]), str(spec[1]))]
+    if isinstance(spec, list):
+        return [(Path(item[0]), str(item[1])) for item in spec if isinstance(item, tuple) and len(item) == 2]
+    return []
+
+
 def _read_report(item_id: str) -> tuple[Path | None, dict[str, Any], list[str]]:
-    directory, pattern = REPORT_SPECS[item_id]
-    latest = _latest_json(directory, pattern)
+    latest = None
+    for directory, pattern in _report_candidates(REPORT_SPECS[item_id]):
+        latest = _latest_json(directory, pattern)
+        if latest is not None:
+            break
     if latest is None:
         return None, {}, [f"{item_id}:report_not_found"]
     try:

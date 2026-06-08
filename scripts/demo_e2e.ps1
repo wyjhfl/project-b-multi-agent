@@ -6,6 +6,16 @@
 
 $ErrorActionPreference = "Stop"
 
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
+$pythonWrapper = Join-Path $repoRoot "scripts\codex_python.ps1"
+
+function Initialize-CodexProcessEnvironment {
+  [Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+  [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+  $script:OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+  chcp 65001 | Out-Null
+}
+
 function Write-JsonFile {
   param(
     [Parameter(Mandatory = $true)][string]$Path,
@@ -54,7 +64,8 @@ function Invoke-Nl2SqlPreview {
   }
 }
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
+Initialize-CodexProcessEnvironment
+
 $artifactRootResolved = if ([System.IO.Path]::IsPathRooted($ArtifactDir)) {
   $ArtifactDir
 } else {
@@ -83,7 +94,7 @@ Write-Host ("[demo_e2e] artifact_dir={0}" -f $runDir) -ForegroundColor Cyan
 $seedSummary = $null
 if (-not $SkipSeed) {
   Write-Host "[demo_e2e] step=seed_demo_data status=running" -ForegroundColor Yellow
-  $seedRaw = & python (Join-Path $repoRoot "scripts/demo_seed_data.py") --pilot-report-dir $pilotReportDir 2>&1
+  $seedRaw = & powershell -NoProfile -ExecutionPolicy Bypass -File $pythonWrapper (Join-Path $repoRoot "scripts/demo_seed_data.py") --pilot-report-dir $pilotReportDir 2>&1
   $seedExit = $LASTEXITCODE
   if ($seedExit -ne 0) {
     Write-Host "[demo_e2e] step=seed_demo_data status=failed" -ForegroundColor Red
@@ -201,7 +212,7 @@ $bundleCmd = @(
   "--pilot-report-dir", $pilotReportDir
 )
 
-$bundleRaw = & python @bundleCmd
+$bundleRaw = & powershell -NoProfile -ExecutionPolicy Bypass -File $pythonWrapper @bundleCmd
 $bundleExit = $LASTEXITCODE
 if ($bundleExit -ne 0) {
   throw "demo artifact bundle generation failed"

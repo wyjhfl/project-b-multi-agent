@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from scripts.evidence_archive_manifest import build_evidence_archive_manifest
+from scripts import evidence_archive_manifest
 
 
 def _write(path: Path, text: str = "{}") -> None:
@@ -76,3 +77,11 @@ def test_evidence_archive_manifest_does_not_read_or_leak_secret_content(tmp_path
     assert "sk-secret-never-output" not in merged
     assert "postgresql://demo:secret@" not in merged
     assert "secret.json" in merged
+
+
+def test_evidence_archive_manifest_default_roots_include_controlled_pilot_run_packet():
+    assert "controlled_pilot_run_packet" in evidence_archive_manifest.DEFAULT_EVIDENCE_ROOTS
+    assert (
+        evidence_archive_manifest.DEFAULT_EVIDENCE_ROOTS["controlled_pilot_run_packet"].as_posix()
+        .endswith("docs/reports/controlled_pilot_run_packet")
+    )

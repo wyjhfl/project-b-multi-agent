@@ -39,12 +39,11 @@ EXPECTED_VALUES = {
 
 SAFE_REAL_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 "
-    "-UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
+    "-UseExistingEnv"
 )
 SAFE_INTERACTIVE_REAL_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 "
-    "-EnvPath local\\production_landing.staging.env -BusinessOwner WYJ -SecurityReviewer WYJ "
-    "-OperationsOwner WYJ -DataOwner WYJ"
+    "-EnvPath local\\production_landing.staging.env"
 )
 
 SECRET_TEXT_PATTERNS = [
@@ -208,8 +207,11 @@ def build_business_system_real_readiness_gate(
 
     system_name, system_name_source, _ = _value_for_key("BUSINESS_SYSTEM_NAME", env_values)
     local_mock_configured = system_name == "local_business_read_mock"
+    demo_business_system_configured = system_name == "demo_business_system"
     if local_mock_configured:
         missing.append("business_system:local_mock_configured")
+    if demo_business_system_configured:
+        missing.append("business_system:demo_business_system_configured")
     if not system_name:
         missing.append("business_system:name_missing")
 
@@ -251,6 +253,7 @@ def build_business_system_real_readiness_gate(
         "read_only": True,
         "ready_for_real_read_smoke": ready,
         "local_mock_configured": local_mock_configured,
+        "demo_business_system_configured": demo_business_system_configured,
         "business_system_name_present": bool(system_name),
         "business_system_name_source": system_name_source,
         "key_statuses": key_statuses,

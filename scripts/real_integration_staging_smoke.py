@@ -210,10 +210,10 @@ def _required_env_for_domain(domain_id: str) -> list[str]:
             "REAL_LLM_SMOKE_ENABLED=true",
             "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
             "REAL_LLM_PROVIDER=litellm",
-            "REAL_LLM_MODEL=mimo-v2.5-pro",
-            "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-            "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-            "XIAOMI_LLM_API_KEY=<secret-managed-token>",
+            "REAL_LLM_MODEL=gpt-5.5",
+            "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+            "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+            "REAL_LLM_API_KEY=<secret-managed-token>",
         ]
     if domain_id == "postgres":
         return [

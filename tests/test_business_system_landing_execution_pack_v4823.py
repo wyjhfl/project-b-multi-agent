@@ -158,8 +158,9 @@ def test_business_system_landing_execution_pack_ready_for_real_read_smoke(tmp_pa
     assert summary["safe_next_action"] == "execute_real_read_smoke"
     payload = _payload(summary)
     assert payload["recommended_next_command"].endswith(
-        "scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
+        "scripts\\business_system_read_smoke.ps1 -UseExistingEnv"
     )
+    assert "BusinessOwner WYJ" not in payload["recommended_next_command"]
     assert any(
         command.endswith(
             "scripts\\business_system_landing_resume.ps1 -UseExistingEnv -EnvPath local\\production_landing.staging.env"
@@ -188,7 +189,7 @@ def test_business_system_landing_execution_pack_prioritizes_real_smoke_over_pref
             "missing_condition_count": 0,
             "recommended_commands": [
                 "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -PreflightOnly -EnvPath local\\production_landing.staging.env",
-                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ",
+                "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1 -UseExistingEnv",
             ],
             "business_write_executed": False,
             "business_data_written": False,
@@ -203,8 +204,9 @@ def test_business_system_landing_execution_pack_prioritizes_real_smoke_over_pref
     assert summary["safe_next_action"] == "execute_real_read_smoke"
     assert "-PreflightOnly" not in payload["recommended_next_command"]
     assert payload["recommended_next_command"].endswith(
-        "scripts\\business_system_read_smoke.ps1 -UseExistingEnv -BusinessOwner WYJ -SecurityReviewer WYJ -OperationsOwner WYJ -DataOwner WYJ"
+        "scripts\\business_system_read_smoke.ps1 -UseExistingEnv"
     )
+    assert "BusinessOwner WYJ" not in payload["recommended_next_command"]
 
 
 def test_business_system_landing_execution_pack_ready_after_real_read_smoke(tmp_path: Path) -> None:
@@ -396,6 +398,70 @@ def test_business_system_landing_execution_pack_binds_explicit_current_reports_o
     assert all(item["source_bound"] is True for item in payload["sources"].values())
     assert all(item["source_selection"] == "explicit_json_path" for item in payload["sources"].values())
     assert "evidence:business_system_real_read_smoke_not_executed" in payload["missing_conditions"]
+
+
+def test_business_system_landing_execution_pack_uses_readiness_missing_over_stale_smoke_env_gaps(
+    tmp_path: Path,
+) -> None:
+    dirs = _dirs(tmp_path / "reports")
+    _write_json(
+        dirs["business_system_input_packet"] / "001_business_system_input_packet.json",
+        {
+            "status": "needs_input",
+            "ready_for_real_read_smoke": False,
+            "missing_conditions": ["env_target:BUSINESS_SYSTEM_BASE_URL_missing"],
+            "owner_inputs_present": {
+                "business_owner": True,
+                "security_reviewer": True,
+                "operations_owner": True,
+                "data_owner": True,
+            },
+        },
+    )
+    _write_json(
+        dirs["business_system_production_readiness"] / "001_business_system_production_readiness.json",
+        {
+            "status": "needs_input",
+            "missing_conditions": [
+                "env_target:BUSINESS_SYSTEM_BASE_URL_ENV_missing",
+                "env_target:BUSINESS_SYSTEM_TOKEN_ENV_missing",
+                "evidence:business_system_real_read_smoke_not_executed",
+            ],
+            "owner_inputs_present": {
+                "business_owner": True,
+                "security_reviewer": True,
+                "operations_owner": True,
+                "data_owner": True,
+            },
+        },
+    )
+    _write_json(
+        dirs["business_system_read_smoke"] / "001_business_system_read_smoke.json",
+        {
+            "status": "skipped",
+            "business_system_connected": False,
+            "business_read_executed": False,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "secret_plaintext_output": False,
+            "missing_conditions": [
+                "cli:--execute_not_requested",
+                "owner:business_owner_missing",
+                "opt_in:BUSINESS_INTEGRATION_ENABLED_not_enabled",
+                "env:BUSINESS_SYSTEM_TOOL_ALLOWLIST_missing_business_read_probe",
+            ],
+        },
+    )
+
+    summary = build_business_system_landing_execution_pack(output_dir=tmp_path / "out", report_dirs=dirs)
+    payload = _payload(summary)
+
+    assert summary["status"] == "needs_input"
+    assert "evidence:business_system_real_read_smoke_not_executed" in payload["missing_conditions"]
+    assert "owner:business_owner_missing" not in payload["missing_conditions"]
+    assert "opt_in:BUSINESS_INTEGRATION_ENABLED_not_enabled" not in payload["missing_conditions"]
+    assert "env:BUSINESS_SYSTEM_TOOL_ALLOWLIST_missing_business_read_probe" not in payload["missing_conditions"]
 
 
 def test_business_system_landing_execution_pack_blocks_missing_explicit_source_without_latest_fallback(

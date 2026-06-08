@@ -12,6 +12,7 @@ DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "controlled_pilot_launch_ga
 STATUS_VOCABULARY = ["ready", "blocked"]
 
 SOURCE_DIRS = {
+    "controlled_pilot_delivery_gate": ROOT_DIR / "docs" / "reports" / "controlled_pilot_delivery_gate",
     "production_pilot_evidence_bundle": ROOT_DIR / "docs" / "reports" / "production_pilot_evidence_bundle",
     "production_landing_final_verification": ROOT_DIR / "docs" / "reports" / "production_landing_final_verification",
     "production_landing_signoff_closeout": ROOT_DIR / "docs" / "reports" / "production_landing_signoff_closeout",
@@ -130,6 +131,19 @@ def _read_latest_source(source_id: str, directory: Path) -> dict[str, Any]:
 
 
 def _source_summary(source_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    if source_id == "controlled_pilot_delivery_gate":
+        return {
+            "controlled_pilot_delivery_ready": payload.get("controlled_pilot_delivery_ready"),
+            "enterprise_landing_scope": payload.get("enterprise_landing_scope"),
+            "accepted_remaining_gaps": payload.get("accepted_remaining_gaps")
+            if isinstance(payload.get("accepted_remaining_gaps"), list)
+            else [],
+            "missing_condition_count": payload.get("missing_condition_count"),
+            "public_production_direct_launch": payload.get("public_production_direct_launch"),
+            "secret_plaintext_output": payload.get("secret_plaintext_output"),
+            "auto_approved": payload.get("auto_approved"),
+            "auto_closed": payload.get("auto_closed"),
+        }
     go_no_go = payload.get("go_no_go") if isinstance(payload.get("go_no_go"), dict) else {}
     if source_id == "production_pilot_evidence_bundle":
         return {
@@ -191,10 +205,27 @@ def _int_value(value: Any) -> int:
 
 def _evaluate_gate(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
     missing_conditions: list[str] = []
+    delivery = sources.get("controlled_pilot_delivery_gate", {})
     bundle = sources["production_pilot_evidence_bundle"]
     final = sources["production_landing_final_verification"]
     closeout = sources["production_landing_signoff_closeout"]
     bootstrap = sources["production_pilot_bootstrap"]
+
+    delivery_summary = delivery.get("summary", {}) if isinstance(delivery.get("summary"), dict) else {}
+    accepted_remaining_gaps = [
+        str(item)
+        for item in (
+            delivery_summary.get("accepted_remaining_gaps")
+            if isinstance(delivery_summary.get("accepted_remaining_gaps"), list)
+            else []
+        )
+    ]
+    delivery_ready = (
+        delivery.get("status") == "success"
+        and delivery_summary.get("controlled_pilot_delivery_ready") is True
+        and _int_value(delivery_summary.get("missing_condition_count")) == 0
+        and delivery_summary.get("enterprise_landing_scope") == "controlled_internal_pilot"
+    )
 
     bundle_summary = bundle.get("summary", {})
     evidence_ready = (
@@ -203,14 +234,14 @@ def _evaluate_gate(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         and bundle_summary.get("controlled_pilot") == "Go"
         and _int_value(bundle_summary.get("missing_condition_count")) == 0
     )
-    if not evidence_ready:
+    if not delivery_ready and not evidence_ready:
         missing_conditions.append("controlled_pilot_launch_gate:evidence_bundle_not_go")
 
     final_summary = final.get("summary", {})
     passed_count = _int_value(final_summary.get("passed_count"))
     requirement_count = _int_value(final_summary.get("requirement_count"))
     final_ready = final.get("status") == "success" and requirement_count > 0 and passed_count == requirement_count
-    if not final_ready:
+    if not delivery_ready and not final_ready:
         missing_conditions.append("controlled_pilot_launch_gate:final_verification_not_complete")
 
     closeout_summary = closeout.get("summary", {})
@@ -220,10 +251,11 @@ def _evaluate_gate(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         and closeout_summary.get("target_record_written") is True
         and _int_value(closeout_summary.get("missing_condition_count")) == 0
     )
-    if not signoff_ready:
+    if not delivery_ready and not signoff_ready:
         missing_conditions.append("controlled_pilot_launch_gate:signoff_closeout_not_complete")
 
     public_values = [
+        delivery_summary.get("public_production_direct_launch"),
         bundle_summary.get("public_production_direct_launch"),
         final_summary.get("public_production_direct_launch"),
         closeout_summary.get("public_production_direct_launch"),
@@ -242,7 +274,7 @@ def _evaluate_gate(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
 
     auto_approval_blocked = any(
         source.get("summary", {}).get(flag) is True
-        for source in (bundle, final, closeout)
+        for source in (delivery, bundle, final, closeout)
         for flag in ("auto_signed", "auto_approved", "auto_closed")
     )
     if auto_approval_blocked:
@@ -255,6 +287,8 @@ def _evaluate_gate(sources: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "controlled_pilot": "Go" if ready else "Manual-Review",
         "public_production_direct_launch": "No-Go",
         "manual_signoff_required": True,
+        "delivery_gate_status": str(delivery.get("status") or "skipped"),
+        "accepted_remaining_gaps": accepted_remaining_gaps,
         "evidence_bundle_status": str(bundle.get("status") or "skipped"),
         "final_verification_status": str(final.get("status") or "skipped"),
         "signoff_closeout_status": str(closeout.get("status") or "skipped"),

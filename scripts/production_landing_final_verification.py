@@ -17,6 +17,7 @@ DEFAULT_OPERATIONS_CONSOLE_SMOKE_DIR = ROOT_DIR / "docs" / "reports" / "operatio
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
     re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
+    re.compile(r"\bk-[A-Za-z0-9_\-]{24,}"),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
     re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^,\s]+"),
     re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\s*[:=]\s*([^\s,]+)"),
@@ -172,7 +173,9 @@ def build_production_landing_final_verification(
 
     blockers = landing_status.get("blockers") if isinstance(landing_status.get("blockers"), list) else []
     final_blockers = refresh_status.get("final_blockers") if isinstance(refresh_status.get("final_blockers"), list) else []
-    xiaomi = landing_status.get("xiaomi_llm") if isinstance(landing_status.get("xiaomi_llm"), dict) else {}
+    real_llm = landing_status.get("real_llm") if isinstance(landing_status.get("real_llm"), dict) else {}
+    if not real_llm:
+        real_llm = landing_status.get("xiaomi_llm") if isinstance(landing_status.get("xiaomi_llm"), dict) else {}
     business = landing_status.get("business_system") if isinstance(landing_status.get("business_system"), dict) else {}
     manual_signoff = landing_status.get("manual_signoff") if isinstance(landing_status.get("manual_signoff"), dict) else {}
     secret_like_detected = _contains_secret_like(
@@ -230,17 +233,17 @@ def build_production_landing_final_verification(
         ),
         _requirement(
             "real_llm_preflight_success",
-            xiaomi.get("status") == "success"
-            and xiaomi.get("api_key_present") is True
-            and xiaomi.get("network_check_executed") is True
-            and xiaomi.get("real_llm_executed") is True,
-            xiaomi,
+            real_llm.get("status") == "success"
+            and real_llm.get("api_key_present") is True
+            and real_llm.get("network_check_executed") is True
+            and real_llm.get("real_llm_executed") is True,
+            real_llm,
             []
             if (
-                xiaomi.get("status") == "success"
-                and xiaomi.get("api_key_present") is True
-                and xiaomi.get("network_check_executed") is True
-                and xiaomi.get("real_llm_executed") is True
+                real_llm.get("status") == "success"
+                and real_llm.get("api_key_present") is True
+                and real_llm.get("network_check_executed") is True
+                and real_llm.get("real_llm_executed") is True
             )
             else ["real_llm_preflight:not_success"],
         ),

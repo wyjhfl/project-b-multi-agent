@@ -21,7 +21,7 @@ python scripts/manual_signoff_package.py --write-template docs/reports/manual_si
 
 ## 必填证据确认项
 
-- `real_llm_preflight`：小米真实 LLM 预检报告为 `success`，且未输出 API key 原文。
+- `real_llm_preflight`：通用 OpenAI-compatible 真实 LLM 预检报告为 `success`，且未输出 API key 原文；历史兼容路径只作为 fallback 证据。
 - `postgres_redis_mcp_smoke`：PostgreSQL、Redis、external MCP 当前轮 smoke 证据已通过。
 - `business_read_smoke`：业务系统只读 smoke 已通过，且未执行写入。
 - `closure_evidence_review`：launch blocker closure evidence 已进入人工复核状态。

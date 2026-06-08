@@ -13,6 +13,7 @@ OPERATOR_RUNBOOK_PATH = "docs/production_landing_operator_runbook_v47.md"
 
 REPORT_DIRS = {
     "production_landing_input_readiness": ROOT_DIR / "docs" / "reports" / "production_landing_input_readiness",
+    "production_landing_real_llm_preflight": ROOT_DIR / "docs" / "reports" / "production_landing_real_llm_preflight",
     "production_landing_xiaomi_llm_preflight": ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight",
     "production_pilot_signoff": ROOT_DIR / "docs" / "reports" / "production_pilot_signoff",
     "business_system_read_smoke": ROOT_DIR / "docs" / "reports" / "business_system_read_smoke",
@@ -33,6 +34,7 @@ SOURCE_DIRS = {
 
 REPORT_GLOBS = {
     "production_landing_input_readiness": "*_production_landing_input_readiness.json",
+    "production_landing_real_llm_preflight": "*_production_landing_real_llm_preflight.json",
     "production_landing_xiaomi_llm_preflight": "*_production_landing_xiaomi_llm_preflight.json",
     "production_pilot_signoff": "*_production_pilot_signoff.json",
     "business_system_read_smoke": "*_business_system_read_smoke.json",
@@ -81,20 +83,46 @@ TEMPLATE_PATHS = {
 
 SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_RESUME_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_landing_resume.ps1"
+SAFE_REAL_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1"
 SAFE_BUSINESS_READ_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
 SAFE_BUSINESS_LANDING_RESUME_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_landing_resume.ps1 "
     "-UseExistingEnv -EnvPath local\\production_landing.staging.env"
 )
-SAFE_POSTGRES_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres"
-SAFE_REDIS_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains redis"
+SAFE_CONTROLLED_PILOT_DEMO_LANDING_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\controlled_pilot_demo_landing.ps1 "
+    "-EnvPath local\\production_landing.staging.env"
+)
+SAFE_POSTGRES_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains postgres -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
+SAFE_REDIS_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains redis -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
 SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
-    "-Domains external_mcp -McpServerCommand <approved-command> "
+    "-Domains external_mcp -UseExistingEnv -EnvPath local\\production_landing.staging.env -McpServerCommand <approved-command> "
     "-McpServerCommandAllowlist <approved-command> -McpToolAllowlist <approved-tools>"
 )
 
 REQUIRED_MANUAL_SIGNOFF_ROLES = ("release_manager", "security_reviewer", "business_owner", "operations_owner")
+
+
+def _codex_python(command: str) -> str:
+    if command.startswith("python scripts/"):
+        script_and_args = command.removeprefix("python ")
+        script, sep, args = script_and_args.partition(" ")
+        normalized_script = script.replace("/", "\\")
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + normalized_script + (
+            sep + args if sep else ""
+        )
+    if command.startswith("python -m "):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        )
+    return command
 
 
 def _utc_now_iso() -> str:
@@ -215,6 +243,7 @@ def _read_latest_report(report_id: str, directory: Path) -> dict[str, Any]:
             "generated_at": payload.get("generated_at"),
             "business_read_executed": payload.get("business_read_executed") is True,
             "business_system_connected": payload.get("business_system_connected") is True,
+            "local_business_mock_used": payload.get("local_business_mock_used") is True,
             "manual_signoff_completed": payload.get("manual_signoff_completed") is True,
             "manual_signoff_record_present": payload.get("manual_signoff_record_present") is True,
             "manual_signoff_package_status": payload.get("manual_signoff_package_status"),
@@ -222,6 +251,10 @@ def _read_latest_report(report_id: str, directory: Path) -> dict[str, Any]:
             "database_connected": landing.get("database_connected") is True,
             "redis_connected": landing.get("redis_connected") is True,
             "external_mcp_connected": landing.get("external_mcp_connected") is True,
+            "staging_database_connected": payload.get("database_connected") is True,
+            "staging_redis_connected": payload.get("redis_connected") is True,
+            "staging_external_mcp_connected": payload.get("external_mcp_connected") is True,
+            "staging_real_llm_executed": payload.get("real_llm_executed") is True,
             "production_blockers": landing.get("production_blockers") if isinstance(landing.get("production_blockers"), list) else [],
             "preflight_summary": preflight_summary,
             "closure_item_count": payload.get("closure_item_count"),
@@ -250,6 +283,27 @@ def _read_latest_report(report_id: str, directory: Path) -> dict[str, Any]:
         },
         "missing_conditions": [str(item) for item in missing],
     }
+
+
+def _select_real_llm_preflight_report(reports: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    real_report = reports.get("production_landing_real_llm_preflight", {})
+    if real_report.get("present"):
+        return real_report
+    return reports.get("production_landing_xiaomi_llm_preflight", {})
+
+
+def _real_infra_current_round_ready(
+    *,
+    signoff_summary: dict[str, Any],
+    staging_smoke_summary: dict[str, Any],
+) -> bool:
+    if signoff_summary.get("real_infra_ready") is True:
+        return True
+    return bool(
+        staging_smoke_summary.get("staging_database_connected") is True
+        and staging_smoke_summary.get("staging_redis_connected") is True
+        and staging_smoke_summary.get("staging_external_mcp_connected") is True
+    )
 
 
 def _template_status() -> dict[str, dict[str, Any]]:
@@ -318,16 +372,22 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
     signoff = reports["production_pilot_signoff"]["summary"]
     business = reports["business_system_read_smoke"]["summary"]
     staging_smoke = reports["real_integration_staging_smoke"]["summary"]
-    xiaomi_preflight_report = reports.get("production_landing_xiaomi_llm_preflight", {})
-    xiaomi_preflight = xiaomi_preflight_report.get("summary") if isinstance(xiaomi_preflight_report.get("summary"), dict) else {}
+    real_preflight_report = _select_real_llm_preflight_report(reports)
+    real_preflight = real_preflight_report.get("summary") if isinstance(real_preflight_report.get("summary"), dict) else {}
     manual = reports["manual_signoff_package"]["summary"]
     closure = reports["launch_blocker_closure"]["summary"]
     inputs: list[dict[str, Any]] = []
-    if not business.get("business_read_executed"):
+    business_read_gap_reason = ""
+    if business.get("local_business_mock_used") is True:
+        business_read_gap_reason = "local_business_mock_not_valid_for_real_production"
+    elif not business.get("business_read_executed"):
+        business_read_gap_reason = "business_read_not_executed"
+    if business_read_gap_reason:
         inputs.append(
             {
                 "input_id": "business_system_read_only_credentials",
                 "status": "required",
+                "reason": business_read_gap_reason,
                 "template": str(TEMPLATE_PATHS["business_system_env_template"]),
                 "must_not_commit": True,
                 "command_after_fill": SAFE_BUSINESS_READ_SMOKE_COMMAND,
@@ -358,7 +418,9 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
                 "template": str(TEMPLATE_PATHS["closure_evidence_template"]),
                 "draft": str(TEMPLATE_PATHS["closure_evidence_draft"]),
                 "must_not_commit_secrets": True,
-                "command_after_fill": f"python scripts/launch_blocker_closure_workflow.py --launch-blockers {paths['latest_launch_blockers']} --closure-evidence {paths['closure_evidence_draft']}",
+                "command_after_fill": _codex_python(
+                    f"python scripts/launch_blocker_closure_workflow.py --launch-blockers {paths['latest_launch_blockers']} --closure-evidence {paths['closure_evidence_draft']}"
+                ),
             }
         )
     elif not reports["launch_blocker_closure"].get("present"):
@@ -369,10 +431,12 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
                 "template": str(TEMPLATE_PATHS["closure_evidence_template"]),
                 "draft": str(TEMPLATE_PATHS["closure_evidence_draft"]),
                 "must_not_commit_secrets": True,
-                "command_after_fill": f"python scripts/launch_blocker_closure_workflow.py --launch-blockers {paths['latest_launch_blockers']} --closure-evidence {paths['closure_evidence_draft']}",
+                "command_after_fill": _codex_python(
+                    f"python scripts/launch_blocker_closure_workflow.py --launch-blockers {paths['latest_launch_blockers']} --closure-evidence {paths['closure_evidence_draft']}"
+                ),
             }
         )
-    if not signoff.get("real_infra_ready"):
+    if not _real_infra_current_round_ready(signoff_summary=signoff, staging_smoke_summary=staging_smoke):
         production_blockers = signoff.get("production_blockers") if isinstance(signoff.get("production_blockers"), list) else []
         preflight_summary = staging_smoke.get("preflight_summary") if isinstance(staging_smoke.get("preflight_summary"), dict) else {}
         preflight_domains = preflight_summary.get("domains") if isinstance(preflight_summary.get("domains"), list) else []
@@ -392,10 +456,10 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
                     "REAL_LLM_SMOKE_ENABLED=true",
                     "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
                     "REAL_LLM_PROVIDER=litellm",
-                    "REAL_LLM_MODEL=mimo-v2.5-pro",
-                    "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-                    "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-                    "XIAOMI_LLM_API_KEY=<secret-managed-token>",
+                    "REAL_LLM_MODEL=gpt-5.5",
+                    "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+                    "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+                    "REAL_LLM_API_KEY=<secret-managed-token>",
                     "POSTGRES_STAGING_SMOKE_EXECUTE=true",
                     "REDIS_STAGING_SMOKE_EXECUTE=true",
                     "MCP_STAGING_SMOKE_EXECUTE=true",
@@ -413,15 +477,21 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
                 "preflight_summary": preflight_summary,
                 "preflight_domains": preflight_domains,
                 "must_use_current_round_evidence": True,
-                "process_env_only_llm_preflight_command": SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
-                "xiaomi_llm_preflight": xiaomi_preflight,
-                "xiaomi_llm_acceptance_blockers": xiaomi_preflight.get("acceptance_blockers", [])
-                if isinstance(xiaomi_preflight.get("acceptance_blockers"), list)
+                "process_env_only_llm_preflight_command": SAFE_REAL_LLM_PREFLIGHT_COMMAND,
+                "real_llm_preflight": real_preflight,
+                "real_llm_preflight_source": str(real_preflight_report.get("report_id") or ""),
+                "real_llm_acceptance_blockers": real_preflight.get("acceptance_blockers", [])
+                if isinstance(real_preflight.get("acceptance_blockers"), list)
                 else [],
-                "xiaomi_llm_safe_next_action": str(xiaomi_preflight.get("safe_next_action") or ""),
+                "real_llm_safe_next_action": str(real_preflight.get("safe_next_action") or ""),
+                "xiaomi_llm_preflight": real_preflight,
+                "xiaomi_llm_acceptance_blockers": real_preflight.get("acceptance_blockers", [])
+                if isinstance(real_preflight.get("acceptance_blockers"), list)
+                else [],
+                "xiaomi_llm_safe_next_action": str(real_preflight.get("safe_next_action") or ""),
                 "command_after_fill": " ; ".join(
                     [
-                        SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+                        SAFE_REAL_LLM_PREFLIGHT_COMMAND,
                         SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
                         SAFE_REDIS_INFRA_SMOKE_COMMAND,
                         SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
@@ -442,17 +512,17 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
                     for condition in item.get("missing_conditions", [])
                     if isinstance(condition, (str, int, float))
                 ],
-                "acceptance_blockers": xiaomi_preflight.get("acceptance_blockers", [])
+                "acceptance_blockers": real_preflight.get("acceptance_blockers", [])
                 if str(item.get("item") or "") == "real_llm_preflight"
-                and isinstance(xiaomi_preflight.get("acceptance_blockers"), list)
+                and isinstance(real_preflight.get("acceptance_blockers"), list)
                 else [],
-                "safe_next_action": str(xiaomi_preflight.get("safe_next_action") or "")
+                "safe_next_action": str(real_preflight.get("safe_next_action") or "")
                 if str(item.get("item") or "") == "real_llm_preflight"
                 else "",
                 "safe_commands": [
-                    SAFE_XIAOMI_LLM_RESUME_COMMAND,
-                    "python scripts/manual_signoff_evidence_ack_status.py",
-                    "python scripts/production_landing_action_pack.py",
+                    SAFE_REAL_LLM_PREFLIGHT_COMMAND,
+                    _codex_python("python scripts/manual_signoff_evidence_ack_status.py"),
+                    _codex_python("python scripts/production_landing_action_pack.py"),
                 ]
                 if str(item.get("item") or "") == "real_llm_preflight"
                 else [],
@@ -472,13 +542,17 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
                 "evidence_ack_report": ack_report.get("latest_json_path", ""),
                 "blocking_evidence_items": blocking_ack_items,
                 "promote_command_after_manual_fill": (
-                    f"python scripts/manual_signoff_record_promote.py "
-                    f"--source-record {paths['manual_signoff_record_draft']} "
-                    f"--target-record {paths['manual_signoff_record']}"
+                    _codex_python(
+                        f"python scripts/manual_signoff_record_promote.py "
+                        f"--source-record {paths['manual_signoff_record_draft']} "
+                        f"--target-record {paths['manual_signoff_record']}"
+                    )
                 ),
                 "command_after_fill": (
-                    f"python scripts/manual_signoff_package.py --closure-index {paths['latest_closure_index']} "
-                    f"--signoff-record {paths['manual_signoff_record']}"
+                    _codex_python(
+                        f"python scripts/manual_signoff_package.py --closure-index {paths['latest_closure_index']} "
+                        f"--signoff-record {paths['manual_signoff_record']}"
+                    )
                 ),
             }
         )
@@ -487,46 +561,59 @@ def _build_required_inputs(reports: dict[str, dict[str, Any]], paths: dict[str, 
 
 def _build_commands(paths: dict[str, str]) -> list[str]:
     return [
-        "python scripts/production_landing_status.py",
-        "python scripts/production_landing_env_init.py",
-        "python scripts/production_landing_local_infra_bootstrap.py",
-        "python scripts/production_landing_xiaomi_llm_bootstrap.py",
-        "python scripts/production_landing_env_runner.py --action xiaomi-llm-preflight",
-        "python scripts/production_landing_xiaomi_llm_preflight_runner.py --execute-network-check",
-        SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
-        SAFE_XIAOMI_LLM_RESUME_COMMAND,
-        "python scripts/production_landing_local_mcp_bootstrap.py",
-        "python scripts/production_landing_local_business_bootstrap.py",
-        "python scripts/production_landing_env_template.py",
-        "python scripts/production_landing_env_check.py",
-        "python scripts/production_landing_execution_gate.py",
-        "python scripts/production_landing_env_runner.py --action env-check",
-        "python scripts/production_landing_env_runner.py --action staging-smoke",
-        "python scripts/production_landing_env_runner.py --action business-smoke",
-        f"python scripts/production_landing_closure_evidence_draft.py --launch-blockers {paths['latest_launch_blockers']} --output-path {paths['closure_evidence_draft']}",
-        f"python scripts/production_landing_input_readiness.py --closure-evidence {paths['closure_evidence_draft']}",
+        _codex_python("python scripts/production_landing_status.py"),
+        _codex_python("python scripts/production_landing_env_init.py"),
+        _codex_python("python scripts/production_landing_local_infra_bootstrap.py"),
+        _codex_python("python scripts/production_landing_env_template.py"),
+        _codex_python("python scripts/production_landing_env_runner.py --action real-llm-preflight"),
+        SAFE_REAL_LLM_PREFLIGHT_COMMAND,
+        _codex_python("python scripts/production_landing_local_mcp_bootstrap.py"),
+        _codex_python("python scripts/production_landing_local_business_bootstrap.py"),
+        _codex_python("python scripts/production_landing_env_check.py"),
+        _codex_python("python scripts/production_landing_execution_gate.py"),
+        _codex_python("python scripts/production_landing_env_runner.py --action env-check"),
+        _codex_python("python scripts/production_landing_env_runner.py --action staging-smoke"),
+        SAFE_CONTROLLED_PILOT_DEMO_LANDING_COMMAND,
+        _codex_python("python scripts/production_landing_env_runner.py --action business-smoke"),
+        _codex_python(
+            f"python scripts/production_landing_closure_evidence_draft.py --launch-blockers {paths['latest_launch_blockers']} --output-path {paths['closure_evidence_draft']}"
+        ),
+        _codex_python(f"python scripts/production_landing_input_readiness.py --closure-evidence {paths['closure_evidence_draft']}"),
         SAFE_BUSINESS_READ_SMOKE_COMMAND,
         SAFE_BUSINESS_LANDING_RESUME_COMMAND,
+        _codex_python("python scripts/production_landing_xiaomi_llm_bootstrap.py"),
+        SAFE_XIAOMI_LLM_RESUME_COMMAND,
         SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
         SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
         SAFE_REDIS_INFRA_SMOKE_COMMAND,
         SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
-        f"python scripts/launch_blocker_closure_workflow.py --launch-blockers {paths['latest_launch_blockers']} --closure-evidence {paths['closure_evidence_draft']}",
-        "python scripts/closure_evidence_index.py",
-        "python scripts/production_landing_text_quality_check.py",
-        "python scripts/production_landing_blocker_resolution.py",
-        "python scripts/production_landing_final_verification.py",
-        "python scripts/production_landing_final_verification.py --strict",
-        "python scripts/manual_signoff_evidence_ack_status.py",
-        "python scripts/manual_signoff_record_draft.py",
+        _codex_python(
+            f"python scripts/launch_blocker_closure_workflow.py --launch-blockers {paths['latest_launch_blockers']} --closure-evidence {paths['closure_evidence_draft']}"
+        ),
+        _codex_python("python scripts/closure_evidence_index.py"),
+        _codex_python("python scripts/production_landing_text_quality_check.py"),
+        _codex_python("python scripts/production_landing_precommit_closeout.py"),
+        _codex_python("python scripts/production_landing_blocker_resolution.py"),
+        _codex_python("python scripts/production_landing_final_verification.py"),
+        _codex_python("python scripts/production_landing_final_verification.py --strict"),
+        _codex_python("python scripts/manual_signoff_evidence_ack_status.py"),
+        _codex_python("python scripts/manual_signoff_record_draft.py"),
         "powershell -ExecutionPolicy Bypass -File scripts/production_landing_signoff_closeout.ps1",
-        "python scripts/production_landing_signoff_closeout.py --release-manager <name-or-id> --security-reviewer <name-or-id> --business-owner <name-or-id> --operations-owner <name-or-id> --confirm-manual-signoff --confirm-controlled-pilot-go",
+        _codex_python(
+            "python scripts/production_landing_signoff_closeout.py --release-manager <name-or-id> --security-reviewer <name-or-id> --business-owner <name-or-id> --operations-owner <name-or-id> --confirm-manual-signoff --confirm-controlled-pilot-go"
+        ),
         "powershell -ExecutionPolicy Bypass -File scripts/manual_signoff_record_fill.ps1",
-        "python scripts/manual_signoff_record_fill.py --release-manager <name-or-id> --security-reviewer <name-or-id> --business-owner <name-or-id> --operations-owner <name-or-id> --confirm-manual-signoff --confirm-controlled-pilot-go",
-        f"python scripts/manual_signoff_record_promote.py --source-record {paths['manual_signoff_record_draft']} --target-record {paths['manual_signoff_record']}",
-        "python scripts/manual_signoff_record_validator.py",
-        f"python scripts/manual_signoff_package.py --closure-index {paths['latest_closure_index']} --signoff-record {paths['manual_signoff_record']}",
-        "python scripts/production_pilot_signoff_summary.py",
+        _codex_python(
+            "python scripts/manual_signoff_record_fill.py --release-manager <name-or-id> --security-reviewer <name-or-id> --business-owner <name-or-id> --operations-owner <name-or-id> --confirm-manual-signoff --confirm-controlled-pilot-go"
+        ),
+        _codex_python(
+            f"python scripts/manual_signoff_record_promote.py --source-record {paths['manual_signoff_record_draft']} --target-record {paths['manual_signoff_record']}"
+        ),
+        _codex_python("python scripts/manual_signoff_record_validator.py"),
+        _codex_python(
+            f"python scripts/manual_signoff_package.py --closure-index {paths['latest_closure_index']} --signoff-record {paths['manual_signoff_record']}"
+        ),
+        _codex_python("python scripts/production_pilot_signoff_summary.py"),
     ]
 
 

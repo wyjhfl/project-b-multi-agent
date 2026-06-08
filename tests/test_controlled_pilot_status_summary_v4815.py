@@ -136,22 +136,88 @@ def _ready_dirs(root: Path) -> dict[str, Path]:
     return dirs
 
 
-def test_controlled_pilot_status_summary_ready_with_successful_executed_smoke(tmp_path: Path) -> None:
+def test_controlled_pilot_status_summary_ready_for_controlled_pilot_with_demo_business_gap(tmp_path: Path) -> None:
     dirs = _ready_dirs(tmp_path)
+    _write_json(
+        dirs["business_system_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T09:30:06+00:00",
+            "status": "success",
+            "execute": True,
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": True,
+            "real_business_system_connected": False,
+            "env_profile": {"public_production_gap": True},
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
 
     summary = build_controlled_pilot_status_summary(report_dirs=dirs, write_report=False)
 
-    assert summary["status"] == "partial"
-    assert summary["controlled_internal_pilot"] == "Manual-Review"
+    assert summary["status"] == "ready"
+    assert summary["controlled_internal_pilot"] == "Go"
     assert summary["public_production_direct_launch"] == "No-Go"
     assert summary["secret_plaintext_output"] is False
     assert summary["blocking_reports"] == []
     assert summary["public_production_gaps"] == [
         "business_system:production_readiness_not_ready",
         "business_system:public_production_gap",
-        "business_system:real_read_only_smoke_not_executed",
     ]
+    assert summary["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
     assert summary["reports"]["operations_console_landing_smoke"]["selection"] == "latest_successful_executed"
+
+
+def test_controlled_pilot_status_summary_prefers_usable_demo_business_smoke_over_newer_skipped(
+    tmp_path: Path,
+) -> None:
+    dirs = _ready_dirs(tmp_path)
+    _write_json(
+        dirs["business_system_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T09:30:06+00:00",
+            "status": "success",
+            "execute": True,
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": True,
+            "real_business_system_connected": False,
+            "env_profile": {"public_production_gap": True},
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_system_read_smoke"] / "999_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T10:00:00+00:00",
+            "status": "skipped",
+            "execute": False,
+            "business_system_connected": False,
+            "business_read_executed": False,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": False,
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
+
+    summary = build_controlled_pilot_status_summary(report_dirs=dirs, write_report=False)
+
+    assert summary["status"] == "ready"
+    assert summary["controlled_internal_pilot"] == "Go"
+    assert summary["reports"]["business_system_read_smoke"]["selection"] == "latest_usable_successful"
+    assert summary["reports"]["business_system_read_smoke"]["generated_at"] == "2026-06-05T09:30:06+00:00"
+    assert summary["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
 
 
 def test_controlled_pilot_status_summary_ready_only_when_business_readiness_ready(tmp_path: Path) -> None:
@@ -277,6 +343,24 @@ def test_controlled_pilot_status_summary_partial_when_evidence_freshness_stale(t
 
 def test_controlled_pilot_status_summary_writes_report(tmp_path: Path) -> None:
     dirs = _ready_dirs(tmp_path / "sources")
+    _write_json(
+        dirs["business_system_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T09:30:06+00:00",
+            "status": "success",
+            "execute": True,
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": True,
+            "real_business_system_connected": False,
+            "env_profile": {"public_production_gap": True},
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
     summary = build_controlled_pilot_status_summary(
         report_dirs=dirs,
         output_dir=tmp_path / "out",
@@ -286,13 +370,13 @@ def test_controlled_pilot_status_summary_writes_report(tmp_path: Path) -> None:
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     merged_text = json_path.read_text(encoding="utf-8") + markdown_path.read_text(encoding="utf-8")
 
-    assert summary["status"] == "partial"
+    assert summary["status"] == "ready"
     assert json_path.exists()
     assert markdown_path.exists()
-    assert payload["controlled_internal_pilot"] == "Manual-Review"
+    assert payload["controlled_internal_pilot"] == "Go"
     assert payload["public_production_direct_launch"] == "No-Go"
     assert payload["secret_plaintext_output"] is False
-    assert payload["public_production_gap_count"] == 3
+    assert payload["public_production_gap_count"] == 2
+    assert payload["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
     assert "business_system:production_readiness_not_ready" in merged_text
-    assert "business_system:real_read_only_smoke_not_executed" in merged_text
     assert "sk-" not in merged_text

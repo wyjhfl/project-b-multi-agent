@@ -141,14 +141,49 @@ def _ready_dirs(root: Path) -> dict[str, Path]:
     return dirs
 
 
-def test_controlled_pilot_operator_packet_ready(tmp_path: Path) -> None:
+def test_controlled_pilot_operator_packet_ready_for_controlled_pilot_with_demo_business_gap(tmp_path: Path) -> None:
     dirs = _ready_dirs(tmp_path / "sources")
+    _write_json(
+        dirs["production_landing_status"] / "002_production_landing_status.json",
+        {
+            "generated_at": "2026-06-05T09:29:59+00:00",
+            "status": "partial",
+            "controlled_pilot_ready": False,
+            "blockers": ["business_system:real_business_system_required"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_system_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T09:30:05+00:00",
+            "status": "success",
+            "execute": True,
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": True,
+            "real_business_system_connected": False,
+            "env_profile": {
+                "auth_mode": "bearer",
+                "public_production_gap": True,
+                "safe_commands": {
+                    "interactive_powershell": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
+                },
+            },
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
 
     summary = build_controlled_pilot_operator_packet(output_dir=tmp_path / "out", report_dirs=dirs)
     payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
 
-    assert summary["status"] == "partial"
-    assert summary["controlled_internal_pilot"] == "Manual-Review"
+    assert summary["status"] == "ready"
+    assert summary["controlled_internal_pilot"] == "Go"
     assert summary["public_production_direct_launch"] == "No-Go"
     assert summary["window_id"] == "controlled-pilot-2026-06-05"
     assert summary["missing_condition_count"] == 0
@@ -159,8 +194,8 @@ def test_controlled_pilot_operator_packet_ready(tmp_path: Path) -> None:
     assert payload["public_production_gaps"] == [
         "business_system:production_readiness_not_ready",
         "business_system:public_production_gap",
-        "business_system:real_read_only_smoke_not_executed",
     ]
+    assert payload["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
     assert payload["business_system_production_readiness"]["status"] == "needs_input"
     assert payload["business_system_production_readiness"]["missing_condition_count"] == 2
     assert payload["business_system_read_smoke"]["auth_mode"] == "bearer"
@@ -170,6 +205,70 @@ def test_controlled_pilot_operator_packet_ready(tmp_path: Path) -> None:
     assert payload["production_landing_evidence_freshness"]["status"] == "success"
     assert payload["production_landing_evidence_freshness"]["stale_source_count"] == 0
     assert set(payload["evidence_paths"]) == set(dirs)
+
+
+def test_controlled_pilot_operator_packet_prefers_usable_demo_business_smoke_over_newer_skipped(
+    tmp_path: Path,
+) -> None:
+    dirs = _ready_dirs(tmp_path / "sources")
+    _write_json(
+        dirs["production_landing_status"] / "002_production_landing_status.json",
+        {
+            "generated_at": "2026-06-05T09:29:59+00:00",
+            "status": "partial",
+            "controlled_pilot_ready": False,
+            "blockers": ["business_system:real_business_system_required"],
+            "public_production_direct_launch": "No-Go",
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_system_read_smoke"] / "002_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T09:30:05+00:00",
+            "status": "success",
+            "execute": True,
+            "business_system_connected": True,
+            "business_read_executed": True,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": True,
+            "real_business_system_connected": False,
+            "env_profile": {
+                "auth_mode": "bearer",
+                "public_production_gap": True,
+                "safe_commands": {},
+            },
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
+    _write_json(
+        dirs["business_system_read_smoke"] / "999_business_system_read_smoke.json",
+        {
+            "generated_at": "2026-06-05T10:00:00+00:00",
+            "status": "skipped",
+            "execute": False,
+            "business_system_connected": False,
+            "business_read_executed": False,
+            "business_write_executed": False,
+            "business_data_written": False,
+            "local_business_mock_used": False,
+            "demo_business_system_used": False,
+            "go_no_go": {"public_production_direct_launch": "No-Go"},
+            "secret_plaintext_output": False,
+        },
+    )
+
+    summary = build_controlled_pilot_operator_packet(output_dir=tmp_path / "out", report_dirs=dirs)
+    payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
+
+    assert summary["status"] == "ready"
+    assert summary["controlled_internal_pilot"] == "Go"
+    assert payload["sources"]["business_system_read_smoke"]["status"] == "success"
+    assert payload["evidence_paths"]["business_system_read_smoke"].endswith("002_business_system_read_smoke.json")
+    assert payload["accepted_remaining_gaps"] == ["business_system:real_business_system_required"]
 
 
 def test_controlled_pilot_operator_packet_ready_only_when_business_readiness_ready(tmp_path: Path) -> None:

@@ -2,7 +2,9 @@
 
 ## 目标
 
-Phase 14.3 统一列出并索引所有试点证据产物，形成只读 manifest，便于交接、审计和 release review 使用。
+`scripts/evidence_archive_manifest.py` 用于统一列出并索引试点证据产物，生成只读 manifest，便于交接、审计和 release review 使用。
+
+该脚本只读取文件元数据，不读取报告正文，不删除文件，不执行 retention 清理。
 
 ## 只读边界
 
@@ -25,13 +27,20 @@ Phase 14.3 统一列出并索引所有试点证据产物，形成只读 manifest
 - live drill window outputs
 - operator workflow outputs
 - incident rehearsal outputs
+- controlled pilot run packet outputs
 - release review docs
 - post release handoff docs
+
+其中 `controlled_pilot_run_packet` 对应默认目录：
+
+```text
+docs/reports/controlled_pilot_run_packet/
+```
 
 ## 使用方式
 
 ```powershell
-python scripts/evidence_archive_manifest.py --output-dir docs/reports/evidence_archive
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\evidence_archive_manifest.py --output-dir docs\reports\evidence_archive
 ```
 
 ## 输出字段
@@ -63,8 +72,6 @@ python scripts/evidence_archive_manifest.py --output-dir docs/reports/evidence_a
 ## 验证
 
 ```powershell
-python -m pytest tests/test_evidence_archive_manifest_v343.py -q
-python scripts/evidence_archive_manifest.py --output-dir .tmp_evidence_manifest_check
-python -m pytest tests/test_report_index_v331.py tests/test_incident_rehearsal_pack_v342.py -q
-docker compose config
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 -m pytest tests/test_evidence_archive_manifest_v343.py -q
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\evidence_archive_manifest.py --output-dir docs\reports\evidence_archive
 ```

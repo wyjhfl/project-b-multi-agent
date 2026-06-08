@@ -13,9 +13,16 @@ def _payload(summary: dict) -> dict:
     return json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
 
 
+def _codex_python(script_command: str) -> str:
+    return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + script_command.replace(
+        "/", "\\"
+    )
+
+
 def _isolate_xiaomi_reports(monkeypatch, tmp_path: Path) -> Path:
     report_dir = tmp_path / "missing_xiaomi_reports"
     monkeypatch.setenv("PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_REPORT_DIR", str(report_dir))
+    monkeypatch.setenv("PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_REPORT_DIR", str(tmp_path / "missing_real_llm_reports"))
     return report_dir
 
 
@@ -35,13 +42,13 @@ def test_production_landing_execution_gate_blocks_placeholder_values_without_lea
     assert summary["execution_allowed"] is False
     assert payload["ready_domain_count"] == 0
     assert payload["blocked_domain_count"] == payload["requested_domain_count"]
-    assert "XIAOMI_LLM_API_KEY" in real_llm["placeholder_keys"]
+    assert "REAL_LLM_API_KEY" in real_llm["placeholder_keys"]
     assert real_llm["blocker_reason"] == "placeholder_env"
     assert payload["safe_runner_commands"] == [
-        "python scripts/production_landing_env_runner.py --action env-check",
-        "python scripts/production_landing_env_runner.py --action xiaomi-llm-preflight",
-        "python scripts/production_landing_xiaomi_llm_preflight_runner.py --execute-network-check",
-        "powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_preflight.ps1",
+        _codex_python("scripts/production_landing_env_runner.py --action env-check"),
+        _codex_python("scripts/production_landing_env_runner.py --action real-llm-preflight"),
+        _codex_python("scripts/production_landing_real_llm_preflight_runner.py --execute-network-check"),
+        "powershell -ExecutionPolicy Bypass -File scripts/real_llm_preflight.ps1",
     ]
     assert payload["real_smoke_executed"] is False
     assert payload["business_smoke_executed"] is False
@@ -59,6 +66,7 @@ def test_production_landing_execution_gate_rejects_incomplete_llm_evidence_for_e
     report_dir = tmp_path / "xiaomi_reports"
     report_dir.mkdir()
     monkeypatch.setenv("PRODUCTION_LANDING_XIAOMI_LLM_PREFLIGHT_REPORT_DIR", str(report_dir))
+    monkeypatch.setenv("PRODUCTION_LANDING_REAL_LLM_PREFLIGHT_REPORT_DIR", str(tmp_path / "missing_real_llm_reports"))
     (report_dir / "001_production_landing_xiaomi_llm_preflight.json").write_text(
         json.dumps(
             {
@@ -80,7 +88,7 @@ def test_production_landing_execution_gate_rejects_incomplete_llm_evidence_for_e
     assert summary["execution_allowed"] is False
     assert "real_llm" in payload["blocked_domains"]
     assert "real_llm" not in payload["ready_domains"]
-    assert "XIAOMI_LLM_API_KEY" in real_llm["placeholder_keys"]
+    assert "REAL_LLM_API_KEY" in real_llm["placeholder_keys"]
     assert real_llm["blocker_reason"] == "placeholder_env"
 
 
@@ -120,8 +128,8 @@ def test_production_landing_execution_gate_allows_successful_llm_preflight_evide
     assert real_llm["placeholder_keys"] == []
     assert real_llm["blocker_reason"] == ""
     assert payload["safe_runner_commands"] == [
-        "python scripts/production_landing_env_runner.py --action env-check",
-        "python scripts/production_landing_env_runner.py --action staging-smoke",
+        _codex_python("scripts/production_landing_env_runner.py --action env-check"),
+        _codex_python("scripts/production_landing_env_runner.py --action staging-smoke"),
     ]
 
 
@@ -141,10 +149,10 @@ def test_production_landing_execution_gate_recommends_local_infra_smoke_when_pos
                 "REAL_LLM_SMOKE_ENABLED=true",
                 "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
                 "REAL_LLM_PROVIDER=litellm",
-                "REAL_LLM_MODEL=mimo-v2.5-pro",
-                "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-                "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-                "XIAOMI_LLM_API_KEY=<secret-managed-token>",
+                "REAL_LLM_MODEL=gpt-5.5",
+                "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+                "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+                "REAL_LLM_API_KEY=<secret-managed-token>",
                 "POSTGRES_STAGING_SMOKE_EXECUTE=true",
                 "STORAGE_BACKEND=postgres",
                 "DATABASE_URL=postgresql+psycopg://agent:dev-only-password@localhost:5432/project_b",
@@ -163,14 +171,20 @@ def test_production_landing_execution_gate_recommends_local_infra_smoke_when_pos
 
     assert payload["execution_allowed"] is False
     assert payload["ready_domains"] == ["postgres", "redis"]
-    assert "python scripts/production_landing_env_runner.py --action xiaomi-llm-preflight" in payload["safe_runner_commands"]
+    assert _codex_python("scripts/production_landing_env_runner.py --action real-llm-preflight") in payload[
+        "safe_runner_commands"
+    ]
     assert (
-        "python scripts/production_landing_xiaomi_llm_preflight_runner.py --execute-network-check"
+        _codex_python("scripts/production_landing_real_llm_preflight_runner.py --execute-network-check")
         in payload["safe_runner_commands"]
     )
-    assert "powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_preflight.ps1" in payload["safe_runner_commands"]
-    assert "python scripts/production_landing_env_runner.py --action local-infra-smoke" in payload["safe_runner_commands"]
-    assert "python scripts/production_landing_env_runner.py --action staging-smoke" not in payload["safe_runner_commands"]
+    assert "powershell -ExecutionPolicy Bypass -File scripts/real_llm_preflight.ps1" in payload["safe_runner_commands"]
+    assert _codex_python("scripts/production_landing_env_runner.py --action local-infra-smoke") in payload[
+        "safe_runner_commands"
+    ]
+    assert _codex_python("scripts/production_landing_env_runner.py --action staging-smoke") not in payload[
+        "safe_runner_commands"
+    ]
 
 
 def test_production_landing_execution_gate_recommends_local_infra_mcp_smoke_when_mcp_ready(
@@ -204,9 +218,15 @@ def test_production_landing_execution_gate_recommends_local_infra_mcp_smoke_when
     payload = _payload(summary)
 
     assert payload["ready_domains"] == ["postgres", "redis", "external_mcp"]
-    assert "python scripts/production_landing_env_runner.py --action local-infra-mcp-smoke" in payload["safe_runner_commands"]
-    assert "python scripts/production_landing_env_runner.py --action local-infra-smoke" not in payload["safe_runner_commands"]
-    assert "python scripts/production_landing_env_runner.py --action staging-smoke" not in payload["safe_runner_commands"]
+    assert _codex_python("scripts/production_landing_env_runner.py --action local-infra-mcp-smoke") in payload[
+        "safe_runner_commands"
+    ]
+    assert _codex_python("scripts/production_landing_env_runner.py --action local-infra-smoke") not in payload[
+        "safe_runner_commands"
+    ]
+    assert _codex_python("scripts/production_landing_env_runner.py --action staging-smoke") not in payload[
+        "safe_runner_commands"
+    ]
 
 
 def test_production_landing_execution_gate_allows_filled_requested_domains_without_value_output(
@@ -226,10 +246,10 @@ def test_production_landing_execution_gate_allows_filled_requested_domains_witho
                 "REAL_LLM_SMOKE_ENABLED=true",
                 "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
                 "REAL_LLM_PROVIDER=litellm",
-                "REAL_LLM_MODEL=mimo-v2.5-pro",
-                "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-                "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-                f"XIAOMI_LLM_API_KEY={fake_llm_secret}",
+                "REAL_LLM_MODEL=gpt-5.5",
+                "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+                "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+                f"REAL_LLM_API_KEY={fake_llm_secret}",
                 "POSTGRES_STAGING_SMOKE_EXECUTE=true",
                 "STORAGE_BACKEND=postgres",
                 "DATABASE_URL=postgresql://user:pass@localhost/db",
@@ -250,10 +270,10 @@ def test_production_landing_execution_gate_allows_filled_requested_domains_witho
                 "BUSINESS_SYSTEM_BASE_URL=https://business.example.test",
                 "BUSINESS_SYSTEM_TOKEN=business-local-token-not-output",
                 "BUSINESS_SYSTEM_TOOL_ALLOWLIST=business_read_probe",
-                "BUSINESS_SYSTEM_BUSINESS_OWNER=wyj",
-                "BUSINESS_SYSTEM_SECURITY_REVIEWER=wyj",
-                "BUSINESS_SYSTEM_OPERATIONS_OWNER=wyj",
-                "BUSINESS_SYSTEM_DATA_OWNER=wyj",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=operator-staff-id",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_DATA_OWNER=operator-staff-id",
             ]
         )
         + "\n",
@@ -274,11 +294,11 @@ def test_production_landing_execution_gate_allows_filled_requested_domains_witho
     assert summary["execution_allowed"] is True
     assert payload["all_requested_domains_ready_for_execute"] is True
     assert payload["safe_runner_commands"] == [
-        "python scripts/production_landing_env_runner.py --action env-check",
-        "python scripts/production_landing_env_runner.py --action local-infra-mcp-smoke",
-        "python scripts/production_landing_env_runner.py --action local-business-smoke",
-        "python scripts/production_landing_env_runner.py --action staging-smoke",
-        "python scripts/production_landing_env_runner.py --action business-smoke",
+        _codex_python("scripts/production_landing_env_runner.py --action env-check"),
+        _codex_python("scripts/production_landing_env_runner.py --action local-infra-mcp-smoke"),
+        _codex_python("scripts/production_landing_env_runner.py --action local-business-smoke"),
+        _codex_python("scripts/production_landing_env_runner.py --action staging-smoke"),
+        _codex_python("scripts/production_landing_env_runner.py --action business-smoke"),
     ]
     assert fake_llm_secret not in merged
     assert "postgresql://user:pass@localhost/db" not in merged

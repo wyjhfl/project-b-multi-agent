@@ -30,10 +30,10 @@ def _write_env(path: Path, *, system_name: str = "real_crm", token: str = "secre
                 "BUSINESS_SYSTEM_READ_PROBE_PATH=/health",
                 "BUSINESS_SYSTEM_AUTH_HEADER_NAME=Authorization",
                 "BUSINESS_SYSTEM_AUTH_SCHEME=Bearer",
-                "BUSINESS_SYSTEM_BUSINESS_OWNER=WYJ",
-                "BUSINESS_SYSTEM_SECURITY_REVIEWER=WYJ",
-                "BUSINESS_SYSTEM_OPERATIONS_OWNER=WYJ",
-                "BUSINESS_SYSTEM_DATA_OWNER=WYJ",
+                "BUSINESS_SYSTEM_BUSINESS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_SECURITY_REVIEWER=operator-staff-id",
+                "BUSINESS_SYSTEM_OPERATIONS_OWNER=operator-staff-id",
+                "BUSINESS_SYSTEM_DATA_OWNER=operator-staff-id",
             ]
         ),
         encoding="utf-8",
@@ -53,9 +53,24 @@ def test_business_system_real_readiness_gate_ready_for_real_env(tmp_path: Path) 
     assert payload["missing_conditions"] == []
     assert payload["key_statuses"]["BUSINESS_SYSTEM_TOKEN"]["present"] is True
     assert payload["key_statuses"]["BUSINESS_SYSTEM_TOKEN"]["secret_value_key"] is True
+    assert payload["recommended_commands"][0].endswith("scripts\\business_system_read_smoke.ps1 -UseExistingEnv")
+    assert "BusinessOwner WYJ" not in "\n".join(payload["recommended_commands"])
     assert payload["business_write_executed"] is False
     assert payload["business_data_written"] is False
     assert payload["public_production_direct_launch"] == "No-Go"
+
+
+def test_business_system_real_readiness_gate_markdown_has_no_mojibake(tmp_path: Path) -> None:
+    env_path = tmp_path / "landing.env"
+    _write_env(env_path)
+
+    summary = build_business_system_real_readiness_gate(env_path=env_path, output_dir=tmp_path / "out")
+    markdown = Path(summary["markdown_path"]).read_text(encoding="utf-8")
+
+    for marker in ("鐢", "鍙", "绯", "鎺", "杈", "缂", "銆", "�"):
+        assert marker not in markdown
+    assert "业务系统真实只读接入门禁" in markdown
+    assert "边界" in markdown
 
 
 def test_business_system_real_readiness_gate_blocks_local_mock_env(tmp_path: Path) -> None:
@@ -69,6 +84,20 @@ def test_business_system_real_readiness_gate_blocks_local_mock_env(tmp_path: Pat
     assert summary["ready_for_real_read_smoke"] is False
     assert summary["local_mock_configured"] is True
     assert "business_system:local_mock_configured" in payload["missing_conditions"]
+    assert payload["secret_plaintext_output"] is False
+
+
+def test_business_system_real_readiness_gate_blocks_demo_business_env(tmp_path: Path) -> None:
+    env_path = tmp_path / "landing.env"
+    _write_env(env_path, system_name="demo_business_system")
+
+    summary = build_business_system_real_readiness_gate(env_path=env_path, output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "needs_input"
+    assert summary["ready_for_real_read_smoke"] is False
+    assert payload["demo_business_system_configured"] is True
+    assert "business_system:demo_business_system_configured" in payload["missing_conditions"]
     assert payload["secret_plaintext_output"] is False
 
 

@@ -9,7 +9,10 @@ def test_real_integration_infra_smoke_ps1_uses_process_env_only_for_connection_s
     assert "real_integration_staging_smoke.py" in text
     assert "--execute" in text
     assert "--domains" in text
-    assert "ValidateSet(\"postgres\", \"redis\", \"external_mcp\")" in text
+    assert "Resolve-InfraDomains" in text
+    assert '.Split(",")' in text
+    assert "Unsupported infra smoke domain" in text
+    assert '[ValidateSet("postgres", "redis", "external_mcp")]' not in text
     assert "Read-SecretEnvValue" in text
     assert "-AsSecureString" in text
     assert "Convert-SecureStringToPlainText" in text

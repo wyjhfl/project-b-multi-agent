@@ -10,18 +10,25 @@ from typing import Any
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_PATH = ROOT_DIR / "local" / "production_landing.staging.env.template"
 
+SAFE_REAL_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1"
 SAFE_BUSINESS_READ_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
-SAFE_POSTGRES_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres"
-SAFE_REDIS_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains redis"
+SAFE_POSTGRES_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains postgres -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
+SAFE_REDIS_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains redis -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
 SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
-    "-Domains external_mcp -McpServerCommand <approved-command> "
+    "-Domains external_mcp -UseExistingEnv -EnvPath local\\production_landing.staging.env -McpServerCommand <approved-command> "
     "-McpServerCommandAllowlist <approved-command> -McpToolAllowlist <approved-tools>"
 )
 SAFE_INFRA_AND_LLM_SMOKE_COMMAND = " ; ".join(
     [
-        SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+        SAFE_REAL_LLM_PREFLIGHT_COMMAND,
         SAFE_POSTGRES_INFRA_SMOKE_COMMAND,
         SAFE_REDIS_INFRA_SMOKE_COMMAND,
         SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND,
@@ -76,7 +83,7 @@ def _template_lines() -> list[str]:
         "AUTH_ENABLED=true",
         "RBAC_ENABLED=true",
         "",
-        "# Real LLM: Xiaomi OpenAI-compatible endpoint",
+        "# Real LLM: OpenAI-compatible endpoint",
         "REAL_INTEGRATION_STAGING_SMOKE_ENABLED=true",
         "REAL_LLM_STAGING_SMOKE_EXECUTE=true",
         "REAL_LLM_ACCEPTANCE_ENABLED=true",
@@ -84,10 +91,10 @@ def _template_lines() -> list[str]:
         "REAL_LLM_SMOKE_ENABLED=true",
         "REAL_LLM_PREFLIGHT_NETWORK_CHECK=true",
         "REAL_LLM_PROVIDER=litellm",
-        "REAL_LLM_MODEL=mimo-v2.5-pro",
-        "REAL_LLM_BASE_URL=https://token-plan-cn.xiaomimimo.com/v1",
-        "REAL_LLM_API_KEY_ENV=XIAOMI_LLM_API_KEY",
-        "XIAOMI_LLM_API_KEY=<secret-managed-token>",
+        "REAL_LLM_MODEL=gpt-5.5",
+        "REAL_LLM_BASE_URL=http://100.119.206.22:8300/v1",
+        "REAL_LLM_API_KEY_ENV=REAL_LLM_API_KEY",
+        "REAL_LLM_API_KEY=<secret-managed-token>",
         "",
         "# PostgreSQL staging storage",
         "POSTGRES_STAGING_SMOKE_EXECUTE=true",
@@ -133,7 +140,7 @@ def _template_lines() -> list[str]:
         "BUSINESS_SYSTEM_DATA_OWNER=<owner-or-staff-id>",
         "",
         "# After filling real values in a local secret manager/process env, run:",
-        f"# {SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND}",
+        f"# {SAFE_REAL_LLM_PREFLIGHT_COMMAND}",
         f"# {SAFE_POSTGRES_INFRA_SMOKE_COMMAND}",
         f"# {SAFE_REDIS_INFRA_SMOKE_COMMAND}",
         f"# {SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND}",
@@ -157,8 +164,8 @@ def build_production_landing_env_template(*, output_path: str | Path | None = No
         "gitignored": ignored,
         "secret_plaintext_output": False,
         "contains_real_secret": False,
-        "real_llm_model": "mimo-v2.5-pro",
-        "real_llm_base_url": "https://token-plan-cn.xiaomimimo.com/v1",
+        "real_llm_model": "gpt-5.5",
+        "real_llm_base_url": "http://100.119.206.22:8300/v1",
         "staging_smoke_command": SAFE_INFRA_AND_LLM_SMOKE_COMMAND,
         "business_smoke_command": SAFE_BUSINESS_READ_SMOKE_COMMAND,
     }

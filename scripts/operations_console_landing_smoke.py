@@ -95,7 +95,17 @@ def _http_get_json(url: str, timeout_seconds: float) -> tuple[int | None, dict[s
 
 def _expected_summary_fields(payload: dict[str, Any]) -> dict[str, Any]:
     observability = payload.get("observability") if isinstance(payload.get("observability"), dict) else {}
-    preflight = observability.get("production_landing_xiaomi_llm_preflight")
+    generic_preflight = observability.get("production_landing_real_llm_preflight")
+    compat_preflight = observability.get("production_landing_xiaomi_llm_preflight")
+    if isinstance(generic_preflight, dict) and generic_preflight.get("latest_report_present") is True:
+        preflight = generic_preflight
+        preflight_source = "production_landing_real_llm_preflight"
+    elif isinstance(compat_preflight, dict):
+        preflight = compat_preflight
+        preflight_source = "production_landing_xiaomi_llm_preflight"
+    else:
+        preflight = generic_preflight
+        preflight_source = "production_landing_real_llm_preflight"
     blocker = observability.get("production_landing_blocker_resolution")
     pilot_bundle = observability.get("production_pilot_evidence_bundle")
     controlled_status = observability.get("controlled_pilot_status_summary")
@@ -127,13 +137,13 @@ def _expected_summary_fields(payload: dict[str, Any]) -> dict[str, Any]:
     evidence_blockers = evidence.get("acceptance_blockers") if isinstance(evidence.get("acceptance_blockers"), list) else []
     missing_conditions: list[str] = []
     if "network_check_requested" not in preflight:
-        missing_conditions.append("operations_summary:xiaomi_preflight_network_check_requested_missing")
+        missing_conditions.append("operations_summary:real_llm_preflight_network_check_requested_missing")
     if "network_check_allowed" not in preflight:
-        missing_conditions.append("operations_summary:xiaomi_preflight_network_check_allowed_missing")
+        missing_conditions.append("operations_summary:real_llm_preflight_network_check_allowed_missing")
     if "safe_next_action" not in preflight:
-        missing_conditions.append("operations_summary:xiaomi_preflight_safe_next_action_missing")
+        missing_conditions.append("operations_summary:real_llm_preflight_safe_next_action_missing")
     if "acceptance_blockers" not in preflight:
-        missing_conditions.append("operations_summary:xiaomi_preflight_acceptance_blockers_missing")
+        missing_conditions.append("operations_summary:real_llm_preflight_acceptance_blockers_missing")
     if evidence and "safe_next_action" not in evidence:
         missing_conditions.append("operations_summary:blocker_resolution_safe_next_action_missing")
     if evidence and "acceptance_blockers" not in evidence:
@@ -226,6 +236,7 @@ def _expected_summary_fields(payload: dict[str, Any]) -> dict[str, Any]:
         missing_conditions.append("operations_summary:controlled_pilot_window_status_public_direct_launch_not_no_go")
     return {
         "missing_conditions": missing_conditions,
+        "preflight_source": preflight_source,
         "preflight_status": str(preflight.get("status") or ""),
         "network_check_requested": bool(preflight.get("network_check_requested", False)),
         "network_check_allowed": bool(preflight.get("network_check_allowed", False)),
@@ -352,6 +363,7 @@ def build_operations_console_landing_smoke(
         "page_http_status": None,
         "summary_http_status": None,
         "backend_summary_http_status": None,
+        "preflight_source": "",
         "preflight_status": "",
         "network_check_requested": False,
         "network_check_allowed": False,

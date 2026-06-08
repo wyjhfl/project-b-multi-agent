@@ -17,6 +17,18 @@ from scripts.production_landing_env_init import DEFAULT_ENV_PATH, build_producti
 FAKE_MCP_SERVER = ROOT_DIR / "scripts" / "local_fake_mcp_stdio_server.py"
 
 
+def _codex_python(command: str) -> str:
+    if command.startswith("python scripts/"):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        ).replace("/", "\\")
+    if command.startswith("python -m "):
+        return "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 " + command.removeprefix(
+            "python "
+        )
+    return command
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -99,9 +111,9 @@ def build_production_landing_local_mcp_bootstrap(*, env_path: str | Path | None 
         "mcp_command_allowlist_configured": True,
         "mcp_tool_allowlist": ["stdio_date_lookup"],
         "next_commands": [
-            "python scripts/production_landing_env_check.py",
-            "python scripts/production_landing_execution_gate.py",
-            "python scripts/production_landing_env_runner.py --action staging-smoke",
+            _codex_python("python scripts/production_landing_env_check.py"),
+            _codex_python("python scripts/production_landing_execution_gate.py"),
+            _codex_python("python scripts/production_landing_env_runner.py --action staging-smoke"),
         ],
         "secret_plaintext_output": False,
         "contains_real_secret": False,

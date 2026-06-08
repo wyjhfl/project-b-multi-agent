@@ -96,3 +96,43 @@ def test_powershell_json_file_reads_use_explicit_utf8_encoding() -> None:
         for line in text.splitlines():
             if "Get-Content" in line and "ConvertFrom-Json" in line:
                 assert "-Encoding UTF8" in line, f"{path} should read JSON files as UTF-8: {line}"
+
+
+def test_powershell_entrypoints_do_not_invoke_bare_python() -> None:
+    offenders: list[str] = []
+
+    for path in Path("scripts").glob("*.ps1"):
+        text = path.read_text(encoding="utf-8")
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("python ") or stripped.startswith("python.exe "):
+                offenders.append(f"{path}:{line_number}: {line}")
+            if "& python" in line or "| python" in line:
+                offenders.append(f"{path}:{line_number}: {line}")
+
+    assert offenders == []
+
+
+def test_operator_powershell_entrypoints_initialize_utf8_console() -> None:
+    for path in [
+        Path("scripts/demo_e2e.ps1"),
+        Path("scripts/prod_config_check.ps1"),
+        Path("scripts/real_llm_smoke.ps1"),
+    ]:
+        text = path.read_text(encoding="utf-8")
+
+        assert "InputEncoding" in text
+        assert "OutputEncoding" in text
+        assert "chcp 65001" in text
+
+
+def test_powershell_scripts_remain_windows_powershell_51_compatible() -> None:
+    offenders: list[str] = []
+
+    for path in Path("scripts").glob("*.ps1"):
+        text = path.read_text(encoding="utf-8")
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            if "??" in line or "?." in line:
+                offenders.append(f"{path}:{line_number}: {line}")
+
+    assert offenders == []

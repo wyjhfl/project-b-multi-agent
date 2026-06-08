@@ -4,7 +4,7 @@
 
 ## 适用前提
 
-- 小米真实 LLM preflight 最新报告为 `success`。
+- 通用 OpenAI-compatible 真实 LLM preflight 最新报告为 `success`；历史 Xiaomi 兼容路径仅作为 fallback 证据。
 - PostgreSQL、Redis、external MCP staging smoke 已形成可审查证据。
 - 业务系统只读 smoke 已形成可审查证据。
 - `manual_signoff_evidence_ack_status` 推荐接受项为 `4/4`。

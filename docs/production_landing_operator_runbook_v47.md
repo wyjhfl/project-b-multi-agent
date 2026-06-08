@@ -5,7 +5,7 @@
 ## 当前失败原因
 
 - `production_landing_status.py` 输出 `status=partial`，表示只允许进入受控人工复核，不代表生产可上线。
-- `execution_gate` 的 `blocked_domains` 当前应只包含 `business_system`；如果还包含 `real_llm`，优先重新运行小米 LLM 安全预检并刷新状态。
+- `execution_gate` 的 `blocked_domains` 当前应只包含 `business_system`；如果还包含 `real_llm`，优先重新运行通用 real LLM 安全预检并刷新状态。
 - `manual_signoff_evidence_ack_status` 仍为 `partial` 时，通常表示真实业务系统 read smoke 未完成、local mock 证据不能用于真实生产验收，或人工签核证据尚未完成。
 - `manual_signoff.completed=false` 表示人工签核尚未完成。
 - 本地 PostgreSQL、Redis、external MCP、business read smoke 可以形成 staging 证据，但不得包装为公网生产验收完成。
@@ -15,63 +15,71 @@
 1. 查看当前总状态：
 
    ```powershell
-   python scripts/production_landing_status.py
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_status.py
    ```
 
 2. 初始化或刷新本地落地环境模板：
 
    ```powershell
-   python scripts/production_landing_env_init.py
-   python scripts/production_landing_xiaomi_llm_bootstrap.py
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_init.py
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_template.py
    ```
 
-3. 执行小米真实 LLM 安全预检。优先使用受控 runner：
+3. 执行 OpenAI-compatible 真实 LLM 安全预检。优先使用交互式安全脚本，不把 API key 写入命令行、仓库或报告：
 
    ```powershell
-   python scripts/production_landing_env_runner.py --action xiaomi-llm-preflight
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\real_llm_preflight.ps1
    ```
 
-   如果 `XIAOMI_LLM_API_KEY` 已由外部 secret 管理注入到当前进程，也可以直接运行：
+   如果 `REAL_LLM_API_KEY` 已由外部 secret 管理注入到当前进程，也可以使用受控 runner：
 
    ```powershell
-   python scripts/production_landing_xiaomi_llm_preflight_runner.py --execute-network-check
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_runner.py --action real-llm-preflight
    ```
 
-   如果不希望在 shell 中设置密钥，使用交互式脚本：
+   或直接指定当前 OpenAI-compatible endpoint 参数：
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_preflight.ps1
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_real_llm_preflight_runner.py --execute-network-check --model gpt-5.5 --base-url http://100.119.206.22:8300/v1 --api-key-env REAL_LLM_API_KEY
    ```
 
-   如果希望输入一次密钥后自动执行预检并刷新所有落地状态报告，使用恢复推进脚本：
+   小米 `mimo-v2.5-pro` 仍保留为兼容路径：
 
    ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts/xiaomi_llm_landing_resume.ps1
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\xiaomi_llm_preflight.ps1
    ```
 
 4. 刷新环境检查和执行门禁：
 
    ```powershell
-   python scripts/production_landing_env_check.py
-   python scripts/production_landing_execution_gate.py
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_check.py
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_execution_gate.py
    ```
 
 5. 刷新本地 PostgreSQL、Redis、MCP smoke：
 
    ```powershell
-   python scripts/production_landing_env_runner.py --action local-infra-mcp-smoke
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_runner.py --action local-infra-mcp-smoke
    ```
 
 6. 刷新业务系统只读 smoke：
 
    ```powershell
-   python scripts/production_landing_env_runner.py --action local-business-smoke
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_runner.py --action local-business-smoke
    ```
 
-   `local-business-smoke` 只用于本地演示，会生成 `local_business_mock_used=true` 的证据，不能作为真实业务系统验收。真实业务系统接入必须使用：
+   `local-business-smoke` 只用于本地演示，会生成 `local_business_mock_used=true` 的证据，不能作为真实业务系统验收。
+
+   如果当前没有真实业务系统，先走 demo read-only 受控试点落地入口。它会刷新 demo 业务只读 smoke、受控试点 run packet 和 evidence archive，并保持 `public_production_direct_launch=No-Go`：
 
    ```powershell
-   python scripts/production_landing_env_runner.py --action business-smoke
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\controlled_pilot_demo_landing.ps1 -EnvPath local\production_landing.staging.env
+   ```
+
+   真实业务系统接入必须使用：
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_env_runner.py --action business-smoke
    ```
 
    在真实业务系统 smoke 前，先运行真实配置门禁。该门禁不连接业务系统，只检查当前 env 是否仍是 local mock、owner 是否齐全、写入开关是否关闭、真实 URL/token 是否只以 present 布尔进入证据：
@@ -91,25 +99,25 @@
 7. 真实 LLM 预检成功后，执行受控 staging smoke：
 
    ```powershell
-   python scripts/real_integration_staging_smoke.py --execute --domains real_llm,postgres,redis,external_mcp
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\real_integration_staging_smoke.py --execute --domains real_llm,postgres,redis,external_mcp
    ```
 
 8. 顺序刷新所有落地状态报告：
 
    ```powershell
-   python scripts/production_landing_refresh_status.py --closure-evidence docs/reports/launch_blocker_closure/closure_evidence.draft.json
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_refresh_status.py --closure-evidence docs/reports/launch_blocker_closure/closure_evidence.draft.json
    ```
 
 9. 重新生成证据确认状态：
 
    ```powershell
-   python scripts/manual_signoff_evidence_ack_status.py
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\manual_signoff_evidence_ack_status.py
    ```
 
 10. 查看下一步行动包：
 
    ```powershell
-   python scripts/production_landing_action_pack.py
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\codex_python.ps1 scripts\production_landing_action_pack.py
    ```
 
 ## 密钥处理边界
@@ -118,11 +126,11 @@
 - 本地 `local/production_landing.staging.env` 已被 gitignore；即便如此，也优先使用外部 secret 管理或交互式进程环境注入。
 - 交互式脚本必须使用 `Read-Host -AsSecureString` 接收密钥。
 - 报告只输出 `api_key_present`、`network_check_executed`、`real_llm_executed` 等布尔字段，不输出 secret 原文。
-- 不提交 `XIAOMI_LLM_API_KEY`、`DATABASE_URL`、`REDIS_URL`、业务系统 token 或 MCP command 中的 secret。
+- 不提交 `REAL_LLM_API_KEY`、`XIAOMI_LLM_API_KEY`、`DATABASE_URL`、`REDIS_URL`、业务系统 token 或 MCP command 中的 secret。
 
 ## 完成判定
 
-- `production_landing_xiaomi_llm_preflight` 最新报告为 `status=success`。
+- `production_landing_real_llm_preflight` 最新报告为 `status=success`；如使用兼容路径，可 fallback 到 `production_landing_xiaomi_llm_preflight`。
 - 最新报告中 `network_check_executed=true` 且 `real_llm_executed=true`。
 - `production_landing_execution_gate` 不再阻断 `real_llm`。
 - PostgreSQL、Redis、external MCP、business system read smoke 当前轮证据为 `success`。

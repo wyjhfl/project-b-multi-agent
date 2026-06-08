@@ -1,5 +1,4 @@
 Param(
-  [ValidateSet("postgres", "redis", "external_mcp")]
   [string[]]$Domains = @("postgres", "redis", "external_mcp"),
   [switch]$UseExistingEnv,
   [switch]$CheckPythonOnly,
@@ -9,7 +8,8 @@ Param(
   [string]$McpServerCommandAllowlist = "",
   [string]$McpToolAllowlist = "",
   [string]$McpServerEnvAllowlist = "",
-  [string]$McpServerWorkdir = ""
+  [string]$McpServerWorkdir = "",
+  [string]$EnvPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -19,6 +19,39 @@ $secretEnvKeys = @("DATABASE_URL", "REDIS_URL")
 $previousSecretEnv = @{}
 $hadSecretEnv = @{}
 $valuesInjectedForRun = $false
+$envPathLoadedForRun = $false
+$previousEnvPathEnv = @{}
+$hadPreviousEnvPathEnv = @{}
+$envPathLoadedKeys = New-Object System.Collections.Generic.List[string]
+$envPathSafeKeys = @(
+  "REAL_INTEGRATION_STAGING_SMOKE_ENABLED",
+  "POSTGRES_STAGING_SMOKE_EXECUTE",
+  "STORAGE_BACKEND",
+  "REDIS_STAGING_SMOKE_EXECUTE",
+  "REDIS_ENABLED",
+  "RATE_LIMIT_BACKEND",
+  "MCP_STAGING_SMOKE_EXECUTE",
+  "MCP_MODE",
+  "MCP_SERVER_COMMAND",
+  "MCP_SERVER_ARGS",
+  "MCP_SERVER_COMMAND_ALLOWLIST",
+  "MCP_TOOL_ALLOWLIST",
+  "MCP_SERVER_ENV_ALLOWLIST",
+  "MCP_SERVER_WORKDIR",
+  "MCP_SERVER_TIMEOUT_SECONDS"
+)
+$envPathSecretKeys = @(
+  "DATABASE_URL",
+  "REDIS_URL",
+  "REAL_LLM_API_KEY",
+  "XIAOMI_LLM_API_KEY",
+  "OPENAI_API_KEY",
+  "JWT_SECRET"
+)
+$envPathLoadableSecretKeys = @(
+  "DATABASE_URL",
+  "REDIS_URL"
+)
 
 foreach ($key in $secretEnvKeys) {
   $value = [Environment]::GetEnvironmentVariable($key, "Process")
@@ -103,7 +136,7 @@ function Read-SecretEnvValue {
 function Assert-NonSecretConfigText {
   param(
     [Parameter(Mandatory = $true)][string]$Name,
-    [Parameter(Mandatory = $true)][string]$Value
+    [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value
   )
 
   if ($Value -match '(?i)(token|api[_-]?key|secret|password)\s*[:=]') {
@@ -114,13 +147,88 @@ function Assert-NonSecretConfigText {
 function Set-OptionalProcessEnv {
   param(
     [Parameter(Mandatory = $true)][string]$Name,
-    [Parameter(Mandatory = $true)][string]$Value
+    [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value
   )
 
   if (-not [string]::IsNullOrWhiteSpace($Value)) {
     Assert-NonSecretConfigText -Name $Name -Value $Value
     [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
   }
+}
+
+function Set-EnvPathProcessValue {
+  param(
+    [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value
+  )
+
+  if (-not $previousEnvPathEnv.ContainsKey($Name)) {
+    $previousEnvPathEnv[$Name] = [Environment]::GetEnvironmentVariable($Name, "Process")
+    $hadPreviousEnvPathEnv[$Name] = -not [string]::IsNullOrWhiteSpace($previousEnvPathEnv[$Name])
+    [void]$envPathLoadedKeys.Add($Name)
+  }
+  [Environment]::SetEnvironmentVariable($Name, $Value, "Process")
+}
+
+function Import-InfraEnvPath {
+  param([Parameter(Mandatory = $true)][string]$Path)
+
+  if ([string]::IsNullOrWhiteSpace($Path)) {
+    return @{ loaded_safe = 0; loaded_secret = 0; skipped_secret = 0 }
+  }
+  $resolvedPath = Resolve-Path -LiteralPath $Path -ErrorAction Stop
+  $loadedSafe = 0
+  $loadedSecret = 0
+  $skippedSecret = 0
+  foreach ($rawLine in [System.IO.File]::ReadLines($resolvedPath.Path, [System.Text.UTF8Encoding]::new($false))) {
+    $line = $rawLine.Trim()
+    if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#") -or -not $line.Contains("=")) {
+      continue
+    }
+    $parts = $line.Split("=", 2)
+    $key = $parts[0].Trim()
+    $value = $parts[1].Trim().Trim('"').Trim("'")
+    if ($envPathSafeKeys -contains $key) {
+      Assert-NonSecretConfigText -Name $key -Value $value
+      Set-EnvPathProcessValue -Name $key -Value $value
+      $loadedSafe += 1
+      continue
+    }
+    if ($envPathSecretKeys -contains $key) {
+      if (($envPathLoadableSecretKeys -contains $key) -and -not [string]::IsNullOrWhiteSpace($value)) {
+        Set-EnvPathProcessValue -Name $key -Value $value
+        $loadedSecret += 1
+      } else {
+        $skippedSecret += 1
+      }
+    }
+  }
+  return @{ loaded_safe = $loadedSafe; loaded_secret = $loadedSecret; skipped_secret = $skippedSecret }
+}
+
+function Resolve-InfraDomains {
+  param([Parameter(Mandatory = $true)][string[]]$RawDomains)
+
+  $allowedDomains = @("postgres", "redis", "external_mcp")
+  $normalized = New-Object System.Collections.Generic.List[string]
+  foreach ($rawDomain in $RawDomains) {
+    foreach ($candidate in ([string]$rawDomain).Split(",")) {
+      $domain = $candidate.Trim()
+      if ([string]::IsNullOrWhiteSpace($domain)) {
+        continue
+      }
+      if ($allowedDomains -notcontains $domain) {
+        throw "Unsupported infra smoke domain: $domain"
+      }
+      if (-not $normalized.Contains($domain)) {
+        [void]$normalized.Add($domain)
+      }
+    }
+  }
+  if ($normalized.Count -eq 0) {
+    throw "At least one infra smoke domain is required"
+  }
+  return @($normalized)
 }
 
 if ($CheckPythonOnly) {
@@ -133,7 +241,18 @@ if ($CheckPythonOnly) {
 try {
   Initialize-CodexProcessEnvironment
 
-  $selectedDomains = @($Domains | Select-Object -Unique)
+  if (-not [string]::IsNullOrWhiteSpace($EnvPath)) {
+    $envPathSummary = Import-InfraEnvPath -Path $EnvPath
+    $envPathLoadedForRun = $true
+    if ([int]$envPathSummary.loaded_secret -gt 0) {
+      $valuesInjectedForRun = $true
+    }
+    Write-Host "[real_integration_infra_smoke] env_path_loaded_safe_count=$($envPathSummary.loaded_safe)" -ForegroundColor Cyan
+    Write-Host "[real_integration_infra_smoke] env_path_loaded_secret_count=$($envPathSummary.loaded_secret)" -ForegroundColor Cyan
+    Write-Host "[real_integration_infra_smoke] env_path_skipped_secret_count=$($envPathSummary.skipped_secret)" -ForegroundColor Cyan
+  }
+
+  $selectedDomains = @(Resolve-InfraDomains -RawDomains $Domains)
   $domainArg = [string]::Join(",", $selectedDomains)
   Write-Host "[real_integration_infra_smoke] mode=controlled_real_infra_smoke" -ForegroundColor Cyan
   Write-Host "[real_integration_infra_smoke] domains=$domainArg" -ForegroundColor Cyan
@@ -146,7 +265,8 @@ try {
   if ($selectedDomains -contains "postgres") {
     [Environment]::SetEnvironmentVariable("POSTGRES_STAGING_SMOKE_EXECUTE", "true", "Process")
     [Environment]::SetEnvironmentVariable("STORAGE_BACKEND", "postgres", "Process")
-    if (-not $UseExistingEnv -or -not $hadSecretEnv["DATABASE_URL"]) {
+    $currentDatabaseUrl = [Environment]::GetEnvironmentVariable("DATABASE_URL", "Process")
+    if (-not $UseExistingEnv -or [string]::IsNullOrWhiteSpace($currentDatabaseUrl)) {
       [Environment]::SetEnvironmentVariable("DATABASE_URL", (Read-SecretEnvValue -EnvName "DATABASE_URL"), "Process")
       $valuesInjectedForRun = $true
     }
@@ -156,7 +276,8 @@ try {
     [Environment]::SetEnvironmentVariable("REDIS_STAGING_SMOKE_EXECUTE", "true", "Process")
     [Environment]::SetEnvironmentVariable("REDIS_ENABLED", "true", "Process")
     [Environment]::SetEnvironmentVariable("RATE_LIMIT_BACKEND", "redis", "Process")
-    if (-not $UseExistingEnv -or -not $hadSecretEnv["REDIS_URL"]) {
+    $currentRedisUrl = [Environment]::GetEnvironmentVariable("REDIS_URL", "Process")
+    if (-not $UseExistingEnv -or [string]::IsNullOrWhiteSpace($currentRedisUrl)) {
       [Environment]::SetEnvironmentVariable("REDIS_URL", (Read-SecretEnvValue -EnvName "REDIS_URL"), "Process")
       $valuesInjectedForRun = $true
     }
@@ -196,5 +317,15 @@ try {
       }
     }
     Write-Host "[real_integration_infra_smoke] process_env_restored=true" -ForegroundColor Cyan
+  }
+  if ($envPathLoadedForRun) {
+    foreach ($envName in $envPathLoadedKeys) {
+      if ($hadPreviousEnvPathEnv[$envName]) {
+        [Environment]::SetEnvironmentVariable($envName, $previousEnvPathEnv[$envName], "Process")
+      } else {
+        [Environment]::SetEnvironmentVariable($envName, $null, "Process")
+      }
+    }
+    Write-Host "[real_integration_infra_smoke] env_path_process_env_restored=true" -ForegroundColor Cyan
   }
 }

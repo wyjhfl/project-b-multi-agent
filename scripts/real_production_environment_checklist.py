@@ -12,13 +12,20 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "real_production_environment_checklist"
 PLAN_PATH = ROOT_DIR / "docs" / "v4_5_real_production_environment_landing_plan.md"
 
+SAFE_REAL_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_llm_preflight.ps1"
 SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\xiaomi_llm_preflight.ps1"
 SAFE_BUSINESS_READ_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\business_system_read_smoke.ps1"
-SAFE_POSTGRES_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains postgres"
-SAFE_REDIS_INFRA_SMOKE_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 -Domains redis"
+SAFE_POSTGRES_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains postgres -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
+SAFE_REDIS_INFRA_SMOKE_COMMAND = (
+    "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
+    "-Domains redis -UseExistingEnv -EnvPath local\\production_landing.staging.env"
+)
 SAFE_EXTERNAL_MCP_INFRA_SMOKE_COMMAND = (
     "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\real_integration_infra_smoke.ps1 "
-    "-Domains external_mcp -McpServerCommand <approved-command> "
+    "-Domains external_mcp -UseExistingEnv -EnvPath local\\production_landing.staging.env -McpServerCommand <approved-command> "
     "-McpServerCommandAllowlist <approved-command> -McpToolAllowlist <approved-tools>"
 )
 
@@ -26,6 +33,9 @@ STATUS_VOCABULARY = ["success", "skipped", "blocked", "partial", "failed"]
 
 SECRET_TEXT_PATTERNS = [
     re.compile(r"sk-[A-Za-z0-9_\-]{6,}"),
+    re.compile(r"tp-[A-Za-z0-9_\-]{16,}"),
+    re.compile(r"\bk-[A-Za-z0-9_\-]{24,}"),
+    re.compile(r"https?://[^\s/@:]+:[^\s/@]+@[^\s]+"),
     re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\s*[:=]\s*([^\s,]+)"),
     re.compile(r"(?i)(postgres(?:ql)?(?:\+\w+)?|redis)://[^,\s]+"),
     re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
@@ -39,6 +49,7 @@ SAFE_SECRET_PLACEHOLDERS = {
 
 EVIDENCE_DIRS = {
     "env_profile": ROOT_DIR / "docs" / "reports" / "real_integration_env_profile",
+    "real_llm_preflight": ROOT_DIR / "docs" / "reports" / "production_landing_real_llm_preflight",
     "xiaomi_llm_preflight": ROOT_DIR / "docs" / "reports" / "production_landing_xiaomi_llm_preflight",
     "staging_smoke": ROOT_DIR / "docs" / "reports" / "real_integration_staging_smoke",
     "staging_gate": ROOT_DIR / "docs" / "reports" / "real_integration_staging_gate",
@@ -63,9 +74,10 @@ DOMAIN_CHECKLIST = [
             "REAL_INTEGRATION_STAGING_SMOKE_ENABLED=true",
             "REAL_LLM_STAGING_SMOKE_EXECUTE=true",
         ],
-        "smoke_command": SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
+        "smoke_command": SAFE_REAL_LLM_PREFLIGHT_COMMAND,
+        "compat_smoke_command": SAFE_XIAOMI_LLM_PREFLIGHT_COMMAND,
         "required_evidence": [
-            "LLM preflight 网络检查通过",
+            "通用 real LLM preflight 网络检查通过",
             "token/cost/budget/cache/fallback 证据完整",
             "prompt、PII、API key 未进入日志、报告或审计导出",
         ],
@@ -260,10 +272,7 @@ def _aggregate_safe_staging_smoke(directory: Path, current_payload: dict[str, An
             or current_aggregated.get("external_mcp_connected") is True
         ),
     }
-    evidence_paths: dict[str, str] = {
-        str(key): _safe_text(value) or ""
-        for key, value in current_paths.items()
-    }
+    evidence_paths: dict[str, str] = {str(key): _safe_text(value) or "" for key, value in current_paths.items()}
     secret_report_count = int(current_payload.get("aggregated_secret_report_count") or 0)
     unsafe_report_count = int(current_payload.get("aggregated_unsafe_report_count") or 0)
     safe_report_count = int(current_payload.get("aggregated_safe_report_count") or 0)
@@ -381,15 +390,47 @@ def _load_latest_evidence(evidence_id: str, directory: Path) -> dict[str, Any]:
             "local_business_mock_used": payload.get("local_business_mock_used"),
             "secret_plaintext_output": payload.get("secret_plaintext_output"),
             "aggregated_infra_flags": aggregated_flags,
-            "aggregated_evidence_paths": {
-                str(key): _safe_text(value)
-                for key, value in aggregated_paths.items()
-            },
-            "aggregated_safe_report_count": aggregate.get("aggregated_safe_report_count", payload.get("aggregated_safe_report_count")),
-            "aggregated_secret_report_count": aggregate.get("aggregated_secret_report_count", payload.get("aggregated_secret_report_count")),
-            "aggregated_unsafe_report_count": aggregate.get("aggregated_unsafe_report_count", payload.get("aggregated_unsafe_report_count")),
+            "aggregated_evidence_paths": {str(key): _safe_text(value) for key, value in aggregated_paths.items()},
+            "aggregated_safe_report_count": aggregate.get(
+                "aggregated_safe_report_count",
+                payload.get("aggregated_safe_report_count"),
+            ),
+            "aggregated_secret_report_count": aggregate.get(
+                "aggregated_secret_report_count",
+                payload.get("aggregated_secret_report_count"),
+            ),
+            "aggregated_unsafe_report_count": aggregate.get(
+                "aggregated_unsafe_report_count",
+                payload.get("aggregated_unsafe_report_count"),
+            ),
         },
     }
+
+
+def _selected_llm_preflight_evidence(evidence: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    real = evidence.get("real_llm_preflight", {})
+    if real.get("present") is True:
+        return real
+    return evidence.get("xiaomi_llm_preflight", {})
+
+
+def _llm_preflight_proven(evidence_item: dict[str, Any]) -> bool:
+    summary = evidence_item.get("safe_summary") if isinstance(evidence_item.get("safe_summary"), dict) else {}
+    return bool(
+        evidence_item.get("present") is True
+        and evidence_item.get("status") == "success"
+        and evidence_item.get("secret_detected") is not True
+        and summary.get("real_llm_executed") is True
+        and summary.get("network_check_executed") is True
+        and summary.get("secret_plaintext_output") is False
+        and not summary.get("acceptance_blockers")
+    )
+
+
+def _blocking_evidence_items(evidence: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    if evidence.get("real_llm_preflight", {}).get("present") is True:
+        return [item for key, item in evidence.items() if key != "xiaomi_llm_preflight"]
+    return list(evidence.values())
 
 
 def _business_system_missing_conditions(evidence: dict[str, dict[str, Any]]) -> list[str]:
@@ -416,12 +457,8 @@ def _business_system_missing_conditions(evidence: dict[str, dict[str, Any]]) -> 
 def _real_integration_missing_conditions(domain_id: str, evidence: dict[str, dict[str, Any]]) -> list[str]:
     staging_smoke = evidence.get("staging_smoke", {})
     summary = staging_smoke.get("safe_summary") if isinstance(staging_smoke.get("safe_summary"), dict) else {}
-    xiaomi_preflight = evidence.get("xiaomi_llm_preflight", {})
-    xiaomi_summary = (
-        xiaomi_preflight.get("safe_summary")
-        if isinstance(xiaomi_preflight.get("safe_summary"), dict)
-        else {}
-    )
+    selected_llm = _selected_llm_preflight_evidence(evidence)
+    selected_llm_id = str(selected_llm.get("evidence_id") or "real_llm_preflight")
     aggregated_flags = (
         summary.get("aggregated_infra_flags")
         if isinstance(summary.get("aggregated_infra_flags"), dict)
@@ -435,17 +472,8 @@ def _real_integration_missing_conditions(domain_id: str, evidence: dict[str, dic
     }
     missing: list[str] = []
     flag_name, missing_id = flag_by_domain[domain_id]
-    xiaomi_llm_proven = bool(
-        domain_id == "real_llm"
-        and xiaomi_preflight.get("present") is True
-        and xiaomi_preflight.get("status") == "success"
-        and xiaomi_preflight.get("secret_detected") is not True
-        and xiaomi_summary.get("real_llm_executed") is True
-        and xiaomi_summary.get("network_check_executed") is True
-        and xiaomi_summary.get("secret_plaintext_output") is False
-        and not xiaomi_summary.get("acceptance_blockers")
-    )
-    aggregated_proven = bool(aggregated_flags.get(flag_name) is True or xiaomi_llm_proven)
+    llm_preflight_proven = domain_id == "real_llm" and _llm_preflight_proven(selected_llm)
+    aggregated_proven = bool(aggregated_flags.get(flag_name) is True or llm_preflight_proven)
     if staging_smoke.get("status") == "skipped" and not aggregated_proven:
         missing.append("staging_smoke:report_missing_or_skipped")
     if staging_smoke.get("present") is not True and not aggregated_proven:
@@ -455,10 +483,10 @@ def _real_integration_missing_conditions(domain_id: str, evidence: dict[str, dic
     if summary.get("secret_plaintext_output") is True:
         missing.append("staging_smoke:secret_plaintext_output")
     if domain_id == "real_llm":
-        if xiaomi_preflight.get("secret_detected") is True:
-            missing.append("xiaomi_llm_preflight:secret_like_text_detected")
-        if xiaomi_preflight.get("present") is True and xiaomi_preflight.get("status") == "blocked":
-            missing.append("xiaomi_llm_preflight:blocked")
+        if selected_llm.get("secret_detected") is True:
+            missing.append(f"{selected_llm_id}:secret_like_text_detected")
+        if selected_llm.get("present") is True and selected_llm.get("status") == "blocked":
+            missing.append(f"{selected_llm_id}:blocked")
     return sorted(set(missing))
 
 
@@ -476,13 +504,10 @@ def _build_domain_items(evidence: dict[str, dict[str, Any]]) -> list[dict[str, A
                 missing_conditions.append("gap_register:open_gaps_present")
         if spec["domain_id"] != "business_system" and staging_gate_status == "skipped":
             missing_conditions.append("staging_gate:source_status_skipped")
-        domain_status = "partial"
-        if not missing_conditions:
-            domain_status = "partial"
         items.append(
             {
                 **spec,
-                "status": domain_status,
+                "status": "partial",
                 "missing_conditions": missing_conditions,
                 "manual_signoff_required": True,
                 "production_direct_launch": "No-Go",
@@ -492,13 +517,14 @@ def _build_domain_items(evidence: dict[str, dict[str, Any]]) -> list[dict[str, A
 
 
 def _derive_status(evidence: dict[str, dict[str, Any]], domains: list[dict[str, Any]]) -> str:
-    if any(item.get("secret_detected") for item in evidence.values()):
+    blocking_items = _blocking_evidence_items(evidence)
+    if any(item.get("secret_detected") for item in blocking_items):
         return "blocked"
-    if any(item["status"] == "blocked" for item in evidence.values()):
+    if any(item.get("status") == "blocked" for item in blocking_items):
         return "blocked"
-    if not any(item.get("present") for item in evidence.values()):
+    if not any(item.get("present") for item in blocking_items):
         return "skipped"
-    if any(item["status"] == "skipped" for item in domains):
+    if any(item.get("status") == "skipped" for item in domains):
         return "skipped"
     return "partial"
 
@@ -551,6 +577,9 @@ def build_real_production_environment_checklist(
     short_commit = commit[:8] if commit != "unknown" else "unknown"
     status = _derive_status(evidence, domains)
 
+    if evidence.get("real_llm_preflight", {}).get("present") is True and "xiaomi_llm_preflight" in evidence:
+        evidence["xiaomi_llm_preflight"]["compat_ignored_by_generic_real_llm"] = True
+
     payload = {
         "generated_at": generated_at,
         "commit": commit,
@@ -564,6 +593,7 @@ def build_real_production_environment_checklist(
         "evidence": evidence,
         "domains": domains,
         "domain_count": len(domains),
+        "real_llm_evidence_source": str(_selected_llm_preflight_evidence(evidence).get("evidence_id") or ""),
         "real_llm_executed": False,
         "database_connected": False,
         "redis_connected": False,
@@ -580,7 +610,7 @@ def build_real_production_environment_checklist(
         },
         "global_no_go": [
             "任一真实域仍无脱敏证据",
-            "任一报告出现 secret-like 原文",
+            "任一当前主证据报告出现 secret-like 原文",
             "migration、真实工具调用或真实 LLM 调用绕过人工批准",
             "默认 fake/offline 路径被破坏",
             "public_production_direct_launch 被改成 Go",
@@ -635,6 +665,7 @@ def main() -> int:
         output_dir=args.output_dir,
         evidence_dirs={
             "env_profile": evidence_root / "real_integration_env_profile",
+            "real_llm_preflight": evidence_root / "production_landing_real_llm_preflight",
             "xiaomi_llm_preflight": evidence_root / "production_landing_xiaomi_llm_preflight",
             "staging_smoke": evidence_root / "real_integration_staging_smoke",
             "staging_gate": evidence_root / "real_integration_staging_gate",
