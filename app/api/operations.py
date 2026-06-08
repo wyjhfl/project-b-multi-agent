@@ -5002,6 +5002,236 @@ def _collect_v4_evidence_summary() -> dict[str, Any]:
     }
 
 
+def _is_ready_like(value: Any) -> bool:
+    return str(value or "").lower() in {"success", "ready", "go", "healthy", "true"}
+
+
+def _first_decision_value(*items: tuple[str, dict[str, Any], str]) -> tuple[str, str]:
+    for source_id, payload, key in items:
+        value = _safe_text_value(payload.get(key) or "")
+        if value:
+            return value, source_id
+    return "Manual-Review", "default"
+
+
+def _landing_guidance_command(command_id: str, label: str, command: str) -> dict[str, Any]:
+    return {
+        "id": command_id,
+        "label": label,
+        "command": command,
+        "safe_boundary": "read_only_no_secret_plaintext",
+    }
+
+
+def _build_landing_operator_guidance(
+    *,
+    next_actions: list[str],
+    business_public_blocker: bool,
+    secret_plaintext_output: bool,
+) -> dict[str, Any]:
+    commands = [
+        _landing_guidance_command(
+            "refresh_landing_evidence_freshness",
+            "Refresh evidence freshness after code/report changes",
+            "powershell -NoProfile -ExecutionPolicy Bypass -File "
+            "scripts\\codex_python.ps1 scripts\\production_landing_evidence_freshness.py",
+        ),
+        _landing_guidance_command(
+            "refresh_action_pack",
+            "Refresh landing action pack",
+            "powershell -NoProfile -ExecutionPolicy Bypass -File "
+            "scripts\\codex_python.ps1 scripts\\production_landing_action_pack.py",
+        ),
+        _landing_guidance_command(
+            "refresh_controlled_pilot_demo_landing",
+            "Run the no-real-business-system controlled pilot demo chain",
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\controlled_pilot_demo_landing.ps1 "
+            "-EnvPath local\\production_landing.staging.env",
+        ),
+    ]
+    if business_public_blocker or "prepare_real_business_system_read_only_interface" in next_actions:
+        commands.append(
+            _landing_guidance_command(
+                "prepare_business_read_only_interface",
+                "Prepare a future real business-system read-only interface; keep demo pilot until ready",
+                "docs\\business_system_read_smoke_v45.md",
+            )
+        )
+    commands.append(
+        _landing_guidance_command(
+            "review_public_no_go_boundary",
+            "Keep public production launch blocked until real business-system acceptance is complete",
+            "docs\\controlled_pilot_demo_landing_v49.md",
+        )
+    )
+    return {
+        "status": "blocked" if secret_plaintext_output else "available",
+        "runbook_paths": [
+            "docs/controlled_pilot_demo_landing_v49.md",
+            "docs/business_system_read_smoke_v45.md",
+        ],
+        "commands": commands,
+        "public_production_direct_launch": "No-Go",
+        "secret_plaintext_output": secret_plaintext_output,
+    }
+
+
+def _build_landing_command_center_summary(
+    *,
+    real_integration_staging_smoke: dict[str, Any],
+    production_landing_action_pack: dict[str, Any],
+    controlled_pilot_run_packet: dict[str, Any],
+    controlled_pilot_operator_packet: dict[str, Any],
+    controlled_pilot_status_summary: dict[str, Any],
+    controlled_pilot_launch_gate: dict[str, Any],
+    production_landing_text_quality: dict[str, Any],
+) -> dict[str, Any]:
+    controlled_pilot, controlled_pilot_source = _first_decision_value(
+        ("controlled_pilot_run_packet", controlled_pilot_run_packet, "controlled_internal_pilot"),
+        ("controlled_pilot_operator_packet", controlled_pilot_operator_packet, "controlled_internal_pilot"),
+        ("controlled_pilot_status_summary", controlled_pilot_status_summary, "controlled_internal_pilot"),
+        ("controlled_pilot_launch_gate", controlled_pilot_launch_gate, "controlled_pilot"),
+    )
+    public_launch = "No-Go"
+    run_business_boundary = (
+        controlled_pilot_run_packet.get("business_system_boundary")
+        if isinstance(controlled_pilot_run_packet.get("business_system_boundary"), dict)
+        else {}
+    )
+    operator_business_boundary = (
+        controlled_pilot_operator_packet.get("business_system_read_smoke")
+        if isinstance(controlled_pilot_operator_packet.get("business_system_read_smoke"), dict)
+        else {}
+    )
+    real_business_connected = bool(
+        run_business_boundary.get("real_business_system_connected", False)
+        or (
+            operator_business_boundary.get("business_system_connected") is True
+            and run_business_boundary.get("demo_business_system_used") is not True
+        )
+    )
+    accepted_gaps = (
+        controlled_pilot_run_packet.get("accepted_remaining_gaps")
+        if isinstance(controlled_pilot_run_packet.get("accepted_remaining_gaps"), list)
+        else []
+    )
+    status_public_gaps = (
+        controlled_pilot_status_summary.get("public_production_gaps")
+        if isinstance(controlled_pilot_status_summary.get("public_production_gaps"), list)
+        else []
+    )
+    operator_public_gaps = (
+        controlled_pilot_operator_packet.get("public_production_gaps")
+        if isinstance(controlled_pilot_operator_packet.get("public_production_gaps"), list)
+        else []
+    )
+    business_gap_accepted = "business_system:real_business_system_required" in {
+        _safe_text_value(item) for item in accepted_gaps
+    } or bool(
+        run_business_boundary.get("demo_business_system_used", False)
+        and run_business_boundary.get("real_business_system_connected") is not True
+    )
+    run_packet_missing_conditions = [
+        _safe_text_value(item)
+        for item in (
+            controlled_pilot_run_packet.get("missing_conditions")
+            if isinstance(controlled_pilot_run_packet.get("missing_conditions"), list)
+            else []
+        )[:16]
+    ]
+    business_public_blocker = (not real_business_connected) or any(
+        str(item).startswith("business_system:") for item in [*status_public_gaps, *operator_public_gaps]
+    )
+    infra_ready = bool(
+        real_integration_staging_smoke.get("status") == "success"
+        and real_integration_staging_smoke.get("database_connected") is True
+        and real_integration_staging_smoke.get("redis_connected") is True
+        and real_integration_staging_smoke.get("external_mcp_connected") is True
+        and real_integration_staging_smoke.get("secret_plaintext_output") is not True
+    )
+    action_required_count = int(production_landing_action_pack.get("required_input_count") or 0)
+    precommit_ready = bool(
+        production_landing_action_pack.get("status") == "success"
+        and action_required_count == 0
+        and production_landing_action_pack.get("secret_plaintext_output") is not True
+        and production_landing_action_pack.get("public_production_direct_launch") == "No-Go"
+    )
+    secret_plaintext_output = any(
+        bool(item.get("secret_plaintext_output", False))
+        for item in (
+            real_integration_staging_smoke,
+            production_landing_action_pack,
+            controlled_pilot_run_packet,
+            controlled_pilot_operator_packet,
+            controlled_pilot_status_summary,
+            controlled_pilot_launch_gate,
+            production_landing_text_quality,
+        )
+    )
+    status = "ready" if controlled_pilot == "Go" and precommit_ready and not secret_plaintext_output else "review"
+    if secret_plaintext_output:
+        status = "blocked"
+    next_actions = ["operate_controlled_internal_pilot"]
+    if not precommit_ready:
+        next_actions.append("refresh_landing_action_pack")
+    if not infra_ready:
+        next_actions.append("refresh_real_integration_staging_smoke")
+    if business_public_blocker:
+        next_actions.append("prepare_real_business_system_read_only_interface")
+    if any("production_landing_evidence_freshness" in item for item in run_packet_missing_conditions):
+        next_actions.append("refresh_landing_evidence_freshness")
+    if run_packet_missing_conditions and controlled_pilot != "Go":
+        next_actions.append("review_controlled_pilot_run_packet_missing_conditions")
+    next_actions.append("keep_public_production_direct_launch_no_go_until_real_business_system_acceptance")
+    operator_guidance = _build_landing_operator_guidance(
+        next_actions=next_actions,
+        business_public_blocker=business_public_blocker,
+        secret_plaintext_output=secret_plaintext_output,
+    )
+    return {
+        "mode": "derived_from_operations_summary",
+        "status": status,
+        "controlled_internal_pilot": controlled_pilot,
+        "controlled_internal_pilot_source": controlled_pilot_source,
+        "public_production_direct_launch": public_launch,
+        "precommit_ready": precommit_ready,
+        "action_pack_status": _safe_text_value(production_landing_action_pack.get("status") or "skipped"),
+        "action_required_input_count": action_required_count,
+        "infra_ready": infra_ready,
+        "real_business_system_connected": real_business_connected,
+        "business_system_gap_accepted_for_controlled_pilot": business_gap_accepted,
+        "business_system_public_production_blocker": business_public_blocker,
+        "run_packet_missing_conditions": run_packet_missing_conditions,
+        "secret_plaintext_output": secret_plaintext_output,
+        "evidence": {
+            "infra_smoke": {
+                "status": _safe_text_value(real_integration_staging_smoke.get("status") or "skipped"),
+                "database_connected": bool(real_integration_staging_smoke.get("database_connected", False)),
+                "redis_connected": bool(real_integration_staging_smoke.get("redis_connected", False)),
+                "external_mcp_connected": bool(real_integration_staging_smoke.get("external_mcp_connected", False)),
+            },
+            "run_packet": {
+                "status": _safe_text_value(controlled_pilot_run_packet.get("status") or "skipped"),
+                "run_packet_ready": bool(controlled_pilot_run_packet.get("run_packet_ready", False)),
+                "missing_condition_count": int(controlled_pilot_run_packet.get("missing_condition_count") or 0),
+            },
+            "operator_packet": {
+                "status": _safe_text_value(controlled_pilot_operator_packet.get("status") or "skipped"),
+                "controlled_internal_pilot": _safe_text_value(
+                    controlled_pilot_operator_packet.get("controlled_internal_pilot") or "Manual-Review"
+                ),
+                "missing_condition_count": int(controlled_pilot_operator_packet.get("missing_condition_count") or 0),
+            },
+            "text_quality": {
+                "status": _safe_text_value(production_landing_text_quality.get("status") or "skipped"),
+                "blocked_file_count": int(production_landing_text_quality.get("blocked_file_count") or 0),
+            },
+        },
+        "next_actions": next_actions,
+        "operator_guidance": operator_guidance,
+    }
+
+
 @router.get("/summary")
 async def get_operations_summary(_current_user=Depends(require_permission("metrics:read"))):
     from app.main import health_check
@@ -5081,6 +5311,15 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
     manual_signoff_record_promote = _collect_manual_signoff_record_promote_summary()
     production_landing_text_quality = _collect_production_landing_text_quality_summary()
     evidence_archive = _collect_evidence_archive_summary()
+    landing_command_center = _build_landing_command_center_summary(
+        real_integration_staging_smoke=real_integration_staging_smoke,
+        production_landing_action_pack=production_landing_action_pack,
+        controlled_pilot_run_packet=controlled_pilot_run_packet,
+        controlled_pilot_operator_packet=controlled_pilot_operator_packet,
+        controlled_pilot_status_summary=controlled_pilot_status_summary,
+        controlled_pilot_launch_gate=controlled_pilot_launch_gate,
+        production_landing_text_quality=production_landing_text_quality,
+    )
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -5146,6 +5385,7 @@ async def get_operations_summary(_current_user=Depends(require_permission("metri
             "production_landing_text_quality": production_landing_text_quality,
             "production_landing_evidence_freshness": production_landing_evidence_freshness,
             "evidence_archive": evidence_archive,
+            "landing_command_center": landing_command_center,
             "v4_evidence": v4_evidence,
             "last_known_report_counts": {
                 "pilot_reports": int(pilot_reports.get("total_reports", 0) or 0),

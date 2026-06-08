@@ -1941,6 +1941,298 @@ def test_operations_summary_should_include_controlled_pilot_run_packet_latest_re
     assert "sk-should-not-leak" not in text
 
 
+def test_operations_summary_landing_command_center_prefers_run_packet_go(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    dirs = {
+        "CONTROLLED_PILOT_RUN_PACKET_REPORT_DIR": tmp_path / "run_packet",
+        "CONTROLLED_PILOT_STATUS_SUMMARY_REPORT_DIR": tmp_path / "status_summary",
+        "CONTROLLED_PILOT_OPERATOR_PACKET_REPORT_DIR": tmp_path / "operator_packet",
+        "REAL_INTEGRATION_STAGING_SMOKE_REPORT_DIR": tmp_path / "infra_smoke",
+        "PRODUCTION_LANDING_ACTION_PACK_REPORT_DIR": tmp_path / "action_pack",
+        "PRODUCTION_LANDING_TEXT_QUALITY_REPORT_DIR": tmp_path / "text_quality",
+    }
+    for env_name, path in dirs.items():
+        path.mkdir(parents=True)
+        monkeypatch.setenv(env_name, str(path))
+
+    (dirs["CONTROLLED_PILOT_RUN_PACKET_REPORT_DIR"] / "001_controlled_pilot_run_packet.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T09:00:00+00:00",
+                "status": "ready",
+                "run_packet_ready": True,
+                "controlled_internal_pilot": "Go",
+                "ready_scope": "controlled_internal_pilot",
+                "public_production_direct_launch": "No-Go",
+                "accepted_remaining_gaps": ["business_system:real_business_system_required"],
+                "real_production_remaining_gaps": ["business_system:real_business_system_required"],
+                "business_system_boundary": {
+                    "connected": False,
+                    "read_executed": False,
+                    "write_executed": False,
+                    "business_data_written": False,
+                    "local_business_mock_used": False,
+                    "demo_business_system_used": True,
+                    "real_business_system_connected": False,
+                },
+                "safety_boundary": {
+                    "read_only": True,
+                    "manual_signoff_required": True,
+                    "rollback_required": True,
+                    "external_expansion_requires_new_manual_go_no_go": True,
+                    "public_production_direct_launch": "No-Go",
+                },
+                "missing_conditions": [],
+                "missing_condition_count": 0,
+                "secret_plaintext_output": False,
+                "business_data_written": False,
+                "audit_data_written": False,
+                "metrics_data_written": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["CONTROLLED_PILOT_STATUS_SUMMARY_REPORT_DIR"] / "001_controlled_pilot_status_summary.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T08:00:00+00:00",
+                "status": "partial",
+                "controlled_internal_pilot": "Manual-Review",
+                "public_production_direct_launch": "No-Go",
+                "public_production_gap_count": 1,
+                "public_production_gaps": ["business_system:real_read_only_smoke_not_executed"],
+                "secret_plaintext_output": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["REAL_INTEGRATION_STAGING_SMOKE_REPORT_DIR"] / "001_real_integration_staging_smoke.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T07:00:00+00:00",
+                "status": "success",
+                "execute_requested": True,
+                "read_only": True,
+                "execution_mode": "read_only_smoke",
+                "database_connected": True,
+                "redis_connected": True,
+                "external_mcp_connected": True,
+                "real_llm_executed": False,
+                "migration_executed": False,
+                "business_data_written": False,
+                "audit_data_written": False,
+                "metrics_data_written": False,
+                "secret_plaintext_output": False,
+                "preflight_summary": {"ready_domain_count": 3, "domain_count": 3, "domains": []},
+                "missing_conditions": [],
+                "go_no_go": {"public_production_direct_launch": "No-Go"},
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["PRODUCTION_LANDING_ACTION_PACK_REPORT_DIR"] / "001_production_landing_action_pack.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T09:05:00+00:00",
+                "status": "success",
+                "required_input_count": 0,
+                "required_inputs": [],
+                "recommended_commands": [],
+                "templates": {},
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+                "auto_approved": False,
+                "auto_closed": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (dirs["PRODUCTION_LANDING_TEXT_QUALITY_REPORT_DIR"] / "001_production_landing_text_quality.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T09:06:00+00:00",
+                "status": "success",
+                "checked_file_count": 8,
+                "blocked_file_count": 0,
+                "files": [],
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+                "auto_approved": False,
+                "auto_closed": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    command_center = response.json()["observability"]["landing_command_center"]
+
+    assert command_center["controlled_internal_pilot"] == "Go"
+    assert command_center["controlled_internal_pilot_source"] == "controlled_pilot_run_packet"
+    assert command_center["public_production_direct_launch"] == "No-Go"
+    assert command_center["precommit_ready"] is True
+    assert command_center["action_pack_status"] == "success"
+    assert command_center["action_required_input_count"] == 0
+    assert command_center["infra_ready"] is True
+    assert command_center["real_business_system_connected"] is False
+    assert command_center["business_system_gap_accepted_for_controlled_pilot"] is True
+    assert command_center["business_system_public_production_blocker"] is True
+    assert command_center["secret_plaintext_output"] is False
+    assert command_center["evidence"]["run_packet"]["status"] == "ready"
+    assert command_center["evidence"]["infra_smoke"]["status"] == "success"
+    assert command_center["evidence"]["text_quality"]["blocked_file_count"] == 0
+    assert command_center["next_actions"][0] == "operate_controlled_internal_pilot"
+    assert "prepare_real_business_system_read_only_interface" in command_center["next_actions"]
+
+
+def test_operations_summary_landing_command_center_surfaces_run_packet_freshness_action(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    run_packet_dir = tmp_path / "run_packet"
+    run_packet_dir.mkdir(parents=True)
+    monkeypatch.setenv("CONTROLLED_PILOT_RUN_PACKET_REPORT_DIR", str(run_packet_dir))
+    monkeypatch.chdir(tmp_path)
+
+    (run_packet_dir / "001_controlled_pilot_run_packet.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T10:00:00+00:00",
+                "status": "partial",
+                "run_packet_ready": False,
+                "controlled_internal_pilot": "Manual-Review",
+                "ready_scope": "controlled_internal_pilot",
+                "public_production_direct_launch": "No-Go",
+                "accepted_remaining_gaps": ["business_system:real_business_system_required"],
+                "real_production_remaining_gaps": ["business_system:real_business_system_required"],
+                "business_system_boundary": {
+                    "demo_business_system_used": True,
+                    "real_business_system_connected": False,
+                    "business_data_written": False,
+                },
+                "safety_boundary": {"public_production_direct_launch": "No-Go"},
+                "missing_condition_count": 2,
+                "missing_conditions": [
+                    "controlled_pilot_operator_packet:production_landing_evidence_freshness:not_fresh",
+                    "controlled_pilot_run_packet:required_ready_evidence_not_satisfied",
+                ],
+                "secret_plaintext_output": False,
+                "business_data_written": False,
+                "audit_data_written": False,
+                "metrics_data_written": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    command_center = response.json()["observability"]["landing_command_center"]
+
+    assert command_center["controlled_internal_pilot"] == "Manual-Review"
+    assert "refresh_landing_evidence_freshness" in command_center["next_actions"]
+    assert "review_controlled_pilot_run_packet_missing_conditions" in command_center["next_actions"]
+    assert command_center["run_packet_missing_conditions"] == [
+        "controlled_pilot_operator_packet:production_landing_evidence_freshness:not_fresh",
+        "controlled_pilot_run_packet:required_ready_evidence_not_satisfied",
+    ]
+
+
+def test_operations_summary_landing_command_center_includes_operator_guidance(monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
+    monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))
+    reset_runtime_for_test()
+
+    run_packet_dir = tmp_path / "run_packet"
+    action_pack_dir = tmp_path / "action_pack"
+    run_packet_dir.mkdir(parents=True)
+    action_pack_dir.mkdir(parents=True)
+    monkeypatch.setenv("CONTROLLED_PILOT_RUN_PACKET_REPORT_DIR", str(run_packet_dir))
+    monkeypatch.setenv("PRODUCTION_LANDING_ACTION_PACK_REPORT_DIR", str(action_pack_dir))
+    monkeypatch.chdir(tmp_path)
+
+    (run_packet_dir / "001_controlled_pilot_run_packet.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T10:00:00+00:00",
+                "status": "partial",
+                "run_packet_ready": False,
+                "controlled_internal_pilot": "Manual-Review",
+                "public_production_direct_launch": "No-Go",
+                "accepted_remaining_gaps": ["business_system:real_business_system_required"],
+                "business_system_boundary": {
+                    "demo_business_system_used": True,
+                    "real_business_system_connected": False,
+                    "business_data_written": False,
+                },
+                "missing_condition_count": 2,
+                "missing_conditions": [
+                    "controlled_pilot_operator_packet:production_landing_evidence_freshness:not_fresh",
+                    "controlled_pilot_run_packet:required_ready_evidence_not_satisfied",
+                ],
+                "secret_plaintext_output": False,
+                "business_data_written": False,
+                "audit_data_written": False,
+                "metrics_data_written": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    (action_pack_dir / "001_production_landing_action_pack.json").write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-06-08T10:02:00+00:00",
+                "status": "partial",
+                "required_input_count": 1,
+                "required_inputs": [{"id": "business_system_read_only_endpoint"}],
+                "recommended_commands": [],
+                "public_production_direct_launch": "No-Go",
+                "secret_plaintext_output": False,
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    response = client.get("/operations/summary")
+    assert response.status_code == 200
+    command_center = response.json()["observability"]["landing_command_center"]
+
+    guidance = command_center["operator_guidance"]
+    assert guidance["runbook_paths"] == [
+        "docs/controlled_pilot_demo_landing_v49.md",
+        "docs/business_system_read_smoke_v45.md",
+    ]
+    command_ids = [item["id"] for item in guidance["commands"]]
+    assert command_ids[:3] == [
+        "refresh_landing_evidence_freshness",
+        "refresh_action_pack",
+        "refresh_controlled_pilot_demo_landing",
+    ]
+    assert "prepare_business_read_only_interface" in command_ids
+    assert guidance["commands"][0]["command"] == (
+        "powershell -NoProfile -ExecutionPolicy Bypass -File "
+        "scripts\\codex_python.ps1 scripts\\production_landing_evidence_freshness.py"
+    )
+    assert all(item["safe_boundary"] == "read_only_no_secret_plaintext" for item in guidance["commands"])
+    assert guidance["public_production_direct_launch"] == "No-Go"
+    assert guidance["secret_plaintext_output"] is False
+    assert "sk-" not in json.dumps(guidance, ensure_ascii=False)
+
+
 def test_operations_summary_should_include_evidence_archive_latest_report(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "runtime_db_path", str(tmp_path / "runtime.sqlite"))
     monkeypatch.setattr(settings, "metrics_db_path", str(tmp_path / "metrics.sqlite"))

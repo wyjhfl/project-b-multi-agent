@@ -1,5 +1,9 @@
 # Project B: Harness-native 运营中台 Agent — 简历与博客素材 v1.0
 
+> 当前以 v5.0 面试主材料为准：`docs/resume_interview_optimization_pack_v50.md`。
+> 真实业务系统暂未接入，当前展示 demo read-only 受控试点路径；`public_production_direct_launch=No-Go`。
+> 不宣称公网生产可直接上线，不宣称真实业务系统生产验收完成。
+
 ---
 
 ## 一、简历项目描述

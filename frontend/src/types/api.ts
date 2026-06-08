@@ -1068,6 +1068,58 @@ export interface ControlledPilotOperatorPacketSummary {
   metrics_data_written: boolean;
 }
 
+export interface LandingCommandCenterSummary {
+  mode: string;
+  status: string;
+  controlled_internal_pilot: string;
+  controlled_internal_pilot_source: string;
+  public_production_direct_launch: string;
+  precommit_ready: boolean;
+  action_pack_status: string;
+  action_required_input_count: number;
+  infra_ready: boolean;
+  real_business_system_connected: boolean;
+  business_system_gap_accepted_for_controlled_pilot: boolean;
+  business_system_public_production_blocker: boolean;
+  run_packet_missing_conditions: string[];
+  secret_plaintext_output: boolean;
+  evidence: {
+    infra_smoke: {
+      status: string;
+      database_connected: boolean;
+      redis_connected: boolean;
+      external_mcp_connected: boolean;
+    };
+    run_packet: {
+      status: string;
+      run_packet_ready: boolean;
+      missing_condition_count: number;
+    };
+    operator_packet: {
+      status: string;
+      controlled_internal_pilot: string;
+      missing_condition_count: number;
+    };
+    text_quality: {
+      status: string;
+      blocked_file_count: number;
+    };
+  };
+  next_actions: string[];
+  operator_guidance: {
+    status: string;
+    runbook_paths: string[];
+    commands: {
+      id: string;
+      label: string;
+      command: string;
+      safe_boundary: string;
+    }[];
+    public_production_direct_launch: string;
+    secret_plaintext_output: boolean;
+  };
+}
+
 export interface ControlledPilotConsoleVerifySummary {
   mode: string;
   runbook_path: string;
@@ -1886,6 +1938,7 @@ export interface OperationsSummary {
     production_landing_text_quality?: ProductionLandingTextQualitySummary;
     production_landing_evidence_freshness?: ProductionLandingEvidenceFreshnessSummary;
     evidence_archive?: EvidenceArchiveSummary;
+    landing_command_center?: LandingCommandCenterSummary;
     v4_evidence?: V4EvidenceSummary;
   };
   demo_evidence: {

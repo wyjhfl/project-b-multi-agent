@@ -36,6 +36,105 @@ function v4EvidenceEntryState(directoryExists: boolean, reportCount: number): st
   return "metadata_available";
 }
 
+type LandingDecisionTone = "ready" | "warning" | "blocked";
+
+function landingTone(value?: string | boolean | null): LandingDecisionTone {
+  if (value === true) {
+    return "ready";
+  }
+  const normalized = String(value ?? "").toLowerCase();
+  if (["ready", "success", "go", "healthy", "true"].includes(normalized)) {
+    return "ready";
+  }
+  if (["no-go", "failed", "blocked", "false"].includes(normalized)) {
+    return "blocked";
+  }
+  return "warning";
+}
+
+function LandingDecisionCard({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: LandingDecisionTone;
+}) {
+  return (
+    <div className={`landing-decision-card ${tone}`}>
+      <div className="landing-decision-label">{label}</div>
+      <div className="landing-decision-value">{value || "-"}</div>
+      <div className="landing-decision-detail">{detail}</div>
+    </div>
+  );
+}
+
+function EvidenceRow({
+  label,
+  status,
+  detail,
+}: {
+  label: string;
+  status?: string | boolean | null;
+  detail: string;
+}) {
+  const tone = landingTone(status);
+  return (
+    <div className="landing-evidence-row">
+      <span className={`landing-dot ${tone}`} aria-hidden="true" />
+      <div>
+        <div className="landing-evidence-label">{label}</div>
+        <div className="landing-evidence-detail">{detail}</div>
+      </div>
+    </div>
+  );
+}
+
+function landingActionLabel(action: string): string {
+  const labels: Record<string, string> = {
+    operate_controlled_internal_pilot: "Operate the controlled internal pilot.",
+    refresh_landing_action_pack: "Refresh the landing action pack before the next review.",
+    refresh_real_integration_staging_smoke: "Refresh the real integration staging smoke evidence.",
+    refresh_landing_evidence_freshness: "Refresh landing evidence freshness after code or report changes.",
+    review_controlled_pilot_run_packet_missing_conditions: "Review the controlled pilot run-packet missing conditions.",
+    prepare_real_business_system_read_only_interface: "Prepare the real business-system read-only interface.",
+    keep_public_production_direct_launch_no_go_until_real_business_system_acceptance:
+      "Keep public production direct launch at No-Go until real business-system acceptance is complete.",
+  };
+  return labels[action] ?? action.replaceAll("_", " ");
+}
+
+function landingSourceLabel(source?: string | null): string {
+  const labels: Record<string, string> = {
+    controlled_pilot_run_packet: "run packet",
+    controlled_pilot_operator_packet: "operator packet",
+    controlled_pilot_status_summary: "status summary",
+    controlled_pilot_launch_gate: "launch gate",
+    default: "fallback",
+  };
+  return labels[source ?? ""] ?? String(source ?? "fallback").replaceAll("_", " ");
+}
+
+function landingDecisionValue(value?: string | boolean | null): string {
+  if (value === true) {
+    return "Ready";
+  }
+  if (value === false) {
+    return "Review";
+  }
+  const labels: Record<string, string> = {
+    "Manual-Review": "Manual Review",
+    "No-Go": "No-Go",
+    Go: "Go",
+    success: "success",
+    ready: "ready",
+  };
+  return labels[String(value ?? "")] ?? String(value ?? "-");
+}
+
 export default async function OperationsOverviewPage() {
   let summary: Awaited<ReturnType<typeof getOperationsSummary>> | null = null;
   let errorText = "";
@@ -45,6 +144,36 @@ export default async function OperationsOverviewPage() {
   } catch (error) {
     errorText = error instanceof Error ? error.message : "failed to load operations overview";
   }
+
+  const landingCommandCenter = summary?.observability.landing_command_center;
+  const controlledPilotDecision =
+    landingCommandCenter?.controlled_internal_pilot ??
+    summary?.observability.controlled_pilot_run_packet?.controlled_internal_pilot ??
+    summary?.observability.controlled_pilot_operator_packet?.controlled_internal_pilot ??
+    summary?.observability.controlled_pilot_status_summary?.controlled_internal_pilot ??
+    summary?.observability.controlled_pilot_launch_gate?.controlled_pilot ??
+    "-";
+  const publicProductionDecision =
+    landingCommandCenter?.public_production_direct_launch ??
+    summary?.observability.controlled_pilot_status_summary?.public_production_direct_launch ??
+    "No-Go";
+  const precommitReady = landingCommandCenter?.precommit_ready;
+  const actionInputCount =
+    landingCommandCenter?.action_required_input_count ??
+    summary?.observability.production_landing_action_pack?.required_input_count ??
+    0;
+  const actionPackStatus =
+    landingCommandCenter?.action_pack_status ?? summary?.observability.production_landing_action_pack?.status ?? "-";
+  const landingNextActions =
+    landingCommandCenter?.next_actions && landingCommandCenter.next_actions.length > 0
+      ? landingCommandCenter.next_actions
+      : [
+          "operate_controlled_internal_pilot",
+          "refresh_landing_action_pack",
+          "prepare_real_business_system_read_only_interface",
+        ];
+  const landingReviewReasons = landingCommandCenter?.run_packet_missing_conditions ?? [];
+  const landingOperatorGuidance = landingCommandCenter?.operator_guidance;
 
   return (
     <div className="stack">
@@ -67,13 +196,131 @@ export default async function OperationsOverviewPage() {
         </section>
       ) : (
         <>
-          <section className="section card">
-            <h2 className="card-title">Boundary & mode</h2>
-            <ul className="stack" style={{ margin: 0, paddingLeft: 18 }}>
-              <li>read-only surface, no write/delete actions</li>
-              <li>default fake/offline path, no real external LLM call from this page</li>
-              <li>sanitized output only, no prompt raw text or secret plaintext</li>
-            </ul>
+          <section className="section landing-command-grid">
+            <div className="landing-decision-panel">
+              <div>
+                <div className="eyebrow">Landing Command Center</div>
+                <h2 className="landing-title">Controlled pilot decision view</h2>
+                <p className="landing-copy">
+                  Read-only production landing view for pilot execution, evidence review, and launch boundary tracking.
+                </p>
+              </div>
+              <div className="landing-decision-cards">
+                <LandingDecisionCard
+                  label="Controlled Pilot"
+                  value={landingDecisionValue(controlledPilotDecision)}
+                  detail={`Gate source: ${landingSourceLabel(landingCommandCenter?.controlled_internal_pilot_source)}`}
+                  tone={landingTone(controlledPilotDecision)}
+                />
+                <LandingDecisionCard
+                  label="Public Launch"
+                  value={landingDecisionValue(publicProductionDecision)}
+                  detail="Public production boundary"
+                  tone={landingTone(publicProductionDecision)}
+                />
+                <LandingDecisionCard
+                  label="Precommit Ready"
+                  value={precommitReady === true ? "Ready" : "Review"}
+                  detail={`action inputs=${actionInputCount}`}
+                  tone={landingTone(precommitReady)}
+                />
+                <LandingDecisionCard
+                  label="Action Pack"
+                  value={actionPackStatus}
+                  detail="Landing task closure"
+                  tone={landingTone(actionPackStatus)}
+                />
+              </div>
+            </div>
+
+            <div className="landing-evidence-grid">
+              <section className="landing-panel">
+                <h2 className="card-title">Evidence Chain</h2>
+                <div className="landing-evidence-list">
+                  <EvidenceRow
+                    label="Infra smoke"
+                    status={
+                      landingCommandCenter?.evidence.infra_smoke.status ??
+                      summary.observability.real_integration_staging_smoke?.status
+                    }
+                    detail={`db=${optionalBoolLabel(landingCommandCenter?.evidence.infra_smoke.database_connected ?? summary.observability.real_integration_staging_smoke?.database_connected)} redis=${optionalBoolLabel(landingCommandCenter?.evidence.infra_smoke.redis_connected ?? summary.observability.real_integration_staging_smoke?.redis_connected)} mcp=${optionalBoolLabel(landingCommandCenter?.evidence.infra_smoke.external_mcp_connected ?? summary.observability.real_integration_staging_smoke?.external_mcp_connected)}`}
+                  />
+                  <EvidenceRow
+                    label="Run packet"
+                    status={
+                      landingCommandCenter?.evidence.run_packet.status ??
+                      summary.observability.controlled_pilot_run_packet?.status
+                    }
+                    detail={`ready=${optionalBoolLabel(landingCommandCenter?.evidence.run_packet.run_packet_ready ?? summary.observability.controlled_pilot_run_packet?.run_packet_ready)} missing=${landingCommandCenter?.evidence.run_packet.missing_condition_count ?? summary.observability.controlled_pilot_run_packet?.missing_condition_count ?? 0}`}
+                  />
+                  <EvidenceRow
+                    label="Operator packet"
+                    status={
+                      landingCommandCenter?.evidence.operator_packet.status ??
+                      summary.observability.controlled_pilot_operator_packet?.status
+                    }
+                    detail={`pilot=${landingCommandCenter?.evidence.operator_packet.controlled_internal_pilot ?? summary.observability.controlled_pilot_operator_packet?.controlled_internal_pilot ?? "-"} missing=${landingCommandCenter?.evidence.operator_packet.missing_condition_count ?? summary.observability.controlled_pilot_operator_packet?.missing_condition_count ?? 0}`}
+                  />
+                  <EvidenceRow
+                    label="Text quality"
+                    status={
+                      landingCommandCenter?.evidence.text_quality.status ??
+                      summary.observability.production_landing_text_quality?.status
+                    }
+                    detail={`blocked=${landingCommandCenter?.evidence.text_quality.blocked_file_count ?? summary.observability.production_landing_text_quality?.blocked_file_count ?? 0}`}
+                  />
+                </div>
+              </section>
+
+              <section className="landing-panel landing-next-actions">
+                <h2 className="card-title">Next Actions</h2>
+                <ol className="landing-action-list">
+                  {landingNextActions.map((action) => (
+                    <li key={action}>{landingActionLabel(action)}</li>
+                  ))}
+                </ol>
+                <div className="landing-boundary mono path-break">
+                  boundary=read_only no_write no_secret_plaintext public_production_direct_launch=
+                  {publicProductionDecision}
+                </div>
+                <div className="landing-review-reasons">
+                  <div className="landing-evidence-label">Review Reasons</div>
+                  {landingReviewReasons.length === 0 ? (
+                    <div className="landing-evidence-detail">none</div>
+                  ) : (
+                    <ul className="landing-review-list">
+                      {landingReviewReasons.slice(0, 4).map((reason) => (
+                        <li key={reason} className="path-break">
+                          {reason}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="landing-operator-guidance">
+                  <div className="landing-evidence-label">Operator Guidance</div>
+                  {!landingOperatorGuidance ? (
+                    <div className="landing-evidence-detail">not available</div>
+                  ) : (
+                    <>
+                      <div className="landing-evidence-detail">
+                        status={landingOperatorGuidance.status} boundary=
+                        {landingOperatorGuidance.public_production_direct_launch}
+                      </div>
+                      <ol className="landing-guidance-list">
+                        {landingOperatorGuidance.commands.slice(0, 5).map((item) => (
+                          <li key={item.id}>
+                            <div>{item.label}</div>
+                            <div className="mono path-break">{item.command}</div>
+                            <div className="landing-evidence-detail">safe_boundary={item.safe_boundary}</div>
+                          </li>
+                        ))}
+                      </ol>
+                    </>
+                  )}
+                </div>
+              </section>
+            </div>
           </section>
 
           <section className="section">

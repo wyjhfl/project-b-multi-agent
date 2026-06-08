@@ -49,6 +49,18 @@ def test_production_landing_text_quality_check_blocks_mojibake(tmp_path: Path) -
     assert "text:mojibake_marker_detected" in payload["files"][0]["missing_conditions"]
 
 
+def test_production_landing_text_quality_check_blocks_legacy_business_mojibake_phrase(tmp_path: Path) -> None:
+    target = tmp_path / "bad.md"
+    target.write_text("鐢熶骇钀藉湴 涓氬姟绯荤粺鍙 Runbook\n", encoding="utf-8")
+
+    summary = build_production_landing_text_quality_check(targets=[target], output_dir=tmp_path / "out")
+    payload = _payload(summary)
+
+    assert summary["status"] == "blocked"
+    assert payload["blocked_file_count"] == 1
+    assert "text:mojibake_marker_detected" in payload["files"][0]["missing_conditions"]
+
+
 def test_production_landing_text_quality_check_blocks_secret_like_text_without_value_output(tmp_path: Path) -> None:
     target = tmp_path / "bad.md"
     target.write_text("token=sk-should-not-leak\n", encoding="utf-8")
@@ -108,6 +120,7 @@ def test_production_landing_text_quality_check_skips_missing_ignored_report_targ
 def test_production_landing_text_quality_default_targets_include_business_system_files() -> None:
     targets = {path.as_posix() for path in text_quality.DEFAULT_TARGETS}
 
+    assert (text_quality.ROOT_DIR / "README.md").as_posix() in targets
     assert (text_quality.ROOT_DIR / "pyproject.toml").as_posix() in targets
     assert (text_quality.ROOT_DIR / "docs" / "business_system_read_smoke_v45.md").as_posix() in targets
     assert (text_quality.ROOT_DIR / "docs" / "evidence_archive_manifest_v34.md").as_posix() in targets

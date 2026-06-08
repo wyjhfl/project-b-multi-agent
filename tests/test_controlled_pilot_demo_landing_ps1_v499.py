@@ -60,9 +60,11 @@ def test_controlled_pilot_demo_landing_runbook_keeps_public_production_no_go_bou
     assert "scripts\\controlled_pilot_demo_landing.ps1" in text
     assert "docs/reports/controlled_pilot_run_packet/" in text
     assert "docs/reports/evidence_archive/" in text
+    assert "鐪熕疄" not in text
+    assert "涓氬姟" not in text
+    assert "鍙" not in text
     assert "tp-" not in text
     assert "sk-" not in text
-
 
 def test_text_quality_default_targets_include_demo_landing_artifacts() -> None:
     import scripts.production_landing_text_quality_check as text_quality
