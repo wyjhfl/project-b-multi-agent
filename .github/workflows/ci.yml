@@ -40,8 +40,8 @@ jobs:
       - name: Initialize demo DB
         run: python scripts/init_demo_db.py
 
-      - name: Production landing text quality check
-        run: python scripts/production_landing_text_quality_check.py
+      - name: Interview demo readiness check
+        run: python scripts/interview_demo_readiness.py
 
       - name: Run tests
         run: python -m pytest -q

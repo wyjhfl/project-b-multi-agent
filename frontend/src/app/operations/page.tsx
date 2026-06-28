@@ -70,9 +70,9 @@ function EvidenceRow({
 function landingActionLabel(action: string): string {
   const labels: Record<string, string> = {
     run_interview_demo_readiness: "Run the read-only interview readiness check.",
-    open_operations_command_center: "Open the local Operations Command Center.",
-    run_text_quality_check: "Run the text quality and secret-like output guard.",
-    prepare_real_business_system_read_only_interface: "Prepare a real business-system read-only interface.",
+    start_local_demo: "Start the local Docker demo.",
+    run_demo_smoke: "Run local demo smoke checks.",
+    inspect_multi_agent_trajectory: "Inspect Trace and Multi-Agent Trajectory in Observability.",
     keep_public_production_direct_launch_no_go_until_real_business_system_acceptance:
       "Keep public production direct launch at No-Go until real business-system acceptance is complete.",
   };
@@ -223,7 +223,7 @@ export default async function OperationsOverviewPage() {
           </section>
 
           <section className="section landing-command-grid">
-            <div className="landing-panel">
+            <div className="landing-panel landing-review-reasons">
               <h2 className="card-title">Review Reasons</h2>
               {landingReviewReasons.length === 0 ? (
                 <div className="empty">no review reason reported</div>

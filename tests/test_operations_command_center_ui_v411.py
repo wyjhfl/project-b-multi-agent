@@ -26,27 +26,20 @@ def test_operations_page_humanizes_landing_decision_source_labels() -> None:
 
     assert "landingSourceLabel" in text
     assert "Gate source:" in text
-    assert "controlled_pilot_run_packet: \"run packet\"" in text
-    assert "\"Manual-Review\": \"Manual Review\"" in text
+    assert 'showcase_runtime_summary: "showcase runtime summary"' in text
+    assert '"Manual-Review": "Manual Review"' in text
 
 
-def test_operations_page_prefers_run_packet_for_controlled_pilot_decision() -> None:
-    text = OPERATIONS_PAGE.read_text(encoding="utf-8")
-
-    run_packet_index = text.index("controlled_pilot_run_packet?.controlled_internal_pilot")
-    status_summary_index = text.index("controlled_pilot_status_summary?.controlled_internal_pilot")
-
-    assert run_packet_index < status_summary_index
-
-
-def test_operations_page_prefers_backend_landing_command_center_contract() -> None:
+def test_operations_page_uses_backend_landing_command_center_contract() -> None:
     text = OPERATIONS_PAGE.read_text(encoding="utf-8")
 
     command_center_index = text.index("landing_command_center")
-    run_packet_index = text.index("controlled_pilot_run_packet?.controlled_internal_pilot")
+    derived_decision_index = text.index("landingCommandCenter?.controlled_internal_pilot")
 
-    assert command_center_index < run_packet_index
+    assert command_center_index < derived_decision_index
     assert "landingCommandCenter" in text
+    assert "controlled_pilot_run_packet" not in text
+    assert "controlled_pilot_status_summary" not in text
 
 
 def test_operations_page_surfaces_landing_review_reasons_from_backend() -> None:
@@ -64,6 +57,15 @@ def test_operations_page_surfaces_operator_guidance_commands() -> None:
     assert "Operator Guidance" in text
     assert "landing-guidance-list" in text
     assert "safe_boundary" in text
+
+
+def test_operations_page_labels_current_showcase_actions() -> None:
+    text = OPERATIONS_PAGE.read_text(encoding="utf-8")
+
+    assert "start_local_demo" in text
+    assert "run_demo_smoke" in text
+    assert "inspect_multi_agent_trajectory" in text
+    assert "run_text_quality_check" not in text
 
 
 def test_operations_command_center_styles_are_responsive_and_non_marketing() -> None:
