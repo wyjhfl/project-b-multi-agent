@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "project-b-multi-agent"
 version = "4.3.0"
-description = "Harness-native 运营中台 Agent"
+description = "Enterprise Multi-Agent Runtime and operator console prototype"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.110.0",
@@ -40,5 +40,5 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_default_fixture_loop_scope = "function"
 markers = [
-    "real_llm: 真实 LLM 可选 smoke 测试（默认需要显式 opt-in）",
+    "real_llm: 真实 LLM 可选 smoke 测试，默认需要显式 opt-in",
 ]

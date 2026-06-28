@@ -1,17 +1,24 @@
-import sys
 import subprocess
+import sys
 
 
-def main():
-    print("=== Project B: 初始化 demo 数据库 ===")
+def main() -> None:
+    print("=== Project B: initialize demo database ===")
     subprocess.check_call([sys.executable, "scripts/init_demo_db.py"])
 
-    print("\n=== Project B: 启动开发服务器 ===")
-    print("访问 http://localhost:8000/health 检查服务状态")
-    print("按 Ctrl+C 停止服务\n")
+    print("\n=== Project B: start backend dev server ===")
+    print("Open http://localhost:8000/health to check service status")
+    print("Press Ctrl+C to stop the service\n")
     subprocess.check_call([
-        sys.executable, "-m", "uvicorn",
-        "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000",
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--reload",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
     ])
 
 

@@ -4,10 +4,7 @@ Param(
 
 $ErrorActionPreference = "Stop"
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot ".." )).Path
-$pythonWrapper = Join-Path $repoRoot "scripts\codex_python.ps1"
-
-function Initialize-CodexProcessEnvironment {
+function Initialize-ProcessEnvironment {
   [Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
   [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
   $script:OutputEncoding = [System.Text.UTF8Encoding]::new($false)
@@ -18,7 +15,7 @@ Write-Host "[prod-config-check] start" -ForegroundColor Cyan
 
 function Get-LocalDeploymentCheckResult {
   $pythonCode = "from app.core.deployment_guard import run_deployment_checks; print(run_deployment_checks().model_dump_json())"
-  $json = & powershell -NoProfile -ExecutionPolicy Bypass -File $pythonWrapper -c $pythonCode
+  $json = & python -c $pythonCode
   if ($LASTEXITCODE -ne 0) {
     throw "[prod-config-check] local deployment check python command failed with exit code $LASTEXITCODE"
   }
@@ -30,7 +27,7 @@ function Get-ApiDeploymentCheckResult {
 }
 
 $response = $null
-Initialize-CodexProcessEnvironment
+Initialize-ProcessEnvironment
 
 if ($UseApi) {
   Write-Host "[prod-config-check] mode=api" -ForegroundColor Yellow

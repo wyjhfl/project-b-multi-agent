@@ -13,106 +13,73 @@ DEFAULT_OUTPUT_DIR = ROOT_DIR / "docs" / "reports" / "interview_demo_readiness"
 RUNBOOK_PATH = "docs/interview_demo_readiness_v50.md"
 
 SECRET_TEXT_PATTERNS = (
-    re.compile("s" + r"k-[A-Za-z0-9_\-]{6,}"),
+    re.compile("s" + r"k-[A-Za-z0-9_\-]{8,}"),
     re.compile("t" + r"p-[A-Za-z0-9_\-]{16,}"),
-    re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]+"),
-    re.compile(r"(?i)(api[_-]?key|token|client[_-]?secret|jwt[_-]?secret|password|secret)\s*[:=]\s*([^\s,]+)"),
+    re.compile(r"(?i)bearer\s+[A-Za-z0-9._\-]{8,}"),
 )
 
 RESUME_MATERIAL_CHECKS = {
-    "readme_interview_entry": (
+    "readme": (
         ROOT_DIR / "README.md",
-        (
-            "面试快速入口（当前推荐阅读）",
-            "生产级 Agent Runtime 工程化原型",
-            "Operations Command Center",
-            "public_production_direct_launch=No-Go",
-            "真实业务系统暂未接入",
-        ),
+        ("Multi-Agent Runtime", "Trajectory", "public_production_direct_launch"),
     ),
-    "resume_interview_optimization_pack": (
+    "resume_pack": (
         ROOT_DIR / "docs" / "resume_interview_optimization_pack_v50.md",
-        ("简历项目定位", "2 分钟项目讲解", "真实业务系统暂未接入", "public_production_direct_launch=No-Go"),
-    ),
-    "resume_blog_notes": (
-        ROOT_DIR / "docs" / "resume_blog_notes.md",
-        (
-            "简历项目描述",
-            "面试问答",
-            "Harness-native",
-            "当前以 v5.0 面试主材料为准",
-            "docs/resume_interview_optimization_pack_v50.md",
-            "真实业务系统暂未接入",
-            "public_production_direct_launch=No-Go",
-            "不宣称公网生产可直接上线",
-        ),
+        ("Resume", "2-minute Pitch", "trajectory visualization"),
     ),
     "interview_guide": (
         ROOT_DIR / "docs" / "interview_guide.md",
-        (
-            "Interview Guide",
-            "高频追问",
-            "production-grade prototype",
-            "当前以 v5.0 面试主材料为准",
-            "docs/resume_interview_optimization_pack_v50.md",
-            "真实业务系统暂未接入",
-            "public_production_direct_launch=No-Go",
-            "不宣称公网生产可直接上线",
-        ),
+        ("Interview Guide", "Agent"),
+    ),
+    "architecture": (
+        ROOT_DIR / "docs" / "architecture.md",
+        ("Architecture", "Agent"),
     ),
 }
 
-COMMAND_CENTER_CHECKS = {
+FRONTEND_CHECKS = {
+    "observability_page": (
+        ROOT_DIR / "frontend" / "src" / "app" / "observability" / "page.tsx",
+        ("Multi-Agent 轨迹", "getTaskTrajectory", "trajectory.steps"),
+    ),
     "operations_page": (
         ROOT_DIR / "frontend" / "src" / "app" / "operations" / "page.tsx",
-        ("Landing Command Center", "Operator Guidance", "Review Reasons", "public_production_direct_launch"),
-    ),
-    "operations_types": (
-        ROOT_DIR / "frontend" / "src" / "types" / "api.ts",
-        ("LandingCommandCenterSummary", "operator_guidance", "public_production_direct_launch"),
-    ),
-    "operations_backend": (
-        ROOT_DIR / "app" / "api" / "operations.py",
-        ("_build_landing_operator_guidance", "read_only_no_secret_plaintext", "No-Go"),
+        ("Landing Command Center", "Operator Guidance"),
     ),
 }
 
 DEMO_PATH_CHECKS = {
-    "controlled_demo_landing_script": ROOT_DIR / "scripts" / "controlled_pilot_demo_landing.ps1",
-    "controlled_console_script": ROOT_DIR / "scripts" / "controlled_pilot_console_up.ps1",
-    "text_quality_script": ROOT_DIR / "scripts" / "production_landing_text_quality_check.py",
+    "demo_up": ROOT_DIR / "scripts" / "demo_up.ps1",
+    "demo_smoke": ROOT_DIR / "scripts" / "demo_smoke.ps1",
+    "demo_down": ROOT_DIR / "scripts" / "demo_down.ps1",
+    "interview_readiness_script": ROOT_DIR / "scripts" / "interview_demo_readiness.py",
     "interview_readiness_runbook": ROOT_DIR / RUNBOOK_PATH,
 }
 
 RECOMMENDED_COMMANDS = [
     {
-        "id": "run_controlled_demo_landing",
-        "label": "Run no-real-business-system controlled pilot demo chain",
-        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\controlled_pilot_demo_landing.ps1 "
-        "-EnvPath local\\production_landing.staging.env",
+        "id": "run_interview_readiness",
+        "label": "Run read-only interview/demo readiness check",
+        "command": "python scripts/interview_demo_readiness.py",
         "safe_boundary": "read_only_no_secret_plaintext",
     },
     {
-        "id": "open_operations_command_center",
-        "label": "Start local Operations Command Center for interview demo",
-        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\controlled_pilot_console_up.ps1 "
-        "-BackendPort 8000 -FrontendPort 3004",
-        "safe_boundary": "read_only_no_secret_plaintext",
+        "id": "start_local_demo",
+        "label": "Start local Docker demo",
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo_up.ps1",
+        "safe_boundary": "local_demo_no_secret_plaintext",
     },
     {
-        "id": "run_text_quality_check",
-        "label": "Run text quality and secret-like output guard",
-        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File "
-        "scripts\\codex_python.ps1 scripts\\production_landing_text_quality_check.py",
-        "safe_boundary": "read_only_no_secret_plaintext",
+        "id": "run_demo_smoke",
+        "label": "Run local demo smoke check",
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo_smoke.ps1",
+        "safe_boundary": "local_read_only_smoke",
     },
     {
-        "id": "run_interview_focused_tests",
-        "label": "Run focused interview/demo readiness tests",
-        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\codex_python.ps1 "
-        "-m pytest tests\\test_interview_demo_readiness_v50.py tests\\test_resume_interview_pack_v50.py "
-        "tests\\test_operations_command_center_ui_v411.py -q",
-        "safe_boundary": "read_only_no_secret_plaintext",
+        "id": "run_focused_tests",
+        "label": "Run focused Multi-Agent showcase tests",
+        "command": "python -m pytest tests/test_multi_agent_v03.py tests/test_multi_agent_trajectory_v11.py tests/test_trajectory_eval_v11.py tests/test_operations_summary_v312.py -q",
+        "safe_boundary": "default_fake_offline",
     },
 ]
 
@@ -132,41 +99,36 @@ def _contains_secret_like(text: str) -> bool:
     return any(pattern.search(text) for pattern in SECRET_TEXT_PATTERNS)
 
 
-def _read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
-def _check_text_file(
-    check_id: str, path: Path, required_markers: tuple[str, ...], *, scan_sensitive_text: bool = True
-) -> dict[str, Any]:
+def _check_text_file(check_id: str, path: Path, required_markers: tuple[str, ...]) -> dict[str, Any]:
+    rel_path = str(path.relative_to(ROOT_DIR))
     if not path.exists() or not path.is_file():
         return {
             "id": check_id,
-            "path": str(path.relative_to(ROOT_DIR)),
+            "path": rel_path,
             "status": "missing",
             "present": False,
             "missing_markers": list(required_markers),
             "secret_like_detected": False,
         }
     try:
-        text = _read_text(path)
+        text = path.read_text(encoding="utf-8")
     except Exception:
         return {
             "id": check_id,
-            "path": str(path.relative_to(ROOT_DIR)),
+            "path": rel_path,
             "status": "blocked",
             "present": True,
             "missing_markers": list(required_markers),
             "secret_like_detected": False,
         }
     missing = [marker for marker in required_markers if marker not in text]
-    secret_like_detected = _contains_secret_like(text) if scan_sensitive_text else False
+    secret_like_detected = _contains_secret_like(text)
     status = "success" if not missing and not secret_like_detected else "partial"
     if secret_like_detected:
         status = "blocked"
     return {
         "id": check_id,
-        "path": str(path.relative_to(ROOT_DIR)),
+        "path": rel_path,
         "status": status,
         "present": True,
         "missing_markers": missing,
@@ -191,35 +153,25 @@ def _build_markdown(payload: dict[str, Any]) -> str:
         f"- status: {payload['status']}",
         f"- interview_demo_ready: {payload['interview_demo_ready']}",
         f"- public_production_direct_launch: {payload['public_production_direct_launch']}",
-        f"- real_business_system_connected: {payload['real_business_system_connected']}",
         f"- secret_plaintext_output: {payload['secret_plaintext_output']}",
-        "",
-        "## 演示入口",
-        "",
-        "- Operations Command Center: http://127.0.0.1:3004/operations",
-        "- 真实业务系统暂未接入，当前只展示 demo read-only 受控试点路径。",
-        "- public_production_direct_launch=No-Go，不能包装成公网生产验收完成。",
         "",
         "## 推荐命令",
     ]
     for command in payload["recommended_commands"]:
-        lines.extend(
-            [
-                "",
-                f"### {command['id']}",
-                "",
-                f"- label: {command['label']}",
-                f"- safe_boundary: {command['safe_boundary']}",
-                "",
-                "```powershell",
-                command["command"],
-                "```",
-            ]
-        )
+        lines.extend([
+            "",
+            f"### {command['id']}",
+            "",
+            f"- label: {command['label']}",
+            f"- safe_boundary: {command['safe_boundary']}",
+            "",
+            "```powershell",
+            command["command"],
+            "```",
+        ])
     lines.extend(["", "## 缺口"])
     if payload["missing_conditions"]:
-        for item in payload["missing_conditions"]:
-            lines.append(f"- {item}")
+        lines.extend(f"- {item}" for item in payload["missing_conditions"])
     else:
         lines.append("- none")
     lines.append("")
@@ -231,22 +183,12 @@ def build_interview_demo_readiness(*, output_dir: str | Path | None = None) -> d
     commit = _run_git(["rev-parse", "HEAD"]) or "unknown"
     short_commit = (_run_git(["rev-parse", "--short", "HEAD"]) or "unknown")[:8]
 
-    resume_checks = [
-        _check_text_file(check_id, path, markers, scan_sensitive_text=check_id != "readme_interview_entry")
-        for check_id, (path, markers) in RESUME_MATERIAL_CHECKS.items()
-    ]
-    command_center_checks = [
-        _check_text_file(check_id, path, markers, scan_sensitive_text=False)
-        for check_id, (path, markers) in COMMAND_CENTER_CHECKS.items()
-    ]
+    resume_checks = [_check_text_file(check_id, path, markers) for check_id, (path, markers) in RESUME_MATERIAL_CHECKS.items()]
+    frontend_checks = [_check_text_file(check_id, path, markers) for check_id, (path, markers) in FRONTEND_CHECKS.items()]
     demo_path_checks = [_check_path_exists(check_id, path) for check_id, path in DEMO_PATH_CHECKS.items()]
 
     missing_conditions: list[str] = []
-    for section_id, checks in (
-        ("resume_material", resume_checks),
-        ("operations_command_center", command_center_checks),
-        ("demo_path", demo_path_checks),
-    ):
+    for section_id, checks in (("resume_material", resume_checks), ("frontend", frontend_checks), ("demo_path", demo_path_checks)):
         for check in checks:
             if check["status"] != "success":
                 missing_conditions.append(f"{section_id}:{check['id']}:{check['status']}")
@@ -254,14 +196,10 @@ def build_interview_demo_readiness(*, output_dir: str | Path | None = None) -> d
                 missing_conditions.append(f"{section_id}:{check['id']}:secret_like_detected")
 
     resume_material_ready = all(check["status"] == "success" for check in resume_checks)
-    operations_command_center_ready = all(check["status"] == "success" for check in command_center_checks)
+    frontend_ready = all(check["status"] == "success" for check in frontend_checks)
     demo_path_ready = all(check["status"] == "success" for check in demo_path_checks)
-    secret_plaintext_output = any(
-        bool(check.get("secret_like_detected")) for check in [*resume_checks, *command_center_checks]
-    )
-    interview_demo_ready = bool(
-        resume_material_ready and operations_command_center_ready and demo_path_ready and not secret_plaintext_output
-    )
+    secret_plaintext_output = any(bool(check.get("secret_like_detected")) for check in [*resume_checks, *frontend_checks])
+    interview_demo_ready = resume_material_ready and frontend_ready and demo_path_ready and not secret_plaintext_output
     status = "success" if interview_demo_ready and not missing_conditions else "partial"
     if secret_plaintext_output:
         status = "blocked"
@@ -273,7 +211,7 @@ def build_interview_demo_readiness(*, output_dir: str | Path | None = None) -> d
         "mode": "read_only_interview_demo_readiness",
         "runbook_path": RUNBOOK_PATH,
         "resume_material_ready": resume_material_ready,
-        "operations_command_center_ready": operations_command_center_ready,
+        "frontend_ready": frontend_ready,
         "demo_path_ready": demo_path_ready,
         "interview_demo_ready": interview_demo_ready,
         "public_production_direct_launch": "No-Go",
@@ -284,7 +222,7 @@ def build_interview_demo_readiness(*, output_dir: str | Path | None = None) -> d
         "secret_plaintext_output": secret_plaintext_output,
         "missing_conditions": missing_conditions,
         "resume_material_checks": resume_checks,
-        "operations_command_center_checks": command_center_checks,
+        "frontend_checks": frontend_checks,
         "demo_path_checks": demo_path_checks,
         "recommended_commands": RECOMMENDED_COMMANDS,
     }

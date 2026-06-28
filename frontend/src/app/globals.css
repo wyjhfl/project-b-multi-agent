@@ -468,6 +468,102 @@ a {
   overflow: auto;
 }
 
+.trajectory-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.trajectory-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.trajectory-summary > div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fcfdff;
+  min-width: 0;
+}
+
+.trajectory-value {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.trajectory-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.trajectory-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.trajectory-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: #eef2f7;
+  color: #334155;
+}
+
+.trajectory-index.success {
+  background: #e8f9f0;
+  color: var(--ok);
+}
+
+.trajectory-index.failed {
+  background: #fdecec;
+  color: var(--error);
+}
+
+.trajectory-index.waiting {
+  background: #f4eeff;
+  color: var(--waiting);
+}
+
+.trajectory-body {
+  border: 1px solid #e8edf5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  min-width: 0;
+}
+
+.trajectory-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trajectory-role {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.trajectory-meta,
+.trajectory-reason,
+.trajectory-tools {
+  margin-top: 6px;
+  color: var(--text-subtle);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .empty {
   padding: 10px 0;
   color: var(--text-subtle);
@@ -498,11 +594,19 @@ a {
   .landing-evidence-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .trajectory-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
   .landing-decision-cards,
   .landing-evidence-list {
+    grid-template-columns: 1fr;
+  }
+
+  .trajectory-summary {
     grid-template-columns: 1fr;
   }
 }

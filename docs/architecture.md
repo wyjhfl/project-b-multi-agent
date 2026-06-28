@@ -1,76 +1,52 @@
-# 架构设计文档
+# Architecture Overview
 
-## 整体架构
+Project B is organized around a governed Agent Runtime. The main goal is to make agent execution explainable, controllable, auditable, and demoable in an offline environment.
 
-Project B 采用 **Harness Runtime + LangGraph Agent Kernel + MCP Tool Gateway** 三层架构：
+## Runtime Layers
 
-```
-┌─────────────────────────────────────────────┐
-│              Harness Runtime                │
-│  ┌──────────┐ ┌──────────┐ ┌────────────┐  │
-│  │ Context  │ │  Policy  │ │   Trace    │  │
-│  │Assembler │ │  Engine  │ │  Recorder  │  │
-│  └──────────┘ └──────────┘ └────────────┘  │
-│  ┌──────────┐ ┌──────────────────────────┐  │
-│  │  Hook    │ │     Tool Gateway         │  │
-│  │ Pipeline │ │  (Local + MCP)           │  │
-│  └──────────┘ └──────────────────────────┘  │
-├─────────────────────────────────────────────┤
-│          LangGraph Agent Kernel             │
-│  START → assemble_context → plan →         │
-│  execute → verify → respond → END           │
-├─────────────────────────────────────────────┤
-│              Tools Layer                    │
-│  ┌──────────┐ ┌──────────────────────────┐  │
-│  │  Local   │ │     MCP Tools            │  │
-│  │  Tools   │ │     (v0.3+)              │  │
-│  │ (SQLite) │ │                          │  │
-│  └──────────┘ └──────────────────────────┘  │
-└─────────────────────────────────────────────┘
+```text
+User Request
+  -> FastAPI API layer
+  -> Agent Runtime / Harness
+  -> Multi-Agent Orchestrator
+  -> ToolGateway / PolicyEngine / Approval
+  -> Storage / Audit / Metrics / Trace
+  -> Operator Console / Observability UI
 ```
 
-## Harness Runtime
+## Multi-Agent Roles
 
-Harness Runtime 是整个系统的执行框架，负责：
+- Coordinator: classifies intent and selects the execution mode.
+- Analyst: builds a simple execution plan.
+- Executor: calls tools, NL2SQL, or fallback runtime paths.
+- Reviewer: reviews the result and records the final state.
 
-- **ContextAssembler**: 上下文组装，将用户查询、历史对话、业务元数据组装为 AgentContext
-- **ToolGateway**: 工具网关，统一管理本地工具和 MCP 远程工具的注册与调用
-- **HookPipeline**: Hook 管线，在关键节点前后插入自定义钩子（异常不吞掉，记录 hook_errors）
-- **PolicyEngine**: 策略引擎，校验动作是否被策略允许
-- **TraceRecorder**: 追踪记录器，记录执行过程中的关键事件
+The current system is rule-based role orchestration. It should not be described as fully autonomous multi-agent software.
 
-## LangGraph Agent Kernel
+## Governance Flow
 
-Agent 内核基于 LangGraph 的 StateGraph 实现，图结构为：
+All meaningful execution paths are designed to pass through explicit boundaries:
 
-```
-START → assemble_context → plan → execute → verify → respond → END
-```
+1. API request enters FastAPI.
+2. Runtime creates task context and trace events.
+3. Multi-Agent orchestrator selects role flow.
+4. ToolGateway handles tool calls.
+5. PolicyEngine and OperationWhitelist check risky operations.
+6. Approval flow can pause and resume execution.
+7. Audit and metrics stores keep evidence.
+8. Observability UI shows trace and trajectory.
 
-- **assemble_context**: 调用 ContextAssembler 组装上下文
-- **plan**: 调用 KeywordPlanner 进行关键词路由
-- **execute**: 通过 ToolGateway 执行工具调用
-- **verify**: 通过 PolicyEngine 校验执行结果
-- **respond**: 生成最终响应
+## Observability
 
-## v0.1 数据流
+The Observability page exposes two views:
 
-```
-User Query → KeywordPlanner → ToolGateway → SQLite Tool → TraceRecorder → Response
-```
+- Trace timeline: raw event sequence for a task.
+- Multi-Agent Trajectory: role-oriented execution visualization with role, action, status, selected mode, executed mode, fallback, and approval signals.
 
-1. 用户通过 `POST /tasks` 提交查询
-2. KeywordPlanner 根据关键词匹配选择工具
-3. ToolGateway 调用对应的 SQLite 查询工具
-4. TraceRecorder 记录全链路事件
-5. 返回结构化响应
+## Storage Boundary
 
-## 版本规划
+SQLite is the default local demo backend. PostgreSQL and Redis are optional pilot paths and should only be enabled with explicit configuration.
 
-| 版本 | 目标 | 核心内容 |
-|------|------|----------|
-| v0.1 | Harness Core | Harness 五大组件 + AgentKernel 主链路 + SQLite 本地工具 + KeywordPlanner |
-| v0.2 | NL2SQL Eval Harness | 自然语言转 SQL + 评估框架 + Harness Eval 集成 |
-| v0.3 | Tool Gateway + Multi-Agent | MCP 远程工具接入 + 多 Agent 协作 |
-| v0.4 | HITL Production Flow | Human-in-the-Loop 审批流 + 生产级策略 |
-| v0.5 | Runtime Hardening | 运行时加固 + 可观测性 + 持久化 + 可视化看板 |
+## External Service Boundary
+
+The default test and demo path does not call real LLM APIs, real MCP servers, real business systems, or real identity providers. Real integrations are opt-in only.

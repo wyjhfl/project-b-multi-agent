@@ -167,6 +167,36 @@ def test_tasks_multi_agent_trace_events():
     reset_runtime_for_test()
 
 
+def test_tasks_multi_agent_trajectory_summary():
+    reset_runtime_for_test()
+    response = client.post("/tasks", json={"query": "今天GMV多少", "mode": "multi_agent"})
+    assert response.status_code == 200
+    task_id = response.json()["task_id"]
+
+    trajectory_response = client.get(f"/observability/tasks/{task_id}/trajectory")
+    assert trajectory_response.status_code == 200
+    data = trajectory_response.json()
+
+    assert data["summary"]["is_multi_agent"] is True
+    assert data["summary"]["selected_mode"] == "nl2sql"
+    assert data["summary"]["executed_mode"] == "nl2sql"
+    assert data["summary"]["status"] == "completed"
+    assert data["summary"]["event_count"] >= 5
+
+    roles = data["summary"]["roles"]
+    assert "coordinator" in roles
+    assert "analyst" in roles
+    assert "executor" in roles
+    assert "reviewer" in roles
+
+    actions = [step["action"] for step in data["steps"]]
+    assert "route_intent" in actions
+    assert "analyze_plan" in actions
+    assert "execute" in actions
+    assert "review" in actions
+    reset_runtime_for_test()
+
+
 def test_tasks_default_keyword_unchanged():
     reset_runtime_for_test()
     response = client.post("/tasks", json={"query": "GMV"})
