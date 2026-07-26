@@ -68,6 +68,18 @@ flowchart LR
 
 Trace events from every stage feed the Observability pages (task trace + Multi-Agent Trajectory visualization).
 
+## Screenshots
+
+All captured from the default offline demo (fake provider, no API key).
+
+| Multi-Agent Trajectory | High-risk HITL approval |
+| --- | --- |
+| ![Multi-Agent Trajectory](docs/screenshots/trajectory.png) | ![Approval detail](docs/screenshots/approval_detail.png) |
+
+| Dashboard | NL2SQL with SSE streaming mode |
+| --- | --- |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![NL2SQL](docs/screenshots/nl2sql.png) |
+
 ## Tech Stack
 
 - Backend: Python 3.11, FastAPI, Pydantic, SQLAlchemy, Alembic.
