@@ -1,5 +1,10 @@
 # Project B - Multi-Agent Runtime Showcase
 
+[![CI](https://github.com/wyjhfl/project-b-multi-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/wyjhfl/project-b-multi-agent/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
+![Offline-first](https://img.shields.io/badge/Demo-offline%20by%20default-brightgreen.svg)
+
 Project B is an enterprise-style Multi-Agent Runtime prototype for resume and interview demonstration. It focuses on explainable orchestration, governed tool execution, human approval, auditability, and trajectory visualization.
 
 ## Positioning
@@ -23,6 +28,45 @@ Project B is an enterprise-style Multi-Agent Runtime prototype for resume and in
 9. Observability: task trace and Multi-Agent Trajectory visualization.
 10. Operator console: Tasks, Approvals, Trace, Audit, Metrics, Tools, NL2SQL, RBAC, and LLM status pages.
 11. Real-model pilot tooling: `scripts/run_llm_pilot.py` + `docs/llm_pilot_runbook.md` (opt-in only; refuses to generate reports without explicit real-LLM configuration; `--dry-run` demonstrates the full flow offline).
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Console["Operator Console (Next.js)"]
+        UI["Tasks / Approvals / Trace<br/>NL2SQL / Audit / Metrics"]
+    end
+    subgraph Runtime["Agent Runtime (FastAPI)"]
+        K["AgentKernel<br/>keyword main path = LangGraph graph.invoke<br/>(nl2sql / multitool / multi-agent modes)"]
+        PL{{"Planner<br/>keyword rules (default)<br/>LLM function calling (opt-in)"}}
+        MA["Multi-agent roles<br/>Coordinator / Analyst / Executor / Reviewer"]
+    end
+    subgraph Gov["Tool Governance"]
+        GW["ToolGateway"]
+        PE["PolicyEngine + OperationWhitelist"]
+        AP["HITL Approval<br/>checkpoint / atomic resume"]
+        AU[("Audit Trail")]
+    end
+    subgraph Ext["Providers & Tools"]
+        LLM["LLM providers: fake (default)<br/>LiteLLM / OpenAI-compatible (opt-in)<br/>budget - cache - fallback - guardrails"]
+        MCP["MCP stdio client<br/>(2024-11-05 aligned, fake by default)"]
+        DB[("Read-only SQLite<br/>ops demo data")]
+    end
+    UI --> K
+    K --> PL
+    K --> MA
+    PL -. "tools=" .-> LLM
+    MA --> GW
+    PL --> GW
+    GW --> PE
+    PE -- "high risk" --> AP
+    AP --> AU
+    GW --> AU
+    GW --> MCP
+    GW --> DB
+```
+
+Trace events from every stage feed the Observability pages (task trace + Multi-Agent Trajectory visualization).
 
 ## Tech Stack
 
@@ -107,6 +151,10 @@ cd frontend
 npm run lint
 npm run build
 ```
+
+## AI-Assisted Engineering Workflow
+
+This codebase is developed with AI coding agents working under an explicit collaboration contract ([AGENTS.md](AGENTS.md)): scoped task briefs, offline-default constraints, regression tests required for every bug fix, and a documented no-overclaim policy for all capability claims. Every change must pass the full offline test suite (860+ tests) plus frontend lint/build and the CI guards before landing.
 
 ## Interview Materials
 
