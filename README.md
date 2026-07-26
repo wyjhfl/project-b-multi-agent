@@ -12,17 +12,24 @@ Project B is an enterprise-style Multi-Agent Runtime prototype for resume and in
 
 ## Core Capabilities
 
-1. Multi-agent role orchestration: Coordinator, Analyst, Executor, and Reviewer.
-2. Tool governance: ToolGateway, PolicyEngine, OperationWhitelist, approval, and audit.
-3. LLM engineering boundary: fake/offline by default, optional real provider opt-in, budget, cache, fallback, and guardrails.
-4. Observability: task trace and Multi-Agent Trajectory visualization.
-5. Operator console: Tasks, Approvals, Trace, Audit, Metrics, Tools, NL2SQL, RBAC, and LLM status pages.
+1. Multi-agent role orchestration: Coordinator, Analyst, Executor, and Reviewer (rule-based; optional LLM routing decision via `COORDINATOR_LLM_ENABLED`, default off).
+2. Graph execution: the keyword main path runs through a compiled LangGraph StateGraph (`graph.invoke`) with a conditional approval edge, and falls back to equivalent sequential execution if LangGraph is unavailable. Checkpoint/HITL resume uses a custom GraphRuntimeAdapter state machine, not the native LangGraph checkpointer.
+3. Tool governance: ToolGateway, PolicyEngine, OperationWhitelist, approval, and audit.
+4. HITL live demo: a high-risk simulated-write tool `simulate_refund_order` (in-memory simulation only, `DEMO_HIGH_RISK_TOOL_ENABLED`, default on) triggers `waiting_approval`, then approve/auto-resume or reject/cancel, fully audited.
+5. LLM engineering boundary: fake/offline by default; optional real providers via LiteLLM or a direct OpenAI-compatible HTTP path; function calling, streaming, budget with heuristic token/cost estimation, cache, fallback, and guardrails.
+6. LLM tool planning (opt-in): `PLANNER_MODE=llm` enables function-calling tool selection with argument validation and deterministic keyword-planner fallback; default remains the keyword planner. Demoable offline with the fake provider.
+7. NL2SQL: guarded SELECT-only pipeline plus an SSE streaming endpoint `/nl2sql/stream` (`NL2SQL_STREAM_ENABLED`, default on, offline-capable) that reuses the same injection guard, SQLGuard, read-only executor, and audit chain.
+8. MCP: fake MCP by default; the stdio MCP client implements the MCP 2024-11-05 initialize handshake, `notifications/initialized`, and `tools/call` isError mapping.
+9. Observability: task trace and Multi-Agent Trajectory visualization.
+10. Operator console: Tasks, Approvals, Trace, Audit, Metrics, Tools, NL2SQL, RBAC, and LLM status pages.
+11. Real-model pilot tooling: `scripts/run_llm_pilot.py` + `docs/llm_pilot_runbook.md` (opt-in only; refuses to generate reports without explicit real-LLM configuration; `--dry-run` demonstrates the full flow offline).
 
 ## Tech Stack
 
 - Backend: Python 3.11, FastAPI, Pydantic, SQLAlchemy, Alembic.
-- Agent runtime: custom Harness, rule-based Multi-Agent orchestrator, optional LangGraph adapter.
-- Tool protocol: fake MCP, stdio MCP client skeleton, ToolGateway.
+- Agent runtime: custom Harness, rule-based Multi-Agent orchestrator, LangGraph StateGraph for the keyword main path (sequential fallback), optional GraphRuntimeAdapter checkpoint path.
+- LLM providers: fake (default), LiteLLM (optional dependency), direct OpenAI-compatible HTTP (httpx only).
+- Tool protocol: fake MCP by default, MCP 2024-11-05-aligned stdio client, ToolGateway.
 - Frontend: Next.js, React, TypeScript.
 - Storage: SQLite demo by default; PostgreSQL and Redis are optional pilot paths.
 - Tests: pytest; default tests do not call real external services.
@@ -83,6 +90,16 @@ python -m pytest
 python -m py_compile app/api/observability.py app/api/operations.py scripts/start_dev.py
 ```
 
+Targeted tests for the newer capabilities (all offline, fake provider):
+
+```powershell
+python -m pytest tests/test_kernel_graph_invoke.py tests/test_llm_planner.py
+python -m pytest tests/test_llm_provider_tools_stream.py tests/test_nl2sql_stream.py
+python -m pytest tests/test_mcp_stdio_client_v31.py
+python -m pytest tests/test_high_risk_approval_demo_v445.py tests/test_multi_agent_reviewer_routing_v445.py
+python -m pytest tests/test_run_llm_pilot.py
+```
+
 Frontend:
 
 ```powershell
@@ -98,9 +115,10 @@ npm run build
 - `docs/resume_interview_optimization_pack_v50.md`: resume bullets and 2-minute pitch.
 - `docs/interview_demo_readiness_v50.md`: read-only pre-interview check.
 - `docs/demo_script_v1.md`: demo script.
+- `docs/llm_pilot_runbook.md`: opt-in real-model pilot runbook.
 
 ## Recommended GitHub Description
 
-Enterprise-style Multi-Agent Runtime prototype with rule-based role orchestration, governed tool execution, HITL approval/resume, audit trail, LLM fallback, NL2SQL demo, operator console, and trajectory visualization. It runs offline by default and does not require a real LLM or external MCP server.
+Enterprise-style Multi-Agent Runtime prototype: LangGraph-executed keyword main path, rule-based role orchestration, governed tool execution, HITL approval/resume with a live high-risk demo tool, SSE streaming NL2SQL, opt-in LLM function-calling planner, MCP 2024-11-05-aligned stdio client, audit trail, operator console, and trajectory visualization. It runs offline by default and does not require a real LLM or external MCP server.
 
 Avoid overclaiming: do not describe it as fully autonomous multi-agent software, public-production-ready software, or completed real-provider production acceptance.

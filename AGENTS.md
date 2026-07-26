@@ -121,10 +121,10 @@
 
 ## Known Pitfalls
 
-- **Multi-Agent 是规则型多角色编排**：Coordinator / Analyst / Executor / Reviewer 当前是规则驱动边界划分，不是完全自治多 Agent。不要在文档或代码中包装为“自治多 Agent”。
-- **StdioMCPClient 已有 real protocol path**：支持 subprocess stdio + JSON-RPC initialize/tools/list/tools/call + lifecycle hardening；默认仍 `MCP_MODE=fake`，real 模式需显式配置 command/allowlist，且当前验收基于 fake stdio server fixture。
+- **Multi-Agent 是规则型多角色编排**：Coordinator / Analyst / Executor / Reviewer 当前是规则驱动边界划分，不是完全自治多 Agent。Coordinator 的 LLM 路由决策（`COORDINATOR_LLM_ENABLED`）与 LLM function calling 规划器（`PLANNER_MODE=llm`）均为默认关闭的 opt-in 能力，且失败降级到关键词规则。不要在文档或代码中包装为“自治多 Agent”。
+- **StdioMCPClient 已有 real protocol path**：支持 subprocess stdio + JSON-RPC initialize/tools/list/tools/call + lifecycle hardening，并已对齐 MCP 2024-11-05（initialize 携带 protocolVersion/capabilities/clientInfo 且校验协商版本、握手后补发 notifications/initialized、tools/call isError 映射为失败结果）；默认仍 `MCP_MODE=fake`，real 模式需显式配置 command/allowlist，且当前验收基于 fake stdio server fixture。
 - **LLMJudgeProvider 已支持可选真实 provider 路径**：默认仍 fake/offline，默认测试不调用真实 LLM。不要在文档中宣称真实 LLM 生产验收已完成。
-- **LangGraph runtime 边界**：v1.1 只有最小 StateGraph smoke；Phase 2 已实现默认关闭的 graph checkpoint / interrupt / resume adapter 最小闭环，仅支持 graph_runtime_enabled=true 下 graph_keyword 单工具 approval resume。不要声称已实现完整 LangGraph native Command resume。
+- **LangGraph runtime 边界**：keyword 主链路默认已经过编译后的 LangGraph StateGraph 执行（graph.invoke，execute 后条件边处理 waiting_approval），langgraph 不可用时自动降级为等价顺序执行；nl2sql / multitool / multi_agent 仍为管道式执行。checkpoint / interrupt / resume 为默认关闭的自研 GraphRuntimeAdapter 最小闭环（graph_runtime_enabled=true 下 graph_keyword 单工具 approval resume）。不要声称已实现完整 LangGraph native Command resume 或原生 checkpointer。
 - **不要在文档中夸大为“生产环境即插即用”**：本项目是 production-grade engineering prototype，不可直接用于生产部署。
 - **auth_enabled 默认 false**：JWT / RBAC 默认不启用，旧 API 不需要 token。不要在默认配置下要求 token。
 - **rbac_enabled 默认 false**：即使关键 API 已接入 require_permission，RBAC 角色检查默认仍不启用。企业试点时设置 AUTH_ENABLED=true + RBAC_ENABLED=true。

@@ -36,12 +36,13 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 curl -s http://localhost:8000/health | python -m json.tool
 ```
 
-**预期响应：**
+**预期响应（节选，实际响应还包含 version / storage_backend / auth 开关等字段）：**
 
 ```json
 {
   "status": "ok",
-  "service": "project-b-multi-agent"
+  "service": "project-b-multi-agent",
+  ...
 }
 ```
 
@@ -51,7 +52,7 @@ curl -s http://localhost:8000/health | python -m json.tool
 
 ## Step 2：基础运营查询 — Keyword 模式（1 min）
 
-系统通过 `KeywordPlanner` 将用户自然语言匹配到 5 个本地工具：`get_today_gmv`、`get_order_count`、`get_month_new_users`、`get_refund_rate`、`get_top_products`。
+系统通过 `KeywordPlanner` 将用户自然语言匹配到 5 个本地查询工具：`get_today_gmv`、`get_order_count`、`get_month_new_users`、`get_refund_rate`、`get_top_products`（另有高风险演示工具 `simulate_refund_order`，见 Step 6）。
 
 ### 2.1 查询今日 GMV
 
@@ -276,9 +277,9 @@ curl -s -X POST http://localhost:8000/tasks \
 
 PolicyEngine 对 `risk_level=high` 的工具自动拦截，创建审批请求，任务进入 `waiting_approval` 状态。
 
-### 6.1 触发高风险工具审批
+系统默认注册了 `simulate_refund_order`：一个 `risk_level=high`、`permission_scope=write` 的模拟写操作工具（纯内存仿真，不修改任何真实订单数据），由 `DEMO_HIGH_RISK_TOOL_ENABLED` 开关控制（默认开启）。keyword / multi_agent 模式命中"模拟退款"词条即路由到该工具。
 
-> 注：当前 Demo 注册的工具中 `get_refund_rate` 为 medium 风险。以下演示使用 keyword 模式查询退款率，展示 medium 风险工具的正常放行；若系统注册了 high 风险工具（如 `adjust_pricing`、`batch_refund`），PolicyEngine 会自动拦截并创建审批请求。
+### 6.1 对照：medium 风险工具正常放行
 
 ```bash
 curl -s -X POST http://localhost:8000/tasks \
@@ -286,29 +287,25 @@ curl -s -X POST http://localhost:8000/tasks \
   -d '{"query": "退款率", "mode": "keyword"}' | python -m json.tool
 ```
 
-**当前响应（medium 风险，正常放行）：**
+**关注字段：** `status` = `"completed"`，`result.tool_called` = `"get_refund_rate"`（medium 风险直接放行）
 
-```json
-{
-  "task_id": "...",
-  "status": "completed",
-  "result": {
-    "answer": "退款率查询结果：{...}",
-    "tool_called": "get_refund_rate",
-    "success": true
-  }
-}
+### 6.2 触发高风险工具审批
+
+```bash
+curl -s -X POST http://localhost:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"query": "为订单ORD-1001模拟退款", "mode": "keyword"}' | python -m json.tool
 ```
 
-**高风险工具触发时的预期响应：**
+**预期响应（high 风险，任务挂起等待审批）：**
 
 ```json
 {
   "task_id": "...",
   "status": "waiting_approval",
   "result": {
-    "answer": "工具调用需要人工审批：高风险工具 'adjust_pricing' 需要人工审批",
-    "tool_called": "adjust_pricing",
+    "answer": "工具调用需要人工审批：高风险工具 'simulate_refund_order' 需要人工审批",
+    "tool_called": "simulate_refund_order",
     "success": false,
     "requires_approval": true,
     "approval_id": "apr_xxxxxxxx",
@@ -318,7 +315,9 @@ curl -s -X POST http://localhost:8000/tasks \
 }
 ```
 
-> 说明：PolicyEngine 的审批机制是 Harness 的核心安全防线。`risk_level=high` 的工具调用会被自动拦截，任务暂停在 `waiting_approval` 状态，等待人工审批后才可继续执行。审批 payload 中保存了完整的调用上下文（query / tool_name / arguments / plan），确保 resume 时可完整恢复。
+记下返回的 `approval_id` 和 `task_id`，Step 7 将实际完成审批与恢复执行。
+
+> 说明：PolicyEngine 的审批机制是 Harness 的核心安全防线。`risk_level=high` 的工具调用会被自动拦截，任务暂停在 `waiting_approval` 状态，等待人工审批后才可继续执行。审批 payload 中保存了完整的调用上下文（query / tool_name / arguments / plan），确保 resume 时可完整恢复。multi_agent 模式下同一查询会在 Executor 处被策略拦截，Reviewer 直接 reject 且不建议 fallback（换模式不能绕过审批）。
 
 ---
 
@@ -336,7 +335,7 @@ curl -s "http://localhost:8000/approvals?status=pending" | python -m json.tool
 
 ### 7.2 审批通过 + 自动 Resume
 
-> 将 `{approval_id}` 替换为 Step 6 返回的实际 ID
+> 将 `{approval_id}` 替换为 Step 6.2 返回的实际 ID
 
 ```bash
 curl -s -X POST http://localhost:8000/approvals/{approval_id}/approve \
@@ -350,17 +349,30 @@ curl -s -X POST http://localhost:8000/approvals/{approval_id}/approve \
 {
   "approval_id": "apr_xxxxxxxx",
   "status": "approved",
-  "approved": true,
   "decided_by": "admin",
   "decision_reason": "确认执行",
   "resume_result": {
-    "resumed": true,
-    "tool_name": "adjust_pricing",
+    "resumed_from_approval": true,
+    "tool_called": "simulate_refund_order",
     "success": true,
-    "result": {...}
+    "data": {
+      "simulated": true,
+      "refund_id": "SIM-RF-xxxxxxxx",
+      "order_id": "ORD-DEMO-0001",
+      "status": "refund_created",
+      "note": "仿真数据，未修改任何真实订单"
+    }
   }
 }
 ```
+
+再查询任务状态，确认已从 `waiting_approval` 恢复为 `completed`：
+
+```bash
+curl -s http://localhost:8000/tasks/{task_id} | python -m json.tool
+```
+
+**关注字段：** `status` = `"completed"`，`result.resumed_from_approval` = `true`，`result.data.simulated` = `true`
 
 ### 7.3 审批拒绝（可选演示）
 
@@ -599,6 +611,7 @@ curl -s -X POST $BASE/tasks -H "Content-Type: application/json" -d '{"query":"�
 
 echo -e "\n=== Step 6: High Risk Approval ==="
 curl -s -X POST $BASE/tasks -H "Content-Type: application/json" -d '{"query":"退款率","mode":"keyword"}' | python -m json.tool
+curl -s -X POST $BASE/tasks -H "Content-Type: application/json" -d '{"query":"为订单ORD-1001模拟退款","mode":"keyword"}' | python -m json.tool
 
 echo -e "\n=== Step 7: Approval List ==="
 curl -s "$BASE/approvals?status=pending" | python -m json.tool
