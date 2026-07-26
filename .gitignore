@@ -31,5 +31,9 @@ frontend/node_modules/
 frontend/.next/
 frontend/.turbo/
 frontend/out/
-docs/reports/
+# 运行期报告默认不入库,但真实模型试点报告作为证据保留
+docs/reports/*
+!docs/reports/real_llm_pilot/
 tmp_ci_worktree/
+
+.env.pilot

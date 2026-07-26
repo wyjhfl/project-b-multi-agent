@@ -19,6 +19,7 @@ import argparse
 import math
 import os
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -217,12 +218,18 @@ def evaluate_cases(
     cases: list[NL2SQLEvalCase],
     *,
     db_path: str | None = None,
+    interval_seconds: float = 0.0,
 ) -> list[dict[str, Any]]:
-    """逐条运行 eval 用例：dangerous_sql 走 SQLGuard，其余走 LLM 生成链路。"""
+    """逐条运行 eval 用例：dangerous_sql 走 SQLGuard，其余走 LLM 生成链路。
+
+    interval_seconds > 0 时在相邻 LLM 用例之间 sleep，用于规避网关的
+    每分钟请求配额（真实试点中 429 会导致整批用例瞬时降级 mock）。
+    """
     schema = SchemaMetadataExtractor().extract(db_path)
     guard = SQLGuard()
     generator = LLMNL2SQLGenerator(provider=provider, fallback_to_mock=True)
     records: list[dict[str, Any]] = []
+    llm_cases_started = 0
 
     for case in cases:
         if case.category == "dangerous_sql":
@@ -247,6 +254,10 @@ def evaluate_cases(
                 }
             )
             continue
+
+        if interval_seconds > 0 and llm_cases_started > 0:
+            time.sleep(interval_seconds)
+        llm_cases_started += 1
 
         result = generator.generate(case.input, schema)
         metadata = generator.last_provider_metadata or {}
@@ -418,6 +429,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db-path", default=None, help="schema 来源 SQLite 路径（默认 settings.ops_db_path）")
     parser.add_argument("--output-dir", default=None, help="报告输出目录（默认 REAL_LLM_PILOT_REPORT_DIR 或 docs/reports/real_llm_pilot）")
     parser.add_argument("--skip-network-probe", action="store_true", help="跳过 preflight 网络探测（仅排查用）")
+    parser.add_argument(
+        "--interval-seconds",
+        type=float,
+        default=0.0,
+        help="相邻 LLM 用例之间的间隔秒数（网关有每分钟配额时建议 8-12，默认 0）",
+    )
     args = parser.parse_args(argv)
 
     cfg = resolve_pilot_config(args.dry_run)
@@ -459,7 +476,12 @@ def main(argv: list[str] | None = None) -> int:
     sample = cases[: max(1, int(args.limit))]
     print(f"[eval] 运行 {len(sample)}/{len(cases)} 条用例 ...")
 
-    records = evaluate_cases(provider, sample, db_path=args.db_path)
+    records = evaluate_cases(
+        provider,
+        sample,
+        db_path=args.db_path,
+        interval_seconds=max(0.0, float(args.interval_seconds)),
+    )
     for record in records:
         flag = "pass" if record["passed"] else "FAIL"
         print(

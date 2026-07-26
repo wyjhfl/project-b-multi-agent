@@ -102,17 +102,18 @@ class LLMNL2SQLGenerator:
         warnings: list[str] = []
         raw_response = metadata.content
 
-        try:
-            data = json.loads(raw_response)
-        except json.JSONDecodeError as exc:
+        data, parse_warning, parse_error = self._loads_tolerant(raw_response)
+        if parse_error is not None:
             return self._fallback_or_failure(
                 query,
                 pruned,
                 provider_name,
-                f"invalid_json:{exc}",
-                warnings=[f"LLM 返回非法 JSON: {exc}"],
+                f"invalid_json:{parse_error}",
+                warnings=[f"LLM 返回非法 JSON: {parse_error}"],
                 schema=schema,
             )
+        if parse_warning:
+            warnings.append(parse_warning)
 
         if not isinstance(data, dict):
             return self._fallback_or_failure(
@@ -276,6 +277,43 @@ class LLMNL2SQLGenerator:
             fallback_reason=fallback_reason,
             warnings=warnings,
         )
+
+    @staticmethod
+    def _loads_tolerant(raw: str) -> tuple[Any, str | None, json.JSONDecodeError | None]:
+        """解析 LLM 返回的 JSON，容忍 markdown 代码围栏与前后缀说明文本。
+
+        真实 provider 常把 JSON 包在 ```json 围栏中或附带解释文字，
+        直接 json.loads 会整体降级；这里按 原样 -> 剥离围栏 -> 提取
+        首尾大括号 三级尝试，成功时返回提示 warning，全部失败则返回
+        首次解析错误。
+        """
+        try:
+            return json.loads(raw), None, None
+        except json.JSONDecodeError as exc:
+            first_error = exc
+
+        text = raw.strip()
+        if text.startswith("```"):
+            first_newline = text.find("\n")
+            if first_newline != -1:
+                text = text[first_newline + 1 :]
+            stripped = text.rstrip()
+            if stripped.endswith("```"):
+                text = stripped[: -len("```")]
+            try:
+                return json.loads(text), "已从 markdown 代码围栏中提取 JSON", None
+            except json.JSONDecodeError:
+                pass
+
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start != -1 and end > start:
+            try:
+                return json.loads(raw[start : end + 1]), "已从含前后缀文本的响应中提取 JSON", None
+            except json.JSONDecodeError:
+                pass
+
+        return None, None, first_error
 
     def _human_readable_reason(self, fallback_reason: str) -> str:
         if fallback_reason.startswith("invalid_json:"):

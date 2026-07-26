@@ -1,0 +1,816 @@
+{
+  "report_id": "llm-pilot-real",
+  "generated_at": "2026-07-26T10:19:22.148197+00:00",
+  "commit": "unknown",
+  "environment": "development",
+  "provider": "openai_compatible",
+  "model": "agnes-2.0-flash",
+  "base_url_summary": "https://apihub.agnes-ai.com",
+  "api_key_env": "OP***EY",
+  "api_key_present": true,
+  "scenario": "nl2sql_eval_batch",
+  "endpoint": "scripts/run_llm_pilot.py",
+  "request_id": "75da5c49eb6e4b0abdcfdd23dbd9292e",
+  "real_call_attempted": true,
+  "real_call_succeeded": true,
+  "fallback_used": true,
+  "fallback_reason": "see_case_details",
+  "budget_action": "",
+  "cache_hit": false,
+  "latency_ms": 3312.74,
+  "prompt_tokens": 8138,
+  "completion_tokens": 1705,
+  "total_tokens": 9843,
+  "cost": 0.0,
+  "error_type": "",
+  "outcome": "completed",
+  "warnings": [],
+  "evidence_links": {},
+  "observability": {
+    "preflight_status": "passed",
+    "preflight_checks": [
+      {
+        "name": "run_mode",
+        "ok": true,
+        "detail": "real"
+      },
+      {
+        "name": "provider_supported",
+        "ok": true,
+        "detail": "provider=openai_compatible"
+      },
+      {
+        "name": "model_configured",
+        "ok": true,
+        "detail": "model=<set>"
+      },
+      {
+        "name": "api_key_present",
+        "ok": true,
+        "detail": "env=OPENAI_API_KEY present=True"
+      },
+      {
+        "name": "base_url_summary",
+        "ok": true,
+        "detail": "https://apihub.agnes-ai.com"
+      },
+      {
+        "name": "network_probe",
+        "ok": true,
+        "detail": "latency_ms=2268.79"
+      }
+    ]
+  },
+  "evidence_notes": [
+    "nl2sql_eval_pilot",
+    "controlled_pilot"
+  ],
+  "cases": [
+    {
+      "scenario": "nl2sql_eval_batch",
+      "endpoint": "scripts/run_llm_pilot.py",
+      "request_id": "75da5c49eb6e4b0abdcfdd23dbd9292e",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": true,
+      "fallback_reason": "see_case_details",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3312.74,
+      "prompt_tokens": 8138,
+      "completion_tokens": 1705,
+      "total_tokens": 9843,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "completed",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {
+        "preflight_status": "passed",
+        "preflight_checks": [
+          {
+            "name": "run_mode",
+            "ok": true,
+            "detail": "real"
+          },
+          {
+            "name": "provider_supported",
+            "ok": true,
+            "detail": "provider=openai_compatible"
+          },
+          {
+            "name": "model_configured",
+            "ok": true,
+            "detail": "model=<set>"
+          },
+          {
+            "name": "api_key_present",
+            "ok": true,
+            "detail": "env=OPENAI_API_KEY present=True"
+          },
+          {
+            "name": "base_url_summary",
+            "ok": true,
+            "detail": "https://apihub.agnes-ai.com"
+          },
+          {
+            "name": "network_probe",
+            "ok": true,
+            "detail": "latency_ms=2268.79"
+          }
+        ]
+      },
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "eval_summary": {
+          "run_mode": "real",
+          "cases_total": 17,
+          "llm_called_cases": 14,
+          "passed_cases": 16,
+          "success_rate": 0.9412,
+          "fallback_cases": 2,
+          "fallback_rate": 0.1429,
+          "latency_p50_ms": 3312.74,
+          "latency_p95_ms": 8689.41,
+          "prompt_tokens_total": 8138,
+          "completion_tokens_total": 1705,
+          "total_tokens_total": 9843,
+          "cost_total_usd": 0.0,
+          "bad_cases": [
+            {
+              "case_id": "gmv_03",
+              "category": "gmv",
+              "outcome": "fallback",
+              "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+            },
+            {
+              "case_id": "refund_01",
+              "category": "refund",
+              "outcome": "fallback",
+              "reason": "provider_error:ProviderRateLimitError:OpenAI-compatible endpoint rate limited"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:gmv_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "75da5c49eb6e4b0abdcfdd23dbd9292e",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3032.470899983309,
+      "prompt_tokens": 612,
+      "completion_tokens": 122,
+      "total_tokens": 734,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "gmv",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:gmv_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "9b49cc186adf4e84954db88739aa5a7d",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2763.4088000049815,
+      "prompt_tokens": 611,
+      "completion_tokens": 129,
+      "total_tokens": 740,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "gmv",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:gmv_03",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "provider_error:ProviderRateLimitError:OpenAI-compatible endpoint rate limited",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "gmv",
+        "passed": false,
+        "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:users_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "aef908cb496744e29067c809c054c0ee",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3308.5846999892965,
+      "prompt_tokens": 566,
+      "completion_tokens": 144,
+      "total_tokens": 710,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "users",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:users_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "7d761660893541da994d2fafc8ca1625",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3316.903099999763,
+      "prompt_tokens": 565,
+      "completion_tokens": 147,
+      "total_tokens": 712,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "users",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:orders_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "c57e94461ff14d9cb9d7b930eaf7a91b",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 4184.655300050508,
+      "prompt_tokens": 622,
+      "completion_tokens": 122,
+      "total_tokens": 744,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "orders",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:orders_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "aa201854018e48ba8203e678431773ff",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 6673.415599972941,
+      "prompt_tokens": 620,
+      "completion_tokens": 123,
+      "total_tokens": 743,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "orders",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:products_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "e842e32a31c547db87e832f423ad9ac9",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3844.23660003813,
+      "prompt_tokens": 699,
+      "completion_tokens": 172,
+      "total_tokens": 871,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "products",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:products_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "c921ea4631fb49e5bc80a7502f62d58c",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2803.0805999878794,
+      "prompt_tokens": 699,
+      "completion_tokens": 139,
+      "total_tokens": 838,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "products",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:products_03",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "7e6ae89cfc684886a01c258e2f577cc4",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 6550.796600000467,
+      "prompt_tokens": 700,
+      "completion_tokens": 130,
+      "total_tokens": 830,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "products",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:refund_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "provider_error:ProviderRateLimitError:OpenAI-compatible endpoint rate limited",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "refund",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:refund_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "43d8cb2f9f8245b1baa39123a3f64d03",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 11153.397999994922,
+      "prompt_tokens": 749,
+      "completion_tokens": 177,
+      "total_tokens": 926,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "refund",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:time_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "3795480131124e5bbfb09a4c1fa0bc26",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2570.5538999754936,
+      "prompt_tokens": 615,
+      "completion_tokens": 119,
+      "total_tokens": 734,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "time_range",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:unknown_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "e45c699c1f1246339b31b66726b94bc5",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": true,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3032.611700007692,
+      "prompt_tokens": 1080,
+      "completion_tokens": 181,
+      "total_tokens": 1261,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "success",
+      "warnings": [
+        "已从 markdown 代码围栏中提取 JSON"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "unknown",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:dangerous_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": false,
+      "real_call_succeeded": false,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "guard_blocked",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "dangerous_sql",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:dangerous_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": false,
+      "real_call_succeeded": false,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "guard_blocked",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "dangerous_sql",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:dangerous_03",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": false,
+      "real_call_succeeded": false,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "guard_blocked",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "dangerous_sql",
+        "passed": true,
+        "reason": ""
+      }
+    }
+  ],
+  "artifacts": [],
+  "report_artifacts": [],
+  "run_mode": "real",
+  "eval_summary": {
+    "run_mode": "real",
+    "cases_total": 17,
+    "llm_called_cases": 14,
+    "passed_cases": 16,
+    "success_rate": 0.9412,
+    "fallback_cases": 2,
+    "fallback_rate": 0.1429,
+    "latency_p50_ms": 3312.74,
+    "latency_p95_ms": 8689.41,
+    "prompt_tokens_total": 8138,
+    "completion_tokens_total": 1705,
+    "total_tokens_total": 9843,
+    "cost_total_usd": 0.0,
+    "bad_cases": [
+      {
+        "case_id": "gmv_03",
+        "category": "gmv",
+        "outcome": "fallback",
+        "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+      },
+      {
+        "case_id": "refund_01",
+        "category": "refund",
+        "outcome": "fallback",
+        "reason": "provider_error:ProviderRateLimitError:OpenAI-compatible endpoint rate limited"
+      }
+    ]
+  }
+}

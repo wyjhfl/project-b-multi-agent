@@ -337,7 +337,10 @@ def test_initialize_client_version_matches_release_prep(tmp_path):
     assert capture_file.exists()
     payload = json.loads(capture_file.read_text(encoding="utf-8"))
     assert payload["clientInfo"]["name"] == "project-b"
-    assert payload["clientInfo"]["version"] == "4.3.0"
+    from app.tools.mcp.stdio_client import _resolve_client_version
+
+    assert payload["clientInfo"]["version"] == _resolve_client_version()
+    assert payload["clientInfo"]["version"] != "0.0.0"
     client.close()
 
 

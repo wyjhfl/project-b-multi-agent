@@ -18,6 +18,7 @@ Built a FastAPI + Next.js Multi-Agent Runtime prototype: LangGraph-executed keyw
 - Designed rule-based Multi-Agent role orchestration (Coordinator, Analyst, Executor, Reviewer) with a single routing-rule source, explainable confidence scoring, an optional LLM routing decision (default off), and a reviewer that rejects failed/blocked results instead of reporting false success.
 - Aligned the stdio MCP client with MCP 2024-11-05: initialize handshake with version negotiation, `notifications/initialized`, and `tools/call` isError mapping; fake MCP remains the default.
 - Added pytest coverage (860+ offline tests) for graph execution, LLM planner fallback, streaming, multi-agent review, MCP protocol, approval, audit, security, storage, and deployment guard paths.
+- Ran a controlled real-model pilot (agnes-2.0-flash via an OpenAI-compatible gateway, 2026-07-26): 17 NL2SQL eval cases, 94.1% pass, 12/14 LLM cases real generations (latency p50 3.3s / p95 8.7s, ~9.8k tokens); first run exposed two authentic integration bugs — markdown-fenced JSON breaking parsing (fixed with tolerant three-stage extraction + regression tests) and gateway per-minute rate limits collapsing the batch to mock fallback (mitigated with request pacing and retry backoff). Redacted reports in `docs/reports/real_llm_pilot/`.
 
 ## Defaults and Opt-in Switches
 

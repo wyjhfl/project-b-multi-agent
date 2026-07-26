@@ -1,0 +1,964 @@
+{
+  "report_id": "llm-pilot-real",
+  "generated_at": "2026-07-26T09:58:46.512428+00:00",
+  "commit": "unknown",
+  "environment": "development",
+  "provider": "openai_compatible",
+  "model": "agnes-2.0-flash",
+  "base_url_summary": "https://apihub.agnes-ai.com",
+  "api_key_env": "OP***EY",
+  "api_key_present": true,
+  "scenario": "nl2sql_eval_batch",
+  "endpoint": "scripts/run_llm_pilot.py",
+  "request_id": "c0e4a380b83e436eaec07267f890162d",
+  "real_call_attempted": true,
+  "real_call_succeeded": false,
+  "fallback_used": true,
+  "fallback_reason": "see_case_details",
+  "budget_action": "",
+  "cache_hit": false,
+  "latency_ms": 3055.15,
+  "prompt_tokens": 9499,
+  "completion_tokens": 2522,
+  "total_tokens": 12021,
+  "cost": 0.0,
+  "error_type": "",
+  "outcome": "completed",
+  "warnings": [],
+  "evidence_links": {},
+  "observability": {
+    "preflight_status": "passed",
+    "preflight_checks": [
+      {
+        "name": "run_mode",
+        "ok": true,
+        "detail": "real"
+      },
+      {
+        "name": "provider_supported",
+        "ok": true,
+        "detail": "provider=openai_compatible"
+      },
+      {
+        "name": "model_configured",
+        "ok": true,
+        "detail": "model=<set>"
+      },
+      {
+        "name": "api_key_present",
+        "ok": true,
+        "detail": "env=OPENAI_API_KEY present=True"
+      },
+      {
+        "name": "base_url_summary",
+        "ok": true,
+        "detail": "https://apihub.agnes-ai.com"
+      },
+      {
+        "name": "network_probe",
+        "ok": true,
+        "detail": "latency_ms=2157.00"
+      }
+    ]
+  },
+  "evidence_notes": [
+    "nl2sql_eval_pilot",
+    "controlled_pilot"
+  ],
+  "cases": [
+    {
+      "scenario": "nl2sql_eval_batch",
+      "endpoint": "scripts/run_llm_pilot.py",
+      "request_id": "c0e4a380b83e436eaec07267f890162d",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "see_case_details",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3055.15,
+      "prompt_tokens": 9499,
+      "completion_tokens": 2522,
+      "total_tokens": 12021,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "completed",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {
+        "preflight_status": "passed",
+        "preflight_checks": [
+          {
+            "name": "run_mode",
+            "ok": true,
+            "detail": "real"
+          },
+          {
+            "name": "provider_supported",
+            "ok": true,
+            "detail": "provider=openai_compatible"
+          },
+          {
+            "name": "model_configured",
+            "ok": true,
+            "detail": "model=<set>"
+          },
+          {
+            "name": "api_key_present",
+            "ok": true,
+            "detail": "env=OPENAI_API_KEY present=True"
+          },
+          {
+            "name": "base_url_summary",
+            "ok": true,
+            "detail": "https://apihub.agnes-ai.com"
+          },
+          {
+            "name": "network_probe",
+            "ok": true,
+            "detail": "latency_ms=2157.00"
+          }
+        ]
+      },
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "eval_summary": {
+          "run_mode": "real",
+          "cases_total": 17,
+          "llm_called_cases": 14,
+          "passed_cases": 15,
+          "success_rate": 0.8824,
+          "fallback_cases": 14,
+          "fallback_rate": 1.0,
+          "latency_p50_ms": 3055.15,
+          "latency_p95_ms": 11643.28,
+          "prompt_tokens_total": 9499,
+          "completion_tokens_total": 2522,
+          "total_tokens_total": 12021,
+          "cost_total_usd": 0.0,
+          "bad_cases": [
+            {
+              "case_id": "gmv_01",
+              "category": "gmv",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "gmv_02",
+              "category": "gmv",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "gmv_03",
+              "category": "gmv",
+              "outcome": "fallback",
+              "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+            },
+            {
+              "case_id": "users_01",
+              "category": "users",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "users_02",
+              "category": "users",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "orders_01",
+              "category": "orders",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "orders_02",
+              "category": "orders",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "products_01",
+              "category": "products",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "products_02",
+              "category": "products",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "products_03",
+              "category": "products",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "refund_01",
+              "category": "refund",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "refund_02",
+              "category": "refund",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "time_01",
+              "category": "time_range",
+              "outcome": "fallback",
+              "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+            },
+            {
+              "case_id": "unknown_01",
+              "category": "unknown",
+              "outcome": "fallback",
+              "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:gmv_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "c0e4a380b83e436eaec07267f890162d",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2545.8491999888793,
+      "prompt_tokens": 612,
+      "completion_tokens": 128,
+      "total_tokens": 740,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "gmv",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:gmv_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "b1e04941a3dd402ba8d83eec4a61cd42",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2531.383800029289,
+      "prompt_tokens": 611,
+      "completion_tokens": 129,
+      "total_tokens": 740,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "gmv",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:gmv_03",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "63c73701024745179014dfafc688546e",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2554.6787999919616,
+      "prompt_tokens": 611,
+      "completion_tokens": 119,
+      "total_tokens": 730,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "gmv",
+        "passed": false,
+        "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:users_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "85925331f7974308b033b994bf6d496c",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2550.636600004509,
+      "prompt_tokens": 566,
+      "completion_tokens": 118,
+      "total_tokens": 684,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "users",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:users_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "b4f96234cc214a10b526096aacdb99de",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2630.3732999949716,
+      "prompt_tokens": 565,
+      "completion_tokens": 146,
+      "total_tokens": 711,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "users",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:orders_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "8657b64f0d0841fea29dab7d32709eb3",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 10365.879499993753,
+      "prompt_tokens": 622,
+      "completion_tokens": 564,
+      "total_tokens": 1186,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "orders",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:orders_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "78dd0a9cebaa4be6814d071b7579bbfd",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2617.767800053116,
+      "prompt_tokens": 620,
+      "completion_tokens": 133,
+      "total_tokens": 753,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "orders",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:products_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "99543edcb9f54c16a1f6bda21b194f0f",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3421.2076000403613,
+      "prompt_tokens": 699,
+      "completion_tokens": 159,
+      "total_tokens": 858,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "products",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:products_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "e7f896642ec443c1936feb1a4241c2c2",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3311.288600030821,
+      "prompt_tokens": 699,
+      "completion_tokens": 139,
+      "total_tokens": 838,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "products",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:products_03",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "801a8a482d994dd5aef25406ffb497bf",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 6760.94850001391,
+      "prompt_tokens": 700,
+      "completion_tokens": 139,
+      "total_tokens": 839,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "products",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:refund_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "454da15adbcf4088b4d60e9f483616a9",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 4048.006600001827,
+      "prompt_tokens": 750,
+      "completion_tokens": 310,
+      "total_tokens": 1060,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "refund",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:refund_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "d96ce683c9634f9c98b3dcec2eb27b33",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 3382.0359999663197,
+      "prompt_tokens": 749,
+      "completion_tokens": 170,
+      "total_tokens": 919,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "refund",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:time_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "4a2ed21c6e9f4c6ebf536b8257f4ec11",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 2799.011600029189,
+      "prompt_tokens": 615,
+      "completion_tokens": 121,
+      "total_tokens": 736,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "time_range",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:unknown_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "bed04f476b5a46e6b5ef86c883d0abd3",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": true,
+      "real_call_succeeded": false,
+      "fallback_used": true,
+      "fallback_reason": "invalid_json:Expecting value: line 1 column 1 (char 0)",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 14015.586299996357,
+      "prompt_tokens": 1080,
+      "completion_tokens": 147,
+      "total_tokens": 1227,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "fallback",
+      "warnings": [
+        "LLM 返回非法 JSON: Expecting value: line 1 column 1 (char 0)"
+      ],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "unknown",
+        "passed": false,
+        "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:dangerous_01",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": false,
+      "real_call_succeeded": false,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "guard_blocked",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "dangerous_sql",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:dangerous_02",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": false,
+      "real_call_succeeded": false,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "guard_blocked",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "dangerous_sql",
+        "passed": true,
+        "reason": ""
+      }
+    },
+    {
+      "scenario": "nl2sql_eval:dangerous_03",
+      "endpoint": "eval:nl2sql_cases",
+      "request_id": "",
+      "provider": "openai_compatible",
+      "model": "agnes-2.0-flash",
+      "base_url_summary": "https://apihub.agnes-ai.com",
+      "api_key_env": "OP***EY",
+      "api_key_present": true,
+      "real_call_attempted": false,
+      "real_call_succeeded": false,
+      "fallback_used": false,
+      "fallback_reason": "",
+      "budget_action": "",
+      "cache_hit": false,
+      "latency_ms": 0.0,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "cost": 0.0,
+      "error_type": "",
+      "outcome": "guard_blocked",
+      "warnings": [],
+      "evidence_links": {},
+      "observability": {},
+      "evidence_notes": [
+        "nl2sql_eval_pilot",
+        "controlled_pilot"
+      ],
+      "detail": {
+        "category": "dangerous_sql",
+        "passed": true,
+        "reason": ""
+      }
+    }
+  ],
+  "artifacts": [],
+  "report_artifacts": [],
+  "run_mode": "real",
+  "eval_summary": {
+    "run_mode": "real",
+    "cases_total": 17,
+    "llm_called_cases": 14,
+    "passed_cases": 15,
+    "success_rate": 0.8824,
+    "fallback_cases": 14,
+    "fallback_rate": 1.0,
+    "latency_p50_ms": 3055.15,
+    "latency_p95_ms": 11643.28,
+    "prompt_tokens_total": 9499,
+    "completion_tokens_total": 2522,
+    "total_tokens_total": 12021,
+    "cost_total_usd": 0.0,
+    "bad_cases": [
+      {
+        "case_id": "gmv_01",
+        "category": "gmv",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "gmv_02",
+        "category": "gmv",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "gmv_03",
+        "category": "gmv",
+        "outcome": "fallback",
+        "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+      },
+      {
+        "case_id": "users_01",
+        "category": "users",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "users_02",
+        "category": "users",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "orders_01",
+        "category": "orders",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "orders_02",
+        "category": "orders",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "products_01",
+        "category": "products",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "products_02",
+        "category": "products",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "products_03",
+        "category": "products",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "refund_01",
+        "category": "refund",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "refund_02",
+        "category": "refund",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "time_01",
+        "category": "time_range",
+        "outcome": "fallback",
+        "reason": "invalid_json:Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "case_id": "unknown_01",
+        "category": "unknown",
+        "outcome": "fallback",
+        "reason": "SQL 被拦截: 无法生成 SQL：未匹配到查询模板"
+      }
+    ]
+  }
+}

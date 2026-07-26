@@ -28,7 +28,7 @@ bash 等价写法：`export REAL_LLM_ACCEPTANCE_ENABLED=true REAL_LLM_PROVIDER=o
 | `REAL_LLM_API_KEY_ENV` | 存放 key 的环境变量名，默认 `OPENAI_API_KEY`；也可直接设 `PILOT_API_KEY` |
 | `REAL_LLM_PILOT_REPORT_DIR` | 报告输出目录，默认 `docs/reports/real_llm_pilot/` |
 
-常用参数：`--limit 15`（抽样条数，默认 20）、`--output-dir <dir>`、`--skip-network-probe`（仅排查用）。
+常用参数：`--limit 15`（抽样条数，默认 20）、`--output-dir <dir>`、`--skip-network-probe`（仅排查用）、`--interval-seconds 10`（相邻 LLM 用例间隔；网关有每分钟配额时必备，否则 429 会导致整批用例降级 mock——2026-07-26 首次真实试点实测教训）。
 
 ## 2. 预期产物
 
