@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ApiError } from "@/lib/api/client";
 import { getTask, getTaskTrace } from "@/lib/api/tasks";
 import { formatDateTime, statusClass, statusLabel } from "@/lib/status";
 import type { TaskItem, TraceEvent } from "@/types/api";
@@ -63,12 +64,12 @@ export default async function TaskDetailPage({ params, searchParams }: TaskDetai
   let taskError = "";
   try {
     task = await getTask(taskId);
-    if ((task as unknown as { error?: string }).error) {
-      taskError = String((task as unknown as { error?: string }).error);
-      task = null;
-    }
   } catch (error) {
-    taskError = error instanceof Error ? error.message : "任务详情加载失败";
+    if (error instanceof ApiError && error.status === 404) {
+      task = null;
+    } else {
+      taskError = error instanceof Error ? error.message : "任务详情加载失败";
+    }
   }
 
   let traceEvents: TraceEvent[] = [];

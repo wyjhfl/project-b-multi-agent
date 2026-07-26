@@ -115,24 +115,12 @@ class SQLGuard:
         return " ".join(parts)
 
     def _validate_cte(self, sql: str, normalized: str) -> SQLGuardResult | None:
-        main_select = normalized.rstrip().rstrip(";").strip()
-        if not main_select.endswith("SELECT") and "SELECT" not in normalized.split("FROM")[-1] if "FROM" in normalized else True:
-            last_select_pos = normalized.rfind("SELECT")
-            if last_select_pos == -1:
-                return SQLGuardResult(
-                    allowed=False,
-                    sql=sql,
-                    reason="WITH CTE 必须最终是 SELECT 查询",
-                )
-
-        for keyword in self.BLOCKED_KEYWORDS:
-            pattern = r'\b' + keyword + r'\b'
-            if re.search(pattern, normalized):
-                return SQLGuardResult(
-                    allowed=False,
-                    sql=sql,
-                    reason=f"SQL 包含被禁止的关键字: {keyword}",
-                )
+        if "SELECT" not in normalized:
+            return SQLGuardResult(
+                allowed=False,
+                sql=sql,
+                reason="WITH CTE 必须最终是 SELECT 查询",
+            )
         return None
 
     def _ensure_limit(self, sql: str) -> str:

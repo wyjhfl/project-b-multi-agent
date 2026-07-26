@@ -1,3 +1,12 @@
+"""模拟 MCP stdio server 的测试夹具
+
+按 MCP 规范(2024-11-05 及后续修订版)实现最小握手:
+- initialize 请求必须携带 protocolVersion,缺失时返回 -32602 错误;
+- initialize 响应回传协商后的 protocolVersion;
+- 接受 notifications/initialized 等通知(无 id,不回写响应)。
+同时提供多种故障注入模式(超时/崩溃/非法 JSON/isError 等)供客户端测试使用。
+"""
+
 from __future__ import annotations
 
 import json
@@ -5,6 +14,9 @@ import os
 import sys
 import time
 from typing import Any
+
+PROTOCOL_VERSION = "2024-11-05"
+SUPPORTED_PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18")
 
 
 def _write(obj: dict[str, Any]) -> None:
@@ -69,23 +81,38 @@ def _handle_request(mode: str, req: dict[str, Any]) -> bool:
         raise RuntimeError("server crashed")
 
     if method == "initialize":
+        params = req.get("params") if isinstance(req.get("params"), dict) else {}
         if mode == "capture-init" and len(sys.argv) > 2:
             output_file = sys.argv[2]
             try:
                 with open(output_file, "w", encoding="utf-8") as f:
-                    json.dump(req.get("params", {}), f, ensure_ascii=False)
+                    json.dump(params, f, ensure_ascii=False)
             except Exception:
                 pass
-        _write(
-            {
-                "jsonrpc": "2.0",
-                "id": req_id,
-                "result": {
-                    "serverInfo": {"name": "fake-mcp-stdio", "version": "0.2.0"},
-                    "capabilities": {},
-                },
-            }
-        )
+        requested_version = params.get("protocolVersion")
+        if not isinstance(requested_version, str) or not requested_version.strip():
+            _write(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32602, "message": "initialize missing protocolVersion"},
+                }
+            )
+            return True
+        if mode == "unsupported-protocol-version":
+            negotiated = "1999-01-01"
+        elif requested_version in SUPPORTED_PROTOCOL_VERSIONS:
+            negotiated = requested_version
+        else:
+            negotiated = PROTOCOL_VERSION
+        result: dict[str, Any] = {
+            "protocolVersion": negotiated,
+            "serverInfo": {"name": "fake-mcp-stdio", "version": "0.2.0"},
+            "capabilities": {},
+        }
+        if mode == "no-protocol-version-result":
+            result.pop("protocolVersion")
+        _write({"jsonrpc": "2.0", "id": req_id, "result": result})
         return True
 
     if method == "tools/list":
@@ -101,6 +128,30 @@ def _handle_request(mode: str, req: dict[str, Any]) -> bool:
     if method == "tools/call":
         if mode == "tool-error":
             _write({"jsonrpc": "2.0", "id": req_id, "error": {"code": -32010, "message": "tool call failed"}})
+            return True
+        if mode == "tool-result-is-error":
+            _write(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "content": [{"type": "text", "text": "tool execution failed: boom"}],
+                        "isError": True,
+                    },
+                }
+            )
+            return True
+        if mode == "tool-result-is-error-false":
+            _write(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "content": [{"type": "text", "text": "tool executed ok"}],
+                        "isError": False,
+                    },
+                }
+            )
             return True
         if mode == "malformed-result":
             _write({"jsonrpc": "2.0", "id": req_id, "result": ["malformed", "result"]})
@@ -146,6 +197,17 @@ def main() -> int:
             req = json.loads(line)
         except Exception:
             _write({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}})
+            continue
+
+        if mode == "capture-messages" and state_file:
+            try:
+                with open(state_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps({"method": req.get("method")}, ensure_ascii=False) + "\n")
+            except Exception:
+                pass
+
+        method = req.get("method")
+        if isinstance(method, str) and method.startswith("notifications/") and "id" not in req:
             continue
 
         try:

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from app.auth.dependencies import require_permission
 from app.harness.eval.multi_agent_runner import MultiAgentEvalResult
 
 router = APIRouter(prefix="/tasks/eval", tags=["eval"])
@@ -20,7 +21,7 @@ class MultiAgentEvalResponse(BaseModel):
 
 
 @router.post("/multi-agent", response_model=MultiAgentEvalResponse)
-async def run_multi_agent_eval():
+async def run_multi_agent_eval(_current_user=Depends(require_permission("eval:run"))):
     from app.main import get_multi_agent_orchestrator, get_trace_recorder
 
     orchestrator = get_multi_agent_orchestrator()

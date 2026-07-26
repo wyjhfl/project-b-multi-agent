@@ -31,8 +31,12 @@ ENDPOINT_PERMISSIONS: dict[str, set[str]] = {
     "tools:read": {"admin", "operator", "viewer", "auditor"},
     "eval:run": {"admin", "operator"},
     "eval:read": {"admin", "operator", "viewer", "auditor"},
+    "memory:read": {"admin", "operator", "viewer", "auditor"},
     "memory:manage": {"admin", "operator"},
+    "nl2sql:run": {"admin", "operator"},
     "reflection:run": {"admin", "operator"},
+    "skills:read": {"admin", "operator", "viewer", "auditor"},
+    "snapshot:read": {"admin", "operator", "viewer", "auditor"},
     "snapshot:manage": {"admin"},
 }
 

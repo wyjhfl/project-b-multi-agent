@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
+
+from app.auth.dependencies import require_permission
 
 router = APIRouter(prefix="/observability", tags=["observability"])
 
@@ -76,7 +78,7 @@ def _get_task_store():
 
 
 @router.get("/tasks/summary", response_model=TaskSummaryResponse)
-async def get_tasks_summary():
+async def get_tasks_summary(_current_user=Depends(require_permission("metrics:read"))):
     store = _get_task_store()
     tasks = store.list_tasks(limit=100)
 
@@ -106,7 +108,7 @@ async def get_tasks_summary():
 
 
 @router.get("/tasks/{task_id}/timeline", response_model=TimelineResponse)
-async def get_task_timeline(task_id: str):
+async def get_task_timeline(task_id: str, _current_user=Depends(require_permission("metrics:read"))):
     recorder = _get_trace_recorder()
     events = recorder.get_events(task_id=task_id)
 
@@ -201,7 +203,7 @@ def _trajectory_status(event_type: str, detail: dict) -> str:
 
 
 @router.get("/tasks/{task_id}/trajectory", response_model=TrajectoryResponse)
-async def get_task_trajectory(task_id: str):
+async def get_task_trajectory(task_id: str, _current_user=Depends(require_permission("metrics:read"))):
     recorder = _get_trace_recorder()
     events = recorder.get_events(task_id=task_id)
 
@@ -272,6 +274,7 @@ async def get_events(
     task_id: str | None = Query(default=None),
     event_type: str | None = Query(default=None),
     limit: int = Query(default=100),
+    _current_user=Depends(require_permission("metrics:read")),
 ):
     if limit <= 0:
         limit = 100

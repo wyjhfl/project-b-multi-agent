@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from app.auth.dependencies import require_permission
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
 
@@ -16,7 +18,7 @@ def _safe_section(name: str, fn) -> dict:
 
 
 @router.get("/snapshot")
-async def get_runtime_snapshot():
+async def get_runtime_snapshot(_current_user=Depends(require_permission("snapshot:read"))):
     from app.main import (
         app,
         get_metrics_recorder,

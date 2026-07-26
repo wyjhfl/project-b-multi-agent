@@ -52,6 +52,9 @@ PILOT_EVIDENCE_SAFE_KEYS = {
     "prompt_tokens",
     "completion_tokens",
     "total_tokens",
+    "prompt_tokens_total",
+    "completion_tokens_total",
+    "total_tokens_total",
     "api_key_present",
     "cache_hit",
     "budget_action",
@@ -393,6 +396,36 @@ def write_pilot_report_json(
     return file_path
 
 
+def _eval_summary_lines(eval_summary: dict[str, Any]) -> list[str]:
+    """渲染 NL2SQL eval 批量试点的汇总段落（成功率/降级率/延迟/成本与 bad case）。"""
+
+    bad_cases = eval_summary.get("bad_cases") or []
+    lines = [
+        "## 3.1 NL2SQL Eval 汇总",
+        f"- cases_total: {eval_summary.get('cases_total', 0)}",
+        f"- llm_called_cases: {eval_summary.get('llm_called_cases', 0)}",
+        f"- passed_cases: {eval_summary.get('passed_cases', 0)}",
+        f"- success_rate: {eval_summary.get('success_rate', 0)}",
+        f"- fallback_cases: {eval_summary.get('fallback_cases', 0)}",
+        f"- fallback_rate: {eval_summary.get('fallback_rate', 0)}",
+        f"- latency_ms(p50/p95): {eval_summary.get('latency_p50_ms', 0)}/{eval_summary.get('latency_p95_ms', 0)}",
+        f"- tokens(prompt/completion/total): {eval_summary.get('prompt_tokens_total', 0)}/{eval_summary.get('completion_tokens_total', 0)}/{eval_summary.get('total_tokens_total', 0)}",
+        f"- cost_total_usd: {eval_summary.get('cost_total_usd', 0)}",
+        f"- bad_case_count: {len(bad_cases)}",
+    ]
+    if bad_cases:
+        lines.append("- bad_cases:")
+        for item in bad_cases:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"  - {item.get('case_id', '')} [{item.get('category', '')}] "
+                f"{item.get('outcome', '')}: {item.get('reason', '')}"
+            )
+    lines.append("")
+    return lines
+
+
 def write_pilot_report_markdown(
     report: PilotReportSummary | dict[str, Any],
     *,
@@ -403,43 +436,67 @@ def write_pilot_report_markdown(
     target_dir.mkdir(parents=True, exist_ok=True)
     file_path = target_dir / f"{_report_file_stem(payload)}.md"
 
+    run_mode = str(payload.get("run_mode") or "").strip().lower()
+    eval_summary_raw = payload.get("eval_summary")
+    eval_summary = eval_summary_raw if isinstance(eval_summary_raw, dict) else None
+
     lines: list[str] = [
         "# Real LLM Controlled Pilot 报告",
         "",
-        "- 类型：Controlled Pilot",
-        "- 运行方式：opt-in",
-        "- 验收边界：not production acceptance",
-        "- 数据边界：no raw prompt / no secrets",
-        "",
-        "## 1. 报告元信息",
-        f"- report_id: {payload.get('report_id', '')}",
-        f"- generated_at: {payload.get('generated_at', '')}",
-        f"- commit: {payload.get('commit', '')}",
-        f"- environment: {payload.get('environment', '')}",
-        "",
-        "## 2. 主案例摘要",
-        f"- provider/model: {payload.get('provider', '')} / {payload.get('model', '')}",
-        f"- endpoint: {payload.get('endpoint', '')}",
-        f"- request_id: {payload.get('request_id', '')}",
-        f"- outcome: {payload.get('outcome', '')}",
-        f"- real_call_attempted: {payload.get('real_call_attempted', False)}",
-        f"- real_call_succeeded: {payload.get('real_call_succeeded', False)}",
-        f"- fallback_used: {payload.get('fallback_used', False)}",
-        f"- fallback_reason: {payload.get('fallback_reason', '')}",
-        f"- budget_action: {payload.get('budget_action', '')}",
-        f"- cache_hit: {payload.get('cache_hit', False)}",
-        f"- latency_ms: {payload.get('latency_ms', 0)}",
-        f"- tokens(prompt/completion/total): {payload.get('prompt_tokens', 0)}/{payload.get('completion_tokens', 0)}/{payload.get('total_tokens', 0)}",
-        f"- cost: {payload.get('cost', 0)}",
-        f"- error_type: {payload.get('error_type', '')}",
-        "",
-        "## 3. 证据链摘要",
-        f"- evidence_links: {json.dumps(payload.get('evidence_links', {}), ensure_ascii=False)}",
-        f"- runtime_metric_keys: {json.dumps((payload.get('observability', {}) or {}).get('runtime_metric_keys', []), ensure_ascii=False)}",
-        f"- evidence_notes: {', '.join(payload.get('evidence_notes', [])) if payload.get('evidence_notes') else '无'}",
-        "",
-        "## 4. 案例明细",
     ]
+    if run_mode == "dry_run":
+        lines.extend(
+            [
+                "> **DRY RUN**：provider=fake，仅验证流程可跑通，不构成真实模型证据。",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "- 类型：Controlled Pilot",
+            "- 运行方式：opt-in",
+            "- 验收边界：not production acceptance",
+            "- 数据边界：no raw prompt / no secrets",
+            "",
+            "## 1. 报告元信息",
+            f"- report_id: {payload.get('report_id', '')}",
+            f"- generated_at: {payload.get('generated_at', '')}",
+            f"- commit: {payload.get('commit', '')}",
+            f"- environment: {payload.get('environment', '')}",
+        ]
+    )
+    if run_mode:
+        lines.append(f"- run_mode: {run_mode}")
+    lines.extend(
+        [
+            "",
+            "## 2. 主案例摘要",
+            f"- provider/model: {payload.get('provider', '')} / {payload.get('model', '')}",
+            f"- base_url_summary: {payload.get('base_url_summary', '')}",
+            f"- endpoint: {payload.get('endpoint', '')}",
+            f"- request_id: {payload.get('request_id', '')}",
+            f"- outcome: {payload.get('outcome', '')}",
+            f"- real_call_attempted: {payload.get('real_call_attempted', False)}",
+            f"- real_call_succeeded: {payload.get('real_call_succeeded', False)}",
+            f"- fallback_used: {payload.get('fallback_used', False)}",
+            f"- fallback_reason: {payload.get('fallback_reason', '')}",
+            f"- budget_action: {payload.get('budget_action', '')}",
+            f"- cache_hit: {payload.get('cache_hit', False)}",
+            f"- latency_ms: {payload.get('latency_ms', 0)}",
+            f"- tokens(prompt/completion/total): {payload.get('prompt_tokens', 0)}/{payload.get('completion_tokens', 0)}/{payload.get('total_tokens', 0)}",
+            f"- cost: {payload.get('cost', 0)}",
+            f"- error_type: {payload.get('error_type', '')}",
+            "",
+            "## 3. 证据链摘要",
+            f"- evidence_links: {json.dumps(payload.get('evidence_links', {}), ensure_ascii=False)}",
+            f"- runtime_metric_keys: {json.dumps((payload.get('observability', {}) or {}).get('runtime_metric_keys', []), ensure_ascii=False)}",
+            f"- evidence_notes: {', '.join(payload.get('evidence_notes', [])) if payload.get('evidence_notes') else '无'}",
+            "",
+        ]
+    )
+    if eval_summary is not None:
+        lines.extend(_eval_summary_lines(eval_summary))
+    lines.append("## 4. 案例明细")
 
     for index, case in enumerate(payload.get("cases", []), start=1):
         lines.extend(

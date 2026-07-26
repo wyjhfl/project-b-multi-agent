@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+
+from app.auth.dependencies import require_permission
 
 router = APIRouter(prefix="/eval", tags=["eval"])
 
@@ -36,7 +38,7 @@ class RunAllResponse(BaseModel):
 
 
 @router.get("/summary", response_model=EvalSummaryResponse)
-async def get_eval_summary():
+async def get_eval_summary(_current_user=Depends(require_permission("eval:read"))):
     global _last_multi_agent_accuracy, _last_nl2sql_accuracy
 
     nl2sql_eval_available = False
@@ -87,7 +89,7 @@ async def get_eval_summary():
 
 
 @router.post("/run-all", response_model=RunAllResponse)
-async def run_all_evals():
+async def run_all_evals(_current_user=Depends(require_permission("eval:run"))):
     global _last_multi_agent_accuracy, _last_nl2sql_accuracy
 
     suites: list[SuiteResult] = []

@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import { FormEvent, useState } from "react";
-import { executeNl2sql, previewNl2sql } from "@/lib/api/nl2sql";
+import { FormEvent, useRef, useState } from "react";
+import { executeNl2sql, previewNl2sql, streamNl2sql } from "@/lib/api/nl2sql";
 import type { NL2SQLExecuteResult, NL2SQLPreviewResult } from "@/types/api";
 
 function renderRows(result: NL2SQLExecuteResult | null) {
@@ -23,6 +23,12 @@ export default function Nl2sqlPage() {
   const [errorText, setErrorText] = useState("");
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingExecute, setLoadingExecute] = useState(false);
+  const [loadingStream, setLoadingStream] = useState(false);
+  const [streamStages, setStreamStages] = useState<string[]>([]);
+  const [streamSql, setStreamSql] = useState("");
+  const [streamGuard, setStreamGuard] = useState<{ allowed: boolean; reason: string } | null>(null);
+  const [streamResult, setStreamResult] = useState<NL2SQLExecuteResult | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
 
   async function onPreview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,6 +77,50 @@ export default function Nl2sqlPage() {
     } finally {
       setLoadingExecute(false);
     }
+  }
+
+  async function onStream() {
+    if (!query.trim()) {
+      setErrorText("query 不能为空");
+      return;
+    }
+    streamAbortRef.current?.abort();
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+    setLoadingStream(true);
+    setErrorText("");
+    setStreamStages([]);
+    setStreamSql("");
+    setStreamGuard(null);
+    setStreamResult(null);
+    try {
+      await streamNl2sql(
+        {
+          query: query.trim(),
+          generator,
+          provider: provider.trim() || undefined,
+          fallback_to_mock: fallbackToMock,
+        },
+        {
+          onStage: (stage) => setStreamStages((prev) => [...prev, stage]),
+          onSqlDelta: (delta) => setStreamSql((prev) => prev + delta),
+          onGuard: (allowed, reason) => setStreamGuard({ allowed, reason }),
+          onDone: (result) => setStreamResult(result),
+          onError: (reason) => setErrorText(reason),
+        },
+        controller.signal,
+      );
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        setErrorText(error instanceof Error ? error.message : "流式生成失败");
+      }
+    } finally {
+      setLoadingStream(false);
+    }
+  }
+
+  function onStopStream() {
+    streamAbortRef.current?.abort();
   }
 
   return (
@@ -147,9 +197,45 @@ export default function Nl2sqlPage() {
             <button className="button secondary" type="button" onClick={onExecute} disabled={loadingExecute}>
               {loadingExecute ? "执行中..." : "Execute"}
             </button>
+            <button className="button secondary" type="button" onClick={onStream} disabled={loadingStream}>
+              {loadingStream ? "流式生成中..." : "Stream"}
+            </button>
+            {loadingStream ? (
+              <button className="button secondary" type="button" onClick={onStopStream}>
+                停止
+              </button>
+            ) : null}
           </div>
         </form>
         {errorText ? <div className="empty">请求失败：{errorText}</div> : null}
+      </section>
+
+      <section className="section card">
+        <h2 className="card-title">流式生成</h2>
+        {streamStages.length > 0 || streamSql || streamGuard || streamResult ? (
+          <div className="stack">
+            <div className="toolbar">
+              {streamStages.map((stage) => (
+                <span key={stage} className="badge status-default">
+                  {stage}
+                </span>
+              ))}
+              {streamGuard ? (
+                <span className={`badge ${streamGuard.allowed ? "status-completed" : "status-failed"}`}>
+                  guard_allowed: {String(streamGuard.allowed)}
+                </span>
+              ) : null}
+              {loadingStream ? <span className="badge status-default">streaming...</span> : null}
+            </div>
+            {streamGuard && !streamGuard.allowed ? (
+              <div className="empty">guard 拦截：{streamGuard.reason}</div>
+            ) : null}
+            <pre className="json-box">{streamSql || "(SQL 增量输出中...)"}</pre>
+            {streamResult ? <pre className="json-box">{JSON.stringify(streamResult, null, 2)}</pre> : null}
+          </div>
+        ) : (
+          <div className="empty">点击 Stream 查看逐 chunk 生成过程。</div>
+        )}
       </section>
 
       <section className="section card">

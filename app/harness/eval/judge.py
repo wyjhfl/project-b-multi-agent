@@ -237,7 +237,7 @@ class LLMJudgeProvider(BaseJudge):
             mode="judge",
             provider=self._provider,
             model=self._model or "",
-            estimated_cost=0.0,
+            prompt=self._build_prompt(judge_input),
         )
         if not budget_status.get("allowed", True):
             return self._fallback_or_unavailable(

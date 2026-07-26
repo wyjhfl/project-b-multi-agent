@@ -1,11 +1,15 @@
 ﻿from __future__ import annotations
 
-from typing import Any
+import json
+from typing import Any, Iterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.agent.nl2sql.provider import ProviderConfigError, UnknownProviderError
+from app.auth.dependencies import require_permission
+from app.core.config import settings
 from app.harness.eval.nl2sql_runner import NL2SQLEvalRunner
 from app.harness.security.guardrails import GuardrailsEngine
 from app.harness.security.injection_guard import PromptInjectionGuard
@@ -102,7 +106,7 @@ class PreviewResponse(BaseModel):
 
 
 @router.post("/preview", response_model=PreviewResponse)
-async def preview_nl2sql(req: PreviewRequest):
+async def preview_nl2sql(req: PreviewRequest, _current_user=Depends(require_permission("nl2sql:run"))):
     input_guard = _guardrails.check_input(req.query, context={"api": "nl2sql_preview"})
     safe_query = input_guard.get("sanitized_text") or req.query
     finding = _injection_guard.check_text(req.query)
@@ -151,7 +155,7 @@ class EvalResponse(BaseModel):
 
 
 @router.post("/eval", response_model=EvalResponse)
-async def run_nl2sql_eval(req: EvalRequest = EvalRequest()):
+async def run_nl2sql_eval(req: EvalRequest = EvalRequest(), _current_user=Depends(require_permission("eval:run"))):
     try:
         runner = NL2SQLEvalRunner(
             generator=req.generator,
@@ -248,32 +252,42 @@ def _generate_nl2sql_result(req: PreviewRequest, safe_query: str | None = None, 
     )
 
 
-@router.post("/execute", response_model=ExecuteResponse)
-async def execute_nl2sql(req: ExecuteRequest):
-    input_guard = _guardrails.check_input(req.query, context={"api": "nl2sql_execute"})
-    safe_query = input_guard.get("sanitized_text") or req.query
-    finding = _injection_guard.check_text(req.query)
-    if finding.action == "block":
-        _get_audit_recorder().record(
-            event_type="prompt_injection_blocked",
-            action="nl2sql_execute",
-            outcome="blocked",
-            severity=finding.severity,
-            reason=finding.reason,
-            detail={"query": safe_query, "matched_patterns": finding.matched_patterns},
-        )
-        return ExecuteResponse(
-            selected_tables=[],
-            fallback=False,
-            sql="",
-            guard_allowed=False,
-            guard_reason=f"prompt injection blocked: {finding.reason}",
-            reasoning=finding.reason,
-            confidence=0.0,
-            generator_used="none",
-            warnings=[f"prompt_injection_blocked: {finding.reason}"],
-            guardrails={"input": input_guard},
-        )
+def _build_injection_blocked_execute_response(
+    action: str,
+    finding: Any,
+    safe_query: str,
+    input_guard: dict,
+) -> ExecuteResponse:
+    """注入拦截时的统一响应：记录审计事件并返回 guard 拒绝结构。"""
+    _get_audit_recorder().record(
+        event_type="prompt_injection_blocked",
+        action=action,
+        outcome="blocked",
+        severity=finding.severity,
+        reason=finding.reason,
+        detail={"query": safe_query, "matched_patterns": finding.matched_patterns},
+    )
+    return ExecuteResponse(
+        selected_tables=[],
+        fallback=False,
+        sql="",
+        guard_allowed=False,
+        guard_reason=f"prompt injection blocked: {finding.reason}",
+        reasoning=finding.reason,
+        confidence=0.0,
+        generator_used="none",
+        warnings=[f"prompt_injection_blocked: {finding.reason}"],
+        guardrails={"input": input_guard},
+    )
+
+
+def _execute_nl2sql_result(
+    req: ExecuteRequest,
+    safe_query: str,
+    input_guard: dict,
+    action: str,
+) -> ExecuteResponse:
+    """执行完整 pipeline（生成 + SQLGuard + 只读执行），/execute 与 /stream 共用。"""
     pipeline = NL2SQLPipeline()
     result = pipeline.run(
         query=safe_query,
@@ -283,7 +297,7 @@ async def execute_nl2sql(req: ExecuteRequest):
     )
     merged_guardrails = result.get("guardrails") or {}
     merged_guardrails = {"input": input_guard, **merged_guardrails}
-    _record_llm_acceptance_event("nl2sql_execute", result)
+    _record_llm_acceptance_event(action, result)
     return ExecuteResponse(
         selected_tables=result["selected_tables"],
         fallback=not result["guard_allowed"],
@@ -305,4 +319,73 @@ async def execute_nl2sql(req: ExecuteRequest):
         budget_status=result.get("budget_status"),
         acceptance_summary=result.get("acceptance_summary"),
         evidence_links=result.get("evidence_links"),
+    )
+
+
+@router.post("/execute", response_model=ExecuteResponse)
+async def execute_nl2sql(req: ExecuteRequest, _current_user=Depends(require_permission("nl2sql:run"))):
+    input_guard = _guardrails.check_input(req.query, context={"api": "nl2sql_execute"})
+    safe_query = input_guard.get("sanitized_text") or req.query
+    finding = _injection_guard.check_text(req.query)
+    if finding.action == "block":
+        return _build_injection_blocked_execute_response("nl2sql_execute", finding, safe_query, input_guard)
+    return _execute_nl2sql_result(req, safe_query, input_guard, "nl2sql_execute")
+
+
+def _sse_event(event: str, data: dict[str, Any]) -> str:
+    """按 SSE 规范编码单条事件：event 行 + data 行 + 空行分隔。"""
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _iter_sql_chunks(sql: str) -> Iterator[str]:
+    """SQL 文本按 llm_stream_chunk_chars 切块，与 provider 的流式模拟保持一致节奏。"""
+    chunk_chars = max(1, int(settings.llm_stream_chunk_chars))
+    for start in range(0, len(sql), chunk_chars):
+        yield sql[start : start + chunk_chars]
+
+
+def _stream_nl2sql_events(req: ExecuteRequest) -> Iterator[str]:
+    """流式事件序列：stage → sql_delta 增量 → guard → execution → done。
+
+    复用 /nl2sql/execute 的完整链路（输入 guardrails、注入检测、SQLGuard、
+    只读执行、审计），fake/mock 模式下离线可演示。客户端断开时生成器
+    收到 GeneratorExit 直接终止，不影响服务端状态。
+    """
+    try:
+        input_guard = _guardrails.check_input(req.query, context={"api": "nl2sql_stream"})
+        safe_query = input_guard.get("sanitized_text") or req.query
+        finding = _injection_guard.check_text(req.query)
+        if finding.action == "block":
+            blocked = _build_injection_blocked_execute_response("nl2sql_stream", finding, safe_query, input_guard)
+            payload = blocked.model_dump()
+            yield _sse_event("guard", {"allowed": False, "reason": payload["guard_reason"]})
+            yield _sse_event("done", payload)
+            return
+
+        yield _sse_event("stage", {"stage": "schema_loaded"})
+        yield _sse_event("stage", {"stage": "generating", "generator": req.generator, "provider": req.provider or ""})
+
+        response = _execute_nl2sql_result(req, safe_query, input_guard, "nl2sql_stream")
+        payload = response.model_dump()
+
+        for chunk in _iter_sql_chunks(payload["sql"]):
+            yield _sse_event("sql_delta", {"delta": chunk})
+        yield _sse_event("guard", {"allowed": payload["guard_allowed"], "reason": payload["guard_reason"]})
+        yield _sse_event(
+            "execution",
+            payload.get("execution") or {"success": False, "error": payload["guard_reason"]},
+        )
+        yield _sse_event("done", payload)
+    except Exception as exc:
+        yield _sse_event("error", {"reason": str(exc)})
+
+
+@router.post("/stream")
+async def stream_nl2sql(req: ExecuteRequest, _current_user=Depends(require_permission("nl2sql:run"))):
+    if not settings.nl2sql_stream_enabled:
+        raise HTTPException(status_code=404, detail="nl2sql stream disabled")
+    return StreamingResponse(
+        _stream_nl2sql_events(req),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

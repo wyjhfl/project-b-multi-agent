@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import uuid
 from contextlib import closing
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from app.core.config import settings
@@ -165,3 +166,28 @@ def get_refund_rate() -> dict[str, Any]:
         }
     except Exception as exc:
         return _db_error_result("get_refund_rate", str(exc))
+
+
+def simulate_refund_order(order_id: str = "ORD-DEMO-0001", amount: float = 99.0) -> dict[str, Any]:
+    """模拟创建退款单（纯内存仿真）
+
+    高风险写操作演示工具：不读写数据库，不调用任何外部系统，
+    仅在内存中构造一条仿真退款单，用于现场演示
+    PolicyEngine 拦截 → 审批单创建 → waiting_approval → 审批通过 resume 的完整 HITL 链路。
+
+    Args:
+        order_id: 订单号，默认演示订单
+        amount: 退款金额，默认演示金额
+
+    Returns:
+        仿真退款单字典（simulated=True 标记非真实数据）
+    """
+    return {
+        "simulated": True,
+        "refund_id": f"SIM-RF-{uuid.uuid4().hex[:8]}",
+        "order_id": order_id,
+        "amount": amount,
+        "status": "refund_created",
+        "created_at": datetime.now().isoformat(timespec="seconds"),
+        "note": "仿真数据，未修改任何真实订单",
+    }

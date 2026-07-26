@@ -8,6 +8,30 @@ from typing import Any
 from app.core.config import settings
 
 
+def estimate_prompt_tokens(text: str) -> int:
+    """按字符数粗略估算 prompt token（约 4 字符 = 1 token），仅用于调用前预算预估。"""
+    if not text:
+        return 0
+    return max(1, len(text) // 4)
+
+
+def estimate_llm_cost_usd(prompt_tokens: int, completion_tokens: int | None = None) -> float:
+    """按配置单价换算预估成本；未配置单价或关闭估算时返回 0.0。
+
+    completion_tokens 缺省时使用 llm_estimated_completion_tokens 兜底，
+    精确成本仍以响应 usage 为准。
+    """
+    if not settings.llm_cost_estimation_enabled:
+        return 0.0
+    if completion_tokens is None:
+        completion_tokens = max(0, int(settings.llm_estimated_completion_tokens))
+    prompt_price = max(0.0, float(settings.llm_cost_per_1k_prompt_tokens_usd))
+    completion_price = max(0.0, float(settings.llm_cost_per_1k_completion_tokens_usd))
+    prompt_cost = max(0, int(prompt_tokens)) / 1000.0 * prompt_price
+    completion_cost = max(0, int(completion_tokens)) / 1000.0 * completion_price
+    return prompt_cost + completion_cost
+
+
 @dataclass
 class BudgetDecision:
     allowed: bool
@@ -17,6 +41,7 @@ class BudgetDecision:
     current_cost: float
     soft_limit: float
     hard_limit: float
+    estimated_cost: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -27,6 +52,7 @@ class BudgetDecision:
             "current_cost": self.current_cost,
             "soft_limit": self.soft_limit,
             "hard_limit": self.hard_limit,
+            "estimated_cost": self.estimated_cost,
         }
 
 
@@ -63,7 +89,9 @@ class LLMBudgetManager:
         provider: str,
         model: str,
         estimated_cost: float = 0.0,
+        prompt: str | None = None,
     ) -> dict[str, Any]:
+        """预算检查：estimated_cost 未提供时可传 prompt，按启发式估算预估成本。"""
         if not self._enabled:
             return BudgetDecision(
                 allowed=True,
@@ -75,11 +103,15 @@ class LLMBudgetManager:
                 hard_limit=self._hard_limit,
             ).to_dict()
 
+        estimated_cost = max(0.0, float(estimated_cost))
+        if estimated_cost <= 0.0 and prompt is not None:
+            estimated_cost = estimate_llm_cost_usd(estimate_prompt_tokens(prompt))
+
         scope_key = self._scope_key()
         with self._lock:
             current_cost = float(self._cost_by_scope.get(scope_key, 0.0))
 
-        projected_cost = current_cost + max(0.0, float(estimated_cost))
+        projected_cost = current_cost + estimated_cost
         if self._hard_limit > 0 and projected_cost >= self._hard_limit:
             return BudgetDecision(
                 allowed=False,
@@ -89,6 +121,7 @@ class LLMBudgetManager:
                 current_cost=current_cost,
                 soft_limit=self._soft_limit,
                 hard_limit=self._hard_limit,
+                estimated_cost=estimated_cost,
             ).to_dict()
 
         if self._soft_limit > 0 and projected_cost >= self._soft_limit:
@@ -100,6 +133,7 @@ class LLMBudgetManager:
                 current_cost=current_cost,
                 soft_limit=self._soft_limit,
                 hard_limit=self._hard_limit,
+                estimated_cost=estimated_cost,
             ).to_dict()
 
         return BudgetDecision(
@@ -110,6 +144,7 @@ class LLMBudgetManager:
             current_cost=current_cost,
             soft_limit=self._soft_limit,
             hard_limit=self._hard_limit,
+            estimated_cost=estimated_cost,
         ).to_dict()
 
     def record_usage(

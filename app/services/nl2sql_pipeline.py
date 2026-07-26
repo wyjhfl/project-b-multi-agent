@@ -239,7 +239,7 @@ class NL2SQLPipeline:
                 mode="nl2sql",
                 provider=provider_name,
                 model=provider_model,
-                estimated_cost=0.0,
+                prompt=query,
             )
             if self._metrics_recorder is not None:
                 try:

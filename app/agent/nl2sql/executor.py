@@ -4,6 +4,7 @@ import os
 import sqlite3
 import time
 from contextlib import closing
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
@@ -35,6 +36,14 @@ class SQLiteReadOnlyExecutor:
         self._db_path = db_path or settings.ops_db_path
         self._guard = SQLGuard()
 
+    def _readonly_uri(self) -> str:
+        """构造 SQLite 只读连接 URI
+
+        使用 file:...?mode=ro 打开数据库，从连接层面禁止任何写入，
+        即使 SQL 绕过 SQLGuard 也无法修改数据。
+        """
+        return f"{Path(self._db_path).resolve().as_uri()}?mode=ro"
+
     def execute(self, sql: str) -> SQLExecutionResult:
         guard_result = self._guard.check(sql)
 
@@ -56,7 +65,7 @@ class SQLiteReadOnlyExecutor:
 
         start = time.monotonic()
         try:
-            with closing(sqlite3.connect(self._db_path)) as conn:
+            with closing(sqlite3.connect(self._readonly_uri(), uri=True)) as conn:
                 conn.row_factory = sqlite3.Row
                 with closing(conn.cursor()) as cur:
                     cur.execute(safe_sql)

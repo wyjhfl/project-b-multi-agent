@@ -29,6 +29,7 @@ from app.tools.local.ops_query import (
     get_refund_rate,
     get_today_gmv,
     get_top_products,
+    simulate_refund_order,
 )
 from app.tools.mcp.client import FakeMCPClient
 from app.core.config import settings
@@ -206,6 +207,20 @@ def _register_tools(gateway: ToolGateway) -> None:
         ),
         get_refund_rate,
     )
+    if settings.demo_high_risk_tool_enabled:
+        gateway.register(
+            ToolSpec(
+                tool_name="simulate_refund_order",
+                description="模拟创建退款单（纯内存仿真，用于高风险审批链路演示）",
+                input_schema={"type": "object", "properties": {"order_id": {"type": "string"}, "amount": {"type": "number"}}},
+                output_schema={"type": "object", "properties": {"simulated": {"type": "boolean"}, "refund_id": {"type": "string"}, "order_id": {"type": "string"}, "amount": {"type": "number"}, "status": {"type": "string"}}},
+                risk_level=RiskLevel.high,
+                permission_scope="write",
+                timeout_seconds=10.0,
+                is_local=True,
+            ),
+            simulate_refund_order,
+        )
 
 
 def _register_mcp_tools(gateway: ToolGateway) -> None:

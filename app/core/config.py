@@ -45,14 +45,21 @@ class Settings(BaseSettings):
     metrics_db_path: str = "data/db/runtime_metrics.sqlite"
 
     nl2sql_generator: str = "mock"
+    nl2sql_stream_enabled: bool = True
     llm_provider: str = "fake"
     llm_model: str = ""
     llm_api_key: str = ""
+    llm_api_key_env: str = ""
     llm_base_url: str = ""
     llm_timeout_seconds: float = 15.0
     llm_max_retries: int = 0
     llm_retry_backoff_seconds: float = 0.5
     llm_temperature: float = 0.0
+    llm_stream_chunk_chars: int = 24
+    llm_cost_estimation_enabled: bool = True
+    llm_cost_per_1k_prompt_tokens_usd: float = 0.0
+    llm_cost_per_1k_completion_tokens_usd: float = 0.0
+    llm_estimated_completion_tokens: int = 256
     judge_provider: str = "fake"
     judge_fallback_to_fake: bool = True
     judge_model: str = ""
@@ -96,6 +103,9 @@ class Settings(BaseSettings):
     storage_backend: str = "sqlite"
     redis_enabled: bool = False
     graph_runtime_enabled: bool = False
+    demo_high_risk_tool_enabled: bool = True
+    planner_mode: str = "keyword"
+    coordinator_llm_enabled: bool = False
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

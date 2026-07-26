@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
+from app.auth.dependencies import require_permission
 from app.core.config import settings
 
 router = APIRouter(prefix="/eval", tags=["eval"])
@@ -26,7 +27,7 @@ class BadCaseRunResponse(BaseModel):
 
 
 @router.post("/bad-cases/run", response_model=BadCaseRunResponse)
-async def run_bad_cases(request: BadCaseRunRequest):
+async def run_bad_cases(request: BadCaseRunRequest, _current_user=Depends(require_permission("eval:run"))):
     from app.harness.eval.bad_case_runner import BadCaseRunner
     from app.harness.eval.judge import FakeJudge, LLMJudgeProvider
     from app.main import get_metrics_recorder
@@ -80,6 +81,7 @@ async def run_bad_cases(request: BadCaseRunRequest):
 async def list_bad_cases(
     suite: str | None = Query(default=None),
     tag: str | None = Query(default=None),
+    _current_user=Depends(require_permission("eval:read")),
 ):
     from app.harness.eval.bad_case_runner import BadCaseRunner
 

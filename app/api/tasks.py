@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.agent.graph.kernel import AgentKernel
@@ -171,11 +172,11 @@ async def get_task(task_id: str, _current_user=Depends(require_permission("tasks
     try:
         store = _get_task_store()
         result = store.get_task(task_id)
-        if result is None:
-            return {"error": f"任务 '{task_id}' 不存在"}
-        return result
     except Exception as exc:
-        return {"error": str(exc)}
+        return JSONResponse(status_code=500, content={"error": str(exc)})
+    if result is None:
+        return JSONResponse(status_code=404, content={"error": f"任务 '{task_id}' 不存在"})
+    return result
 
 
 @router.get("/{task_id}/trace")

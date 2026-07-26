@@ -18,7 +18,7 @@ function getApiBaseUrl(): string {
   return raw.replace(/\/+$/, "");
 }
 
-function buildUrl(path: string): string {
+export function buildUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   // 浏览器端优先使用 Next.js 本地代理，避免额外 CORS 配置
   if (typeof window !== "undefined") {

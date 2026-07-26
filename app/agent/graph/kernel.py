@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.agent.graph.state import KeywordGraphState
 from app.agent.nodes.planner import KeywordPlanner
+from app.core.config import settings
 from app.harness.context.assembler import ContextAssembler
 from app.harness.gateway.tool_gateway import ToolGateway
 from app.harness.hooks.pipeline import HookPipeline, HookStage
@@ -14,12 +16,22 @@ from app.models.schemas import AgentContext, TaskRun, TaskStatus
 class AgentKernel:
     """Agent 内核
 
-    基于 LangGraph 实现的有向图编排内核。
-    v0.1 使用 mock 顺序流实现主链路：
-        context → plan → tool_gateway → verify → respond → trace
+    keyword 主链路经 LangGraph StateGraph 执行：
+        assemble_context → plan → execute →（条件边）→ verify → respond
+    图在 run() 首次调用时懒构建；langgraph 意外不可用时降级为
+    _run_sequential 顺序调用，trace 的 task_started 事件以
+    engine=langgraph|sequential 注明实际执行引擎。
+
+    nl2sql / multitool / multi_agent 模式为管道式执行（非图执行）；
+    checkpoint / HITL 恢复由自研 GraphRuntimeAdapter 状态机负责
+    （非 LangGraph 原生 checkpointer）。
+
+    规划器由 settings.planner_mode 选择：keyword（默认）使用 KeywordPlanner，
+    llm 使用 LLMToolPlanner（LLM function calling 选工具，失败降级
+    KeywordPlanner）；策略评估与高风险审批在 _execute 内，与规划器无关。
 
     v0.3.3 mode 支持：
-        - keyword: v0.1 工具路径
+        - keyword: LangGraph 图执行工具路径
         - nl2sql: v0.2 SQL Pipeline
         - multitool: v0.3.2 多工具串联
         - auto: NL2SQL → multitool → keyword fallback
@@ -64,6 +76,7 @@ class AgentKernel:
         self._memory: Any | None = None
         self._self_check_engine: Any | None = None
         self._graph: Any | None = None
+        self._llm_planner: Any | None = None
 
     def set_metrics_recorder(self, recorder: Any) -> None:
         self._metrics_recorder = recorder
@@ -75,40 +88,52 @@ class AgentKernel:
         self._self_check_engine = engine
 
     def build_graph(self) -> None:
+        """构建 keyword 主链路的 LangGraph StateGraph
+
+        各节点仅包装既有私有方法（_assemble_context/_plan/_execute/
+        _verify/_respond），不复制业务逻辑；execute 后的条件边在 task
+        进入 waiting_approval 时跳过 verify 直接 respond，与
+        _run_sequential 的顺序调用行为保持一致。构建失败时 _graph
+        置为 None，run() 会降级到顺序执行。
+        """
         try:
             from langgraph.graph import END, START, StateGraph
 
-            def _assemble_context(state: dict) -> dict:
-                state["stage"] = "context_assembled"
-                return state
+            def _assemble_context_node(state: KeywordGraphState) -> dict:
+                return {"ctx": self._assemble_context(state["task"])}
 
-            def _plan(state: dict) -> dict:
-                state["stage"] = "plan_created"
-                return state
+            def _plan_node(state: KeywordGraphState) -> dict:
+                return {"plan_result": self._plan(state["ctx"])}
 
-            def _execute(state: dict) -> dict:
-                state["stage"] = "executed"
-                return state
+            def _execute_node(state: KeywordGraphState) -> dict:
+                task = state["task"]
+                tool_record = self._execute(task, state["plan_result"])
+                return {
+                    "tool_record": tool_record,
+                    "waiting_approval": task.status == TaskStatus.waiting_approval,
+                }
 
-            def _verify(state: dict) -> dict:
-                state["stage"] = "verified"
-                return state
+            def _verify_node(state: KeywordGraphState) -> dict:
+                return {"verified": self._verify(state.get("tool_record"))}
 
-            def _respond(state: dict) -> dict:
-                state["stage"] = "responded"
-                return state
+            def _respond_node(state: KeywordGraphState) -> dict:
+                verified = False if state.get("waiting_approval") else bool(state.get("verified"))
+                return {"result": self._respond(state["plan_result"], state.get("tool_record"), verified)}
 
-            graph = StateGraph(dict)
-            graph.add_node("assemble_context", _assemble_context)
-            graph.add_node("plan", _plan)
-            graph.add_node("execute", _execute)
-            graph.add_node("verify", _verify)
-            graph.add_node("respond", _respond)
+            def _route_after_execute(state: KeywordGraphState) -> str:
+                return "respond" if state.get("waiting_approval") else "verify"
+
+            graph = StateGraph(KeywordGraphState)
+            graph.add_node("assemble_context", _assemble_context_node)
+            graph.add_node("plan", _plan_node)
+            graph.add_node("execute", _execute_node)
+            graph.add_node("verify", _verify_node)
+            graph.add_node("respond", _respond_node)
 
             graph.add_edge(START, "assemble_context")
             graph.add_edge("assemble_context", "plan")
             graph.add_edge("plan", "execute")
-            graph.add_edge("execute", "verify")
+            graph.add_conditional_edges("execute", _route_after_execute, {"verify": "verify", "respond": "respond"})
             graph.add_edge("verify", "respond")
             graph.add_edge("respond", END)
 
@@ -151,31 +176,40 @@ class AgentKernel:
             }
 
     async def run(self, task: TaskRun, session_id: str | None = None) -> TaskRun:
+        """执行 keyword 主链路
+
+        首次调用时懒构建 LangGraph 图，主链路经 self._graph.invoke()
+        执行；langgraph 不可用（构建失败）时降级为 _run_sequential
+        顺序调用。hooks / trace / memory / metrics / self_check 的
+        时序与图执行无关，保持在 run() 内。
+        """
         task.status = TaskStatus.running
         task.updated_at = self._now()
 
         sid = session_id or task.task_id
         self._memory_add(sid, "user", task.query)
 
+        if self._graph is None:
+            self.build_graph()
+        engine = "langgraph" if self._graph is not None else "sequential"
+
         try:
-            self._trace_recorder.record("task_started", task_id=task.task_id, detail={"query": task.query})
+            self._trace_recorder.record("task_started", task_id=task.task_id, detail={"query": task.query, "engine": engine})
 
             hook_payload = self._hook_pipeline.run(HookStage.before_task, {"task_id": task.task_id, "query": task.query})
             self._check_hook_errors(task.task_id, hook_payload)
 
-            ctx = self._assemble_context(task)
-            plan_result = self._plan(ctx)
-            tool_record = self._execute(task, plan_result)
+            if engine == "langgraph":
+                final_state = self._graph.invoke({"task": task})
+                result = final_state["result"]
+            else:
+                result = self._run_sequential(task)
 
             if task.status == TaskStatus.waiting_approval:
-                verified = False
-                result = self._respond(plan_result, tool_record, verified)
                 task.result = result
                 task.updated_at = self._now()
                 return task
 
-            verified = self._verify(tool_record)
-            result = self._respond(plan_result, tool_record, verified)
             task.result = result
 
             hook_payload = self._hook_pipeline.run(HookStage.after_task, {"task_id": task.task_id, "result": result})
@@ -196,6 +230,23 @@ class AgentKernel:
         self._run_self_check(task)
         task.updated_at = self._now()
         return task
+
+    def _run_sequential(self, task: TaskRun) -> dict[str, Any]:
+        """keyword 主链路的顺序调用 fallback
+
+        与 build_graph() 编译的图节点等价：assemble_context → plan →
+        execute → verify → respond，task 进入 waiting_approval 时跳过
+        verify。仅在 langgraph 不可用时由 run() 使用。
+        """
+        ctx = self._assemble_context(task)
+        plan_result = self._plan(ctx)
+        tool_record = self._execute(task, plan_result)
+
+        if task.status == TaskStatus.waiting_approval:
+            return self._respond(plan_result, tool_record, False)
+
+        verified = self._verify(tool_record)
+        return self._respond(plan_result, tool_record, verified)
 
     async def run_with_options(
         self,
@@ -505,8 +556,22 @@ class AgentKernel:
         self._trace_recorder.record("context_assembled", task_id=task.task_id, detail={"available_tools": ctx.available_tools})
         return ctx
 
+    def _active_planner(self) -> Any:
+        """按 settings.planner_mode 选择规划器
+
+        planner_mode=llm 时懒构建 LLMToolPlanner，以既有 KeywordPlanner
+        作为降级规划器；默认 keyword 模式直接使用 KeywordPlanner，行为不变。
+        """
+        if getattr(settings, "planner_mode", "keyword") != "llm":
+            return self._planner
+        if self._llm_planner is None:
+            from app.agent.nodes.llm_planner import LLMToolPlanner
+
+            self._llm_planner = LLMToolPlanner(self._tool_gateway, fallback_planner=self._planner)
+        return self._llm_planner
+
     def _plan(self, ctx: AgentContext) -> dict[str, Any]:
-        plan_result = self._planner.plan(ctx.user_query)
+        plan_result = self._active_planner().plan(ctx.user_query)
         self._trace_recorder.record("plan_created", task_id=ctx.task_id, detail=plan_result)
         return plan_result
 
@@ -515,6 +580,7 @@ class AgentKernel:
         if not tool_name:
             return None
 
+        arguments = plan_result.get("arguments") or {}
         spec = self._tool_gateway.get_tool(tool_name)
         if spec:
             decision = self._policy_engine.evaluate(tool_name, risk_level=spec.risk_level)
@@ -533,7 +599,7 @@ class AgentKernel:
                                 "mode": "keyword",
                                 "query": task.query,
                                 "tool_name": tool_name,
-                                "arguments": {},
+                                "arguments": arguments,
                                 "plan_result": plan_result,
                             },
                         )
@@ -557,7 +623,7 @@ class AgentKernel:
         hook_payload = self._hook_pipeline.run(HookStage.before_tool_call, {"task_id": task.task_id, "tool_name": tool_name})
         self._check_hook_errors(task.task_id, hook_payload)
 
-        record = self._tool_gateway.call(tool_name, task_id=task.task_id)
+        record = self._tool_gateway.call(tool_name, arguments=arguments, task_id=task.task_id)
 
         hook_payload = self._hook_pipeline.run(HookStage.after_tool_call, {"task_id": task.task_id, "tool_name": tool_name, "success": record.success})
         self._check_hook_errors(task.task_id, hook_payload)
@@ -612,7 +678,7 @@ class AgentKernel:
             }
 
         data = tool_result.result if hasattr(tool_result, "result") else tool_result
-        label = self._planner.get_label(plan_result.get("tool_name"))
+        label = self._active_planner().get_label(plan_result.get("tool_name"))
         return {
             "answer": f"{label}查询结果：{data}",
             "tool_called": plan_result.get("tool_name"),

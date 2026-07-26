@@ -1,12 +1,18 @@
 ﻿from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 from app.models.schemas import RiskLevel
-from app.tools.mcp.stdio_client import StdioMCPClient, MCP_STDERR_MAX_CHARS
+from app.tools.mcp.stdio_client import (
+    MCP_PROTOCOL_VERSION,
+    MCP_STDERR_MAX_CHARS,
+    MCP_SUPPORTED_PROTOCOL_VERSIONS,
+    StdioMCPClient,
+)
 
 
 def _server_script() -> str:
@@ -333,3 +339,103 @@ def test_initialize_client_version_matches_release_prep(tmp_path):
     assert payload["clientInfo"]["name"] == "project-b"
     assert payload["clientInfo"]["version"] == "4.3.0"
     client.close()
+
+
+def test_initialize_sends_protocol_version_and_capabilities(tmp_path):
+    capture_file = tmp_path / "init_protocol_params.json"
+    client = StdioMCPClient(
+        server_name="capture_init_protocol",
+        command=_python_command(),
+        args=f"\"{_server_script()}\" capture-init \"{capture_file}\"",
+        timeout_seconds=1.0,
+    )
+    tools = client.list_tools()
+    assert len(tools) >= 2
+    payload = json.loads(capture_file.read_text(encoding="utf-8"))
+    assert payload["protocolVersion"] == MCP_PROTOCOL_VERSION
+    assert payload["protocolVersion"] in MCP_SUPPORTED_PROTOCOL_VERSIONS
+    assert isinstance(payload["capabilities"], dict)
+    assert isinstance(payload["clientInfo"], dict)
+    client.close()
+
+
+def test_initialized_notification_sent_after_handshake(tmp_path):
+    capture_file = tmp_path / "messages.jsonl"
+    client = StdioMCPClient(
+        server_name="capture_messages",
+        command=_python_command(),
+        args=f"\"{_server_script()}\" capture-messages \"{capture_file}\"",
+        timeout_seconds=1.0,
+    )
+    tools = client.list_tools()
+    assert len(tools) >= 2
+    lines = capture_file.read_text(encoding="utf-8").strip().splitlines()
+    methods = [json.loads(line)["method"] for line in lines]
+    assert methods[:3] == ["initialize", "notifications/initialized", "tools/list"]
+    client.close()
+
+
+def test_server_unsupported_protocol_version_rejected():
+    client = _build_client("unsupported-protocol-version")
+    tools = client.list_tools()
+    assert tools == []
+    health = client.get_health()
+    assert health["initialized"] is False
+    assert "protocolVersion" in health["last_error"]
+    client.close()
+
+
+def test_server_missing_protocol_version_in_result_rejected():
+    client = _build_client("no-protocol-version-result")
+    tools = client.list_tools()
+    assert tools == []
+    health = client.get_health()
+    assert health["initialized"] is False
+    assert "protocolVersion" in health["last_error"]
+    client.close()
+
+
+def test_call_tool_is_error_true_mapped_to_failure():
+    client = _build_client("tool-result-is-error")
+    result = client.call_tool("stdio_date_lookup", {})
+    assert "error" in result
+    assert "tool execution failed: boom" in result["error"]
+    assert result["content"] == [{"type": "text", "text": "tool execution failed: boom"}]
+    client.close()
+
+
+def test_call_tool_is_error_false_passthrough():
+    client = _build_client("tool-result-is-error-false")
+    result = client.call_tool("stdio_date_lookup", {})
+    assert "error" not in result
+    assert result["isError"] is False
+    assert result["content"] == [{"type": "text", "text": "tool executed ok"}]
+    client.close()
+
+
+def test_fake_server_rejects_initialize_without_protocol_version():
+    proc = subprocess.Popen(
+        [_python_command(), _server_script(), "normal"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+    )
+    try:
+        request = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {"clientInfo": {"name": "legacy", "version": "0.0.1"}, "capabilities": {}},
+        }
+        assert proc.stdin is not None and proc.stdout is not None
+        proc.stdin.write(json.dumps(request) + "\n")
+        proc.stdin.flush()
+        response = json.loads(proc.stdout.readline())
+        assert response["id"] == 1
+        assert response["error"]["code"] == -32602
+        assert "protocolVersion" in response["error"]["message"]
+    finally:
+        proc.kill()
+        proc.wait(timeout=5)

@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 MCP_STDERR_MAX_CHARS = 4000
 
+MCP_PROTOCOL_VERSION = "2024-11-05"
+MCP_SUPPORTED_PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18")
+
 
 def _resolve_client_version() -> str:
     try:
@@ -55,6 +58,17 @@ class MCPProcessCrashedError(RuntimeError):
 
 
 class StdioMCPClient:
+    """stdio 传输的 MCP 客户端
+
+    协议层对齐 MCP 规范 2024-11-05 版本(兼容接受 server 协商返回的
+    2025-03-26 / 2025-06-18 修订版):
+    - initialize 请求携带 protocolVersion + capabilities + clientInfo,
+      并校验 server 返回的 protocolVersion 在受支持列表内;
+    - initialize 成功后补发 notifications/initialized 通知;
+    - tools/call 结果的 isError=true 映射为工具调用失败,保留 content 错误信息。
+    进程层提供命令白名单、超时不重放、崩溃后按需重启与 stderr 有界采集。
+    """
+
     def __init__(
         self,
         server_name: str,
@@ -236,16 +250,42 @@ class StdioMCPClient:
             raise MCPProtocolError(f"MCP server '{self._server_name}' response missing result.")
         return resp["result"]
 
+    def _notify(self, method: str, params: dict[str, Any] | None = None) -> None:
+        if self._process is None or self._process.stdin is None:
+            raise MCPProcessCrashedError(f"MCP server '{self._server_name}' is not started.")
+        payload: dict[str, Any] = {"jsonrpc": "2.0", "method": method}
+        if params:
+            payload["params"] = params
+        try:
+            self._process.stdin.write(json.dumps(payload, ensure_ascii=False) + "\n")
+            self._process.stdin.flush()
+        except OSError as exc:
+            raise MCPProcessCrashedError(
+                f"MCP server '{self._server_name}' write failed."
+            ) from exc
+
     def _initialize(self) -> None:
         result = self._request(
             "initialize",
             {
-                "clientInfo": {"name": "project-b", "version": self._client_version},
+                "protocolVersion": MCP_PROTOCOL_VERSION,
                 "capabilities": {},
+                "clientInfo": {"name": "project-b", "version": self._client_version},
             },
         )
         if not isinstance(result, dict):
             raise MCPProtocolError("Initialize result must be an object.")
+        server_version = result.get("protocolVersion")
+        if not isinstance(server_version, str) or not server_version.strip():
+            raise MCPProtocolError(
+                f"MCP server '{self._server_name}' initialize result missing protocolVersion."
+            )
+        if server_version not in MCP_SUPPORTED_PROTOCOL_VERSIONS:
+            raise MCPProtocolError(
+                f"MCP server '{self._server_name}' negotiated unsupported protocolVersion "
+                f"'{server_version}', expected one of {list(MCP_SUPPORTED_PROTOCOL_VERSIONS)}."
+            )
+        self._notify("notifications/initialized")
         self._initialized = True
 
     def _cleanup_process(self, reason: str = "", terminate: bool = False) -> None:
@@ -314,6 +354,26 @@ class StdioMCPClient:
             self._start_process()
         if not self._initialized:
             self._initialize()
+
+    @staticmethod
+    def _extract_content_text(content: Any) -> str:
+        if isinstance(content, str):
+            return content.strip()
+        if isinstance(content, list):
+            texts = [
+                item["text"].strip()
+                for item in content
+                if isinstance(item, dict) and isinstance(item.get("text"), str)
+            ]
+            return "\n".join(t for t in texts if t)
+        return ""
+
+    def _map_tool_error_result(self, result: dict[str, Any]) -> dict[str, Any]:
+        message = self._extract_content_text(result.get("content"))
+        if not message:
+            message = f"MCP server '{self._server_name}' tool call failed (isError=true)."
+        self._last_error = message
+        return {"error": message, "content": result.get("content")}
 
     @staticmethod
     def _normalize_risk_level(value: Any) -> RiskLevel:
@@ -421,6 +481,8 @@ class StdioMCPClient:
                 return {"error": error_message}
 
             if isinstance(result, dict):
+                if result.get("isError"):
+                    return self._map_tool_error_result(result)
                 return result
             return {"content": result}
 
